@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
-using Editor;
 
-[JsonSerializable(typeof(List<Registry.RegistryFile>))]
+namespace Editor;
+
+[JsonSerializable(typeof(IEnumerable<Registry.RegistryFile>))]
 internal partial class EditorJsonSerializerContext : JsonSerializerContext
 {
-
 }

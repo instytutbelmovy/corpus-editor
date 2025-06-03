@@ -1,4 +1,7 @@
-﻿namespace Editor;
+﻿using Dapper;
+using Microsoft.Data.Sqlite;
+
+namespace Editor;
 
 public static class Registry
 {
@@ -8,13 +11,13 @@ public static class Registry
         todosApi.MapGet("/", GetAllFiles);
     }
 
-    public static Task<List<RegistryFile>> GetAllFiles()
+    public static async Task<IEnumerable<RegistryFile>> GetAllFiles(SqliteConnection connection)
     {
-        return Task.FromResult(new List<RegistryFile>
+        using (connection)
         {
-            new(1, "abc", "def", 0, 0),
-            new(2, "ghi", "jkl", 10, 20),
-        });
+            connection.Open();
+            return await connection.QueryAsync<RegistryFile>($"select {nameof(RegistryFile.Id)}, {nameof(RegistryFile.Name)}, {nameof(RegistryFile.Url)}, {nameof(RegistryFile.PercentCompletion)}, {nameof(RegistryFile.PercentManualCompletion)} from RegistryFile");
+        }
     }
 
     public record RegistryFile(int Id, string Name, string? Url, decimal PercentCompletion, decimal PercentManualCompletion);
