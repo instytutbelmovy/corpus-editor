@@ -5,9 +5,9 @@ namespace Editor.Migrations;
 
 public static class M0001_Initial
 {
-    public static async void Apply(SqliteConnection connection)
+    public static void Apply(SqliteConnection connection)
     {
         connection.Execute("PRAGMA journal_mode = 'wal'");
-        connection.Execute("CREATE TABLE RegistryFile ('Id' INTEGER, 'Name' TEXT, 'Url' TEXT, 'PercentCompletion' INTEGER, 'PercentManualCompletion' INTEGER);");
+        connection.Execute("CREATE TABLE RegistryFile ('Id' INTEGER, 'PercentCompletion' INTEGER, 'PercentManualCompletion' INTEGER);");
     }
 }

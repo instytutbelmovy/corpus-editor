@@ -1,4 +1,5 @@
 ﻿using Dapper;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.Sqlite;
 
 namespace Editor;
@@ -11,15 +12,14 @@ public static class Registry
         todosApi.MapGet("/", GetAllFiles);
     }
 
-    public static async Task<IEnumerable<RegistryFile>> GetAllFiles(SqliteConnection connection)
+    public static async Task<IEnumerable<RegistryFileDto>> GetAllFiles(SqliteConnection connection, [FromServices] Settings settings)
     {
         using (connection)
         {
             connection.Open();
-            return await connection.QueryAsync<RegistryFile>($"select {nameof(RegistryFile.Id)}, {nameof(RegistryFile.Name)}, {nameof(RegistryFile.Url)}, {nameof(RegistryFile.PercentCompletion)}, {nameof(RegistryFile.PercentManualCompletion)} from RegistryFile");
+            var registryFiles = await connection.QueryAsync<RegistryFile>($"select {nameof(RegistryFile.Id)}, {nameof(RegistryFile.PercentCompletion)}, {nameof(RegistryFile.PercentManualCompletion)} from RegistryFile");
+            var documents = await VertiReader.GetDocuments(settings.FilesDirectory);
+            return registryFiles.Join(documents, x => x.Id, x => x.N, (registryFile, corpusDocument) => new RegistryFileDto(registryFile.Id, corpusDocument.Title, registryFile.PercentCompletion, registryFile.PercentManualCompletion));
         }
     }
-
-    public record RegistryFile(int Id, string Name, string? Url, decimal PercentCompletion, decimal PercentManualCompletion);
 }
-
