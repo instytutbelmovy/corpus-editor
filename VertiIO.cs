@@ -6,13 +6,13 @@ namespace Editor;
 public static class VertiIO
 {
     private static ILogger? _logger;
-    private const string PUNCT = "PUNCT";
-    private const string LINE_BREAK_TAG = "<lb/>";
-    private const string GLUE_TAG = "<g/>";
+    private const string Punct = "PUNCT";
+    private const string LineBreakTag = "<lb/>";
+    private const string GlueTag = "<g/>";
 
     public static void Initialize(ILogger logger) => _logger = logger;
 
-    public static async Task<List<CorpusDocumentHeader>> GetDocuments(string folder)
+    public static async Task<List<CorpusDocumentHeader>> GetDocumentHeaders(string folder)
     {
         var documents = new List<CorpusDocumentHeader>();
         var files = Directory.GetFiles(folder, "*.verti");
@@ -91,18 +91,18 @@ public static class VertiIO
                 currentSentence = new Sentence(
                     Id: int.Parse(sXml.Attribute("id")?.Value ?? "0"),
                     ConcurrencyStamp: Guid.TryParse(sXml.Attribute("concurrency_stamp")?.Value, out var stamp) ? stamp : Guid.Empty,
-                    SentenceItems: new List<SentenceItem>()
+                    SentenceItems: new List<LinguisticItem>()
                 );
             }
             else if (line == "</s>")
             {
                 currentParagraph.Sentences.Add(currentSentence);
             }
-            else if (line == LINE_BREAK_TAG)
+            else if (line == LineBreakTag)
             {
                 currentSentence.SentenceItems.Add(new LinguisticItem("", SentenceItemType.LineBreak));
             }
-            else if (line == GLUE_TAG)
+            else if (line == GlueTag)
             {
                 if (currentSentence.SentenceItems.Count > 0)
                 {
@@ -122,16 +122,22 @@ public static class VertiIO
                     else
                     {
                         var text = parts[0];
-                        var paradigmaFormId = ParadigmFormId.FromString(parts[1]);
+                        var paradigmFormId = ParadigmFormId.FromString(parts[1]);
                         var lemma = parts.Length > 2 ? parts[2] : null;
                         var linguisticTag = LinguisticTag.FromString(parts.Length > 3 ? parts[3] : null);
-                        var comment = parts.Length > 4 ? parts[4] : null;
-                        var metadata = parts.Length > 5 && !string.IsNullOrEmpty(parts[5]) ? parts[5] : null;
+                        var commentText = parts.Length > 4 ? parts[4] : null;
+                        var comment = !string.IsNullOrEmpty(commentText) && (commentText[0] == '"' && commentText[-1] == '"' || commentText[0] == '\'' && commentText[-1] == '\'')
+                            ? JsonSerializer.Deserialize(commentText, VertiJsonSerializerContext.Default.String)
+                            : commentText;
+
+                        var metadata = parts.Length > 5 && !string.IsNullOrEmpty(parts[5])
+                            ? JsonSerializer.Deserialize(parts[5], VertiJsonSerializerContext.Default.LinguisticItemMetadata)
+                            : null;
 
                         var item = new LinguisticItem(
                             Text: text,
                             Type: SentenceItemType.Word,
-                            ParadigmaFormId: paradigmaFormId,
+                            ParadigmaFormId: paradigmFormId,
                             Lemma: lemma,
                             LinguisticTag: linguisticTag,
                             Comment: comment,
@@ -146,49 +152,15 @@ public static class VertiIO
         return document;
     }
 
-    private static CorpusDocumentHeader ReadCorpusDocumentHeader(string line)
+    public static async Task WriteDocument(CorpusDocument document, string folder)
     {
-        var closeIndex = line.LastIndexOf('>');
-        var docXml = XElement.Parse(line[..closeIndex] + "/>");
-        var corpusDocumentHeader = new CorpusDocumentHeader(
-            N: int.Parse(docXml.Attribute("n")?.Value ?? "0"),
-            Title: docXml.Attribute("title")?.Value,
-            Author: docXml.Attribute("author")?.Value,
-            Language: docXml.Attribute("language")?.Value,
-            PublicationDate: docXml.Attribute("publication_date")?.Value,
-            Url: docXml.Attribute("url")?.Value,
-            Type: docXml.Attribute("type")?.Value,
-            Style: docXml.Attribute("style")?.Value
-        );
-        return corpusDocumentHeader;
-    }
-
-    public static async Task WriteDocument(CorpusDocument document, string filePath)
-    {
+        var filePath = Path.Combine(folder, document.Header.N + ".verti");
         try
         {
-            using var writer = new StreamWriter(filePath, false, System.Text.Encoding.UTF8);
+            await using var writer = new StreamWriter(filePath, false, System.Text.Encoding.UTF8);
 
             // Запіс метададзеных
-            var docElement = new XElement("doc");
-            if (document.Header.Title != null)
-                docElement.SetAttributeValue("title", document.Header.Title);
-            if (document.Header.Author != null)
-                docElement.SetAttributeValue("author", document.Header.Author);
-            if (document.Header.Language != null)
-                docElement.SetAttributeValue("language", document.Header.Language);
-            if (document.Header.PublicationDate != null)
-                docElement.SetAttributeValue("publication_date", document.Header.PublicationDate);
-            if (document.Header.Url != null)
-                docElement.SetAttributeValue("url", document.Header.Url);
-            if (document.Header.Type != null)
-                docElement.SetAttributeValue("type", document.Header.Type);
-            if (document.Header.Style != null)
-                docElement.SetAttributeValue("style", document.Header.Style);
-
-            var docString = docElement.ToString();
-            await writer.WriteAsync(docString[..^2]); // Выдаляем зачыняючы тэг
-            await writer.WriteLineAsync(">");
+            await writer.WriteLineAsync(CreateDocumentHeaderXml(document.Header));
 
             // Запіс параграфаў
             foreach (var paragraph in document.Paragraphs)
@@ -219,23 +191,23 @@ public static class VertiIO
                             if (item is LinguisticItem linguisticItem)
                             {
                                 var metadataJson = linguisticItem.Metadata != null ? 
-                                    JsonSerializer.Serialize(linguisticItem.Metadata) : "";
+                                    JsonSerializer.Serialize(linguisticItem.Metadata, VertiJsonSerializerContext.Default.LinguisticItemMetadata) : "";
                                 var commentJson = linguisticItem.Comment != null ? 
-                                    JsonSerializer.Serialize(linguisticItem.Comment) : "";
+                                    JsonSerializer.Serialize(linguisticItem.Comment, VertiJsonSerializerContext.Default.String) : "";
                                 
                                 await writer.WriteAsync($"\t{linguisticItem.ParadigmaFormId}\t{linguisticItem.Lemma}\t{linguisticItem.LinguisticTag}\t{commentJson}\t{metadataJson}");
                             }
                             await writer.WriteLineAsync();
                             if (item.GlueNext)
-                                await writer.WriteLineAsync(GLUE_TAG);
+                                await writer.WriteLineAsync(GlueTag);
                         }
                         else if (item.Type == SentenceItemType.Punctuation)
                         {
-                            await writer.WriteLineAsync($"{item.Text}\t{PUNCT}");
+                            await writer.WriteLineAsync($"{item.Text}\t{Punct}");
                         }
                         else if (item.Type == SentenceItemType.LineBreak)
                         {
-                            await writer.WriteLineAsync(LINE_BREAK_TAG);
+                            await writer.WriteLineAsync(LineBreakTag);
                         }
                         else
                         {
@@ -255,6 +227,80 @@ public static class VertiIO
             _logger?.LogError(ex, "Error writing file {File}", filePath);
             throw;
         }
+    }
+
+    public static async Task UpdateDocumentHeader(string folder, CorpusDocumentHeader header)
+    {
+        var filePath = Path.Combine(folder, $"{header.N}.verti");
+        if (!File.Exists(filePath))
+        {
+            throw new FileNotFoundException($"File {filePath} not found");
+        }
+
+        var tempFilePath = Path.Combine(folder, $"{header.N}.verti.tmp");
+        using (var reader = new StreamReader(filePath))
+        await using (var writer = new StreamWriter(tempFilePath, false, System.Text.Encoding.UTF8))
+        {
+            while (await reader.ReadLineAsync() is { } line)
+            {
+                if (line.StartsWith("<doc"))
+                {
+                    await writer.WriteLineAsync(CreateDocumentHeaderXml(header));
+                    break;
+                }
+                else
+                    await writer.WriteLineAsync(line);
+            }
+
+            while (await reader.ReadLineAsync() is { } line)
+                await writer.WriteLineAsync(line);
+        }
+
+        File.Delete(filePath);
+        File.Move(tempFilePath, filePath);
+    }
+
+    private static CorpusDocumentHeader ReadCorpusDocumentHeader(string line)
+    {
+        var closeIndex = line.LastIndexOf('>');
+        var docXml = XElement.Parse(line[..closeIndex] + "/>");
+        var corpusDocumentHeader = new CorpusDocumentHeader(
+            N: int.Parse(docXml.Attribute("n")?.Value ?? "0"),
+            Title: docXml.Attribute("title")?.Value,
+            Author: docXml.Attribute("author")?.Value,
+            Language: docXml.Attribute("language")?.Value,
+            PublicationDate: docXml.Attribute("publication_date")?.Value,
+            Url: docXml.Attribute("url")?.Value,
+            Type: docXml.Attribute("type")?.Value,
+            Style: docXml.Attribute("style")?.Value,
+            PercentCompletion: int.TryParse(docXml.Attribute("percent_completion")?.Value, out var percentCompletion) ? percentCompletion : null
+        );
+        return corpusDocumentHeader;
+    }
+
+    private static string CreateDocumentHeaderXml(CorpusDocumentHeader header)
+    {
+        var docElement = new XElement("doc");
+        docElement.SetAttributeValue("n", header.N);
+        if (header.Title != null)
+            docElement.SetAttributeValue("title", header.Title);
+        if (header.Author != null)
+            docElement.SetAttributeValue("author", header.Author);
+        if (header.Language != null)
+            docElement.SetAttributeValue("language", header.Language);
+        if (header.PublicationDate != null)
+            docElement.SetAttributeValue("publication_date", header.PublicationDate);
+        if (header.Url != null)
+            docElement.SetAttributeValue("url", header.Url);
+        if (header.Type != null)
+            docElement.SetAttributeValue("type", header.Type);
+        if (header.Style != null)
+            docElement.SetAttributeValue("style", header.Style);
+        if (header.PercentCompletion != null)
+            docElement.SetAttributeValue("percent_completion", header.PercentCompletion);
+
+        var docString = docElement.ToString();
+        return docString[..^2] + ">";
     }
 }
 

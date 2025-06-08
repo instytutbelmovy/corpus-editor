@@ -18,6 +18,7 @@ InitDatabase(dbConnectionString);
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.TypeInfoResolverChain.Insert(0, EditorJsonSerializerContext.Default);
+    options.SerializerOptions.TypeInfoResolverChain.Insert(1, VertiJsonSerializerContext.Default);
 });
 builder.Services.AddTransient(_ => new SqliteConnection(dbConnectionString));
 builder.Services.AddSettings<Settings>(builder.Configuration);

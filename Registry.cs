@@ -12,14 +12,21 @@ public static class Registry
         todosApi.MapGet("/", GetAllFiles);
     }
 
-    public static async Task<IEnumerable<RegistryFileDto>> GetAllFiles(SqliteConnection connection, [FromServices] Settings settings)
+    public static async Task<IEnumerable<RegistryFileDto>> GetAllFiles([FromServices] Settings settings)
     {
-        using (connection)
+        var documentHeaders = await VertiIO.GetDocumentHeaders(settings.FilesDirectory);
+        for (int i = 0; i < documentHeaders.Count; i++)
         {
-            connection.Open();
-            var registryFiles = await connection.QueryAsync<RegistryFile>($"select {nameof(RegistryFile.Id)}, {nameof(RegistryFile.PercentCompletion)}, {nameof(RegistryFile.PercentManualCompletion)} from RegistryFile");
-            var documents = await VertiIO.GetDocuments(settings.FilesDirectory);
-            return registryFiles.Join(documents, x => x.Id, x => x.N, (registryFile, corpusDocument) => new RegistryFileDto(registryFile.Id, corpusDocument.Title, registryFile.PercentCompletion, registryFile.PercentManualCompletion));
+            var header = documentHeaders[i];
+            if (header.PercentCompletion != null) continue;
+
+            var readDocument = await VertiIO.ReadDocument(settings.FilesDirectory, header.N);
+
+            header = header with { PercentCompletion = readDocument.ComputeCompletion()};
+            documentHeaders[i] = header;
+            await VertiIO.UpdateDocumentHeader(settings.FilesDirectory, header);
         }
+
+        return documentHeaders.Select(x => new RegistryFileDto(x.N, x.Title, x.PercentCompletion.Value));
     }
 }
