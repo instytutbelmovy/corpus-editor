@@ -20,7 +20,7 @@ public class FilesCache
             return document.CorpusDocument;
         }
 
-        var corpusDocument = await VertiReader.ReadDocument(_settings.FilesDirectory, id);
+        var corpusDocument = await VertiIO.ReadDocument(_settings.FilesDirectory, id);
         document = _documents.GetOrAdd(id, _ => new Document { CorpusDocument = corpusDocument, LastAccessedOn = DateTime.Now });
         document.LastAccessedOn = DateTime.Now;
         return document.CorpusDocument;

@@ -18,7 +18,7 @@ public static class Registry
         {
             connection.Open();
             var registryFiles = await connection.QueryAsync<RegistryFile>($"select {nameof(RegistryFile.Id)}, {nameof(RegistryFile.PercentCompletion)}, {nameof(RegistryFile.PercentManualCompletion)} from RegistryFile");
-            var documents = await VertiReader.GetDocuments(settings.FilesDirectory);
+            var documents = await VertiIO.GetDocuments(settings.FilesDirectory);
             return registryFiles.Join(documents, x => x.Id, x => x.N, (registryFile, corpusDocument) => new RegistryFileDto(registryFile.Id, corpusDocument.Title, registryFile.PercentCompletion, registryFile.PercentManualCompletion));
         }
     }

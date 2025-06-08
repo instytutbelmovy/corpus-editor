@@ -25,7 +25,7 @@ builder.Services.AddSingleton<FilesCache>();
 
 var app = builder.Build();
 
-app.Services.InitLoggerFor(nameof(VertiReader), VertiReader.Initialize);
+app.Services.InitLoggerFor(nameof(VertiIO), VertiIO.Initialize);
 app.MapRegistry();
 app.MapEditing();
 

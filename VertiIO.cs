@@ -2,7 +2,7 @@
 
 namespace Editor;
 
-public static class VertiReader
+public static class VertiIO
 {
     private static ILogger? _logger;
 
