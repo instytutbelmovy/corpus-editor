@@ -1,10 +1,14 @@
 ﻿using System.Xml.Linq;
+using System.Text.Json;
 
 namespace Editor;
 
 public static class VertiIO
 {
     private static ILogger? _logger;
+    private const string PUNCT = "PUNCT";
+    private const string LINE_BREAK_TAG = "<lb/>";
+    private const string GLUE_TAG = "<g/>";
 
     public static void Initialize(ILogger logger) => _logger = logger;
 
@@ -94,11 +98,11 @@ public static class VertiIO
             {
                 currentParagraph.Sentences.Add(currentSentence);
             }
-            else if (line == "<g/>")
+            else if (line == LINE_BREAK_TAG)
             {
                 currentSentence.SentenceItems.Add(new LinguisticItem("", SentenceItemType.LineBreak));
             }
-            else if (line == "<g>")
+            else if (line == GLUE_TAG)
             {
                 if (currentSentence.SentenceItems.Count > 0)
                 {
@@ -157,6 +161,100 @@ public static class VertiIO
             Style: docXml.Attribute("style")?.Value
         );
         return corpusDocumentHeader;
+    }
+
+    public static async Task WriteDocument(CorpusDocument document, string filePath)
+    {
+        try
+        {
+            using var writer = new StreamWriter(filePath, false, System.Text.Encoding.UTF8);
+
+            // Запіс метададзеных
+            var docElement = new XElement("doc");
+            if (document.Header.Title != null)
+                docElement.SetAttributeValue("title", document.Header.Title);
+            if (document.Header.Author != null)
+                docElement.SetAttributeValue("author", document.Header.Author);
+            if (document.Header.Language != null)
+                docElement.SetAttributeValue("language", document.Header.Language);
+            if (document.Header.PublicationDate != null)
+                docElement.SetAttributeValue("publication_date", document.Header.PublicationDate);
+            if (document.Header.Url != null)
+                docElement.SetAttributeValue("url", document.Header.Url);
+            if (document.Header.Type != null)
+                docElement.SetAttributeValue("type", document.Header.Type);
+            if (document.Header.Style != null)
+                docElement.SetAttributeValue("style", document.Header.Style);
+
+            var docString = docElement.ToString();
+            await writer.WriteAsync(docString[..^2]); // Выдаляем зачыняючы тэг
+            await writer.WriteLineAsync(">");
+
+            // Запіс параграфаў
+            foreach (var paragraph in document.Paragraphs)
+            {
+                var pAttrs = new List<string>();
+                if (paragraph.Id != 0)
+                    pAttrs.Add($"id=\"{paragraph.Id}\"");
+                if (paragraph.ConcurrencyStamp != Guid.Empty)
+                    pAttrs.Add($"concurrency_stamp=\"{paragraph.ConcurrencyStamp}\"");
+
+                await writer.WriteAsync($"<p{string.Join(" ", pAttrs)}>\n");
+
+                foreach (var sentence in paragraph.Sentences)
+                {
+                    var sAttrs = new List<string>();
+                    if (sentence.Id != 0)
+                        sAttrs.Add($"id=\"{sentence.Id}\"");
+                    if (sentence.ConcurrencyStamp != Guid.Empty)
+                        sAttrs.Add($"concurrency_stamp=\"{sentence.ConcurrencyStamp}\"");
+
+                    await writer.WriteAsync($"<s{string.Join(" ", sAttrs)}>\n");
+
+                    foreach (var item in sentence.SentenceItems)
+                    {
+                        if (item.Type == SentenceItemType.Word)
+                        {
+                            await writer.WriteAsync(item.Text);
+                            if (item is LinguisticItem linguisticItem)
+                            {
+                                var metadataJson = linguisticItem.Metadata != null ? 
+                                    JsonSerializer.Serialize(linguisticItem.Metadata) : "";
+                                var commentJson = linguisticItem.Comment != null ? 
+                                    JsonSerializer.Serialize(linguisticItem.Comment) : "";
+                                
+                                await writer.WriteAsync($"\t{linguisticItem.ParadigmaFormId}\t{linguisticItem.Lemma}\t{linguisticItem.LinguisticTag}\t{commentJson}\t{metadataJson}");
+                            }
+                            await writer.WriteLineAsync();
+                            if (item.GlueNext)
+                                await writer.WriteLineAsync(GLUE_TAG);
+                        }
+                        else if (item.Type == SentenceItemType.Punctuation)
+                        {
+                            await writer.WriteLineAsync($"{item.Text}\t{PUNCT}");
+                        }
+                        else if (item.Type == SentenceItemType.LineBreak)
+                        {
+                            await writer.WriteLineAsync(LINE_BREAK_TAG);
+                        }
+                        else
+                        {
+                            throw new ArgumentException($"Невядомы тып элемента: {item.Type}");
+                        }
+                    }
+                    await writer.WriteLineAsync("</s>");
+                }
+                await writer.WriteLineAsync("</p>");
+            }
+
+            if (document.Header.Title != null)
+                await writer.WriteLineAsync("</doc>");
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Error writing file {File}", filePath);
+            throw;
+        }
     }
 }
 
