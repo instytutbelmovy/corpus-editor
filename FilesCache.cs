@@ -21,6 +21,12 @@ public class FilesCache
         }
 
         var corpusDocument = await VertiIO.ReadDocument(_settings.FilesDirectory, id);
+        var rewriteCorpusDocument = CorpusDocument.CheckIdsAndConcurrencyStamps(corpusDocument);
+        if (rewriteCorpusDocument != null)
+        {
+            await VertiIO.WriteDocument(_settings.FilesDirectory, rewriteCorpusDocument);
+            corpusDocument = rewriteCorpusDocument;
+        }
         document = _documents.GetOrAdd(id, _ => new Document { CorpusDocument = corpusDocument, LastAccessedOn = DateTime.Now });
         document.LastAccessedOn = DateTime.Now;
         return document.CorpusDocument;

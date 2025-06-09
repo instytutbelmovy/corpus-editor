@@ -1,6 +1,4 @@
-﻿using Dapper;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.AspNetCore.Mvc;
 
 namespace Editor;
 
@@ -12,7 +10,7 @@ public static class Registry
         todosApi.MapGet("/", GetAllFiles);
     }
 
-    public static async Task<IEnumerable<RegistryFileDto>> GetAllFiles([FromServices] Settings settings)
+    public static async Task<IEnumerable<CorpusDocumentBasicInfo>> GetAllFiles([FromServices] Settings settings)
     {
         var documentHeaders = await VertiIO.GetDocumentHeaders(settings.FilesDirectory);
         for (int i = 0; i < documentHeaders.Count; i++)
@@ -22,11 +20,13 @@ public static class Registry
 
             var readDocument = await VertiIO.ReadDocument(settings.FilesDirectory, header.N);
 
-            header = header with { PercentCompletion = readDocument.ComputeCompletion()};
+            header = header with { PercentCompletion = readDocument.ComputeCompletion() };
             documentHeaders[i] = header;
             await VertiIO.UpdateDocumentHeader(settings.FilesDirectory, header);
         }
 
-        return documentHeaders.Select(x => new RegistryFileDto(x.N, x.Title, x.PercentCompletion.Value));
+        return documentHeaders.Select(x => new CorpusDocumentBasicInfo(x.N, x.Title, x.PercentCompletion.Value));
     }
 }
+
+public record CorpusDocumentBasicInfo(int Id, string? Title, int PercentCompletion);

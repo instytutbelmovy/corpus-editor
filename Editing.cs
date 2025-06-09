@@ -10,9 +10,11 @@ public static class Editing
         todosApi.MapGet("/{id}", GetDocument);
     }
 
-    public static async Task<CorpusDocument> GetDocument(int id, int skip, int take, [FromServices] FilesCache files)
+    public static async Task<CorpusDocumentView> GetDocument(int id, [FromServices] FilesCache files, int skip = 0, int take = 20)
     {
         var corpusDocument = await files.GetFile(id);
-        return corpusDocument with { Paragraphs = corpusDocument.Paragraphs.Skip(skip).Take(take) };
+        return new CorpusDocumentView(corpusDocument.Header, corpusDocument.Paragraphs.Skip(skip).Take(take));
     }
 }
+
+public record CorpusDocumentView(CorpusDocumentHeader Header, IEnumerable<Paragraph> Paragraphs);

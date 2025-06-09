@@ -67,7 +67,7 @@ public static class VertiIO
             {
                 document = new CorpusDocument(
                     ReadCorpusDocumentHeader(line),
-                    paragraphs = new ()
+                    paragraphs = new()
                 );
             }
             else if (line.StartsWith("<p"))
@@ -126,7 +126,7 @@ public static class VertiIO
                         var lemma = parts.Length > 2 ? parts[2] : null;
                         var linguisticTag = LinguisticTag.FromString(parts.Length > 3 ? parts[3] : null);
                         var commentText = parts.Length > 4 ? parts[4] : null;
-                        var comment = !string.IsNullOrEmpty(commentText) && (commentText[0] == '"' && commentText[-1] == '"' || commentText[0] == '\'' && commentText[-1] == '\'')
+                        var comment = !string.IsNullOrEmpty(commentText) && (commentText[0] == '"' && commentText[^1] == '"' || commentText[0] == '\'' && commentText[^1] == '\'')
                             ? JsonSerializer.Deserialize(commentText, VertiJsonSerializerContext.Default.String)
                             : commentText;
 
@@ -152,7 +152,7 @@ public static class VertiIO
         return document;
     }
 
-    public static async Task WriteDocument(CorpusDocument document, string folder)
+    public static async Task WriteDocument(string folder, CorpusDocument document)
     {
         var filePath = Path.Combine(folder, document.Header.N + ".verti");
         try
@@ -171,7 +171,7 @@ public static class VertiIO
                 if (paragraph.ConcurrencyStamp != Guid.Empty)
                     pAttrs.Add($"concurrency_stamp=\"{paragraph.ConcurrencyStamp}\"");
 
-                await writer.WriteAsync($"<p{string.Join(" ", pAttrs)}>\n");
+                await writer.WriteAsync($"<p{(pAttrs.Count == 0 ? "" : " ")}{string.Join(" ", pAttrs)}>\n");
 
                 foreach (var sentence in paragraph.Sentences)
                 {
@@ -181,22 +181,21 @@ public static class VertiIO
                     if (sentence.ConcurrencyStamp != Guid.Empty)
                         sAttrs.Add($"concurrency_stamp=\"{sentence.ConcurrencyStamp}\"");
 
-                    await writer.WriteAsync($"<s{string.Join(" ", sAttrs)}>\n");
+                    await writer.WriteAsync($"<s{(sAttrs.Count == 0 ? "" : " ")}{string.Join(" ", sAttrs)}>\n");
 
                     foreach (var item in sentence.SentenceItems)
                     {
                         if (item.Type == SentenceItemType.Word)
                         {
                             await writer.WriteAsync(item.Text);
-                            if (item is LinguisticItem linguisticItem)
-                            {
-                                var metadataJson = linguisticItem.Metadata != null ? 
-                                    JsonSerializer.Serialize(linguisticItem.Metadata, VertiJsonSerializerContext.Default.LinguisticItemMetadata) : "";
-                                var commentJson = linguisticItem.Comment != null ? 
-                                    JsonSerializer.Serialize(linguisticItem.Comment, VertiJsonSerializerContext.Default.String) : "";
-                                
-                                await writer.WriteAsync($"\t{linguisticItem.ParadigmaFormId}\t{linguisticItem.Lemma}\t{linguisticItem.LinguisticTag}\t{commentJson}\t{metadataJson}");
-                            }
+                            var metadataJson = item.Metadata != null
+                                ? JsonSerializer.Serialize(item.Metadata, VertiJsonSerializerContext.Default.LinguisticItemMetadata)
+                                : "";
+                            var commentJson = !string.IsNullOrWhiteSpace(item.Comment)
+                                ? JsonSerializer.Serialize(item.Comment, VertiJsonSerializerContext.Default.String)
+                                : "";
+
+                            await writer.WriteAsync($"\t{item.ParadigmaFormId}\t{item.Lemma}\t{item.LinguisticTag}\t{commentJson}\t{metadataJson}");
                             await writer.WriteLineAsync();
                             if (item.GlueNext)
                                 await writer.WriteLineAsync(GlueTag);
