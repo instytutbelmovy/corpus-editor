@@ -10,7 +10,7 @@ public static class VertiIO
     private const string LineBreakTag = "<lb/>";
     private const string GlueTag = "<g/>";
 
-    public static void Initialize(ILogger logger) => _logger = logger;
+    public static void InitializeLogging(ILogger logger) => _logger = logger;
 
     public static async Task<List<CorpusDocumentHeader>> GetDocumentHeaders(string folder)
     {
@@ -137,7 +137,7 @@ public static class VertiIO
                         var item = new LinguisticItem(
                             Text: text,
                             Type: SentenceItemType.Word,
-                            ParadigmaFormId: paradigmFormId,
+                            paradigmFormId: paradigmFormId,
                             Lemma: lemma,
                             LinguisticTag: linguisticTag,
                             Comment: comment,
@@ -195,7 +195,7 @@ public static class VertiIO
                                 ? JsonSerializer.Serialize(item.Comment, VertiJsonSerializerContext.Default.String)
                                 : "";
 
-                            await writer.WriteAsync($"\t{item.ParadigmaFormId}\t{item.Lemma}\t{item.LinguisticTag}\t{commentJson}\t{metadataJson}");
+                            await writer.WriteAsync($"\t{item.paradigmFormId}\t{item.Lemma}\t{item.LinguisticTag}\t{commentJson}\t{metadataJson}");
                             await writer.WriteLineAsync();
                             if (item.GlueNext)
                                 await writer.WriteLineAsync(GlueTag);

@@ -4,7 +4,7 @@ public record LinguisticItem(
     string Text,
     SentenceItemType Type,
     bool GlueNext = false,
-    ParadigmFormId? ParadigmaFormId = null,
+    ParadigmFormId? paradigmFormId = null,
     string? Lemma = null,
     LinguisticTag? LinguisticTag = null,
     string? Comment = null,
