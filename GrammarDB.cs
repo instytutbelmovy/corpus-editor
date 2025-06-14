@@ -13,7 +13,8 @@ public record GrammarInfo(
 
 public static class GrammarDB
 {
-    private static ILookup<string, GrammarInfo> _wordForms;
+    private static ILookup<string, GrammarInfo> _formLookup = null!; 
+    private static IDictionary<ParadigmFormId, GrammarInfo> _paradigmFormIdDictionary = null!;
     private static ILogger? _logger;
 
     public static void InitializeLogging(ILogger logger) => _logger = logger;
@@ -75,9 +76,13 @@ public static class GrammarDB
             )
             .ToList();
 
-        _wordForms = grammarInfos
+        _formLookup = grammarInfos
             .SelectMany(x => x)
             .ToLookup(x => x.Item1, x => x.Item2);
+        _paradigmFormIdDictionary = grammarInfos
+            .SelectMany(x => x)
+            .Select(x => x.Item2)
+            .ToDictionary(x => x.ParadigmFormId);
 
         _logger?.LogInformation("Reading grammar db complete. Tool {elapsed}", w.Elapsed);
 
@@ -86,6 +91,13 @@ public static class GrammarDB
     public static IEnumerable<GrammarInfo> LookupWord(string word)
     {
         var normalizedWord = Normalizer.GrammarDbAggressiveNormalize(word);
-        return _wordForms[normalizedWord];
+        return _formLookup[normalizedWord];
+    }
+
+    public static GrammarInfo GetBy(ParadigmFormId paradigmFormId)
+    {
+        return _paradigmFormIdDictionary.TryGetValue(paradigmFormId, out var result)
+            ? result
+            : throw new NotFoundException("Paradigm Form Id not found");
     }
 }

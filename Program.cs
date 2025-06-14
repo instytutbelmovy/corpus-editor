@@ -29,6 +29,8 @@ var app = builder.Build();
 app.Services.InitLoggerFor(nameof(VertiIO), VertiIO.InitializeLogging);
 app.Services.InitLoggerFor(nameof(GrammarDB), GrammarDB.InitializeLogging);
 GrammarDB.Initialize(app.Services.GetRequiredService<Settings>().GrammarDbPath);
+
+app.Use(ExceptionMiddleware.HandleException);
 app.MapRegistry();
 app.MapEditing();
 
@@ -49,4 +51,3 @@ static void InitDatabase(string? connectionString)
     connection.Open();
     Migrator.Migrate(connection);
 }
-

@@ -137,7 +137,7 @@ public static class VertiIO
                         var item = new LinguisticItem(
                             Text: text,
                             Type: SentenceItemType.Word,
-                            paradigmFormId: paradigmFormId,
+                            ParadigmFormId: paradigmFormId,
                             Lemma: lemma,
                             LinguisticTag: linguisticTag,
                             Comment: comment,
@@ -195,7 +195,7 @@ public static class VertiIO
                                 ? JsonSerializer.Serialize(item.Comment, VertiJsonSerializerContext.Default.String)
                                 : "";
 
-                            await writer.WriteAsync($"\t{item.paradigmFormId}\t{item.Lemma}\t{item.LinguisticTag}\t{commentJson}\t{metadataJson}");
+                            await writer.WriteAsync($"\t{item.ParadigmFormId}\t{item.Lemma}\t{item.LinguisticTag}\t{commentJson}\t{metadataJson}");
                             await writer.WriteLineAsync();
                             if (item.GlueNext)
                                 await writer.WriteLineAsync(GlueTag);

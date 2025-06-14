@@ -59,6 +59,15 @@ public partial record ParadigmFormId(
         );
     }
 
+    public virtual bool Equals(ParadigmFormId? other)
+    {
+        if (ReferenceEquals(null, other)) return false;
+        if (ReferenceEquals(this, other)) return true;
+        return ParadigmId == other.ParadigmId && VariantId == other.VariantId && FormTag == other.FormTag;
+    }
+
+    public override int GetHashCode() => HashCode.Combine(ParadigmId, VariantId, FormTag);
+
     [GeneratedRegex(@"^\s*(\d+)([a-z]?)(?:\.(.*))?\s*$")]
     private static partial Regex ParsingRegex();
 }
