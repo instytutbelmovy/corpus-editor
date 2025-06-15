@@ -4,8 +4,8 @@ namespace Editor;
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(IEnumerable<CorpusDocumentBasicInfo>))]
-[JsonSerializable(typeof(IEnumerable<Paragraph>))]
 [JsonSerializable(typeof(CorpusDocumentView))]
+[JsonSerializable(typeof(LemmaTag))]
 internal partial class EditorJsonSerializerContext : JsonSerializerContext
 {
 }

@@ -13,91 +13,109 @@ public record GrammarInfo(
 
 public static class GrammarDB
 {
-    private static ILookup<string, GrammarInfo> _formLookup = null!; 
+    private static ILookup<string, GrammarInfo> _formLookup = null!;
     private static IDictionary<ParadigmFormId, GrammarInfo> _paradigmFormIdDictionary = null!;
     private static ILogger? _logger;
+    private static TaskCompletionSource _initCompletionSource = new();
 
     public static void InitializeLogging(ILogger logger) => _logger = logger;
 
     public static void Initialize(string directory)
     {
-        _logger?.LogInformation("Reading grammar db from {directory}", directory);
-        var w = Stopwatch.StartNew();
-        var grammarInfos = Directory.GetFiles(directory, "*.xml").AsParallel()
-            .Select(xmlFile =>
-                {
-                    var list = new List<(string, GrammarInfo)>();
-                    _logger?.LogTrace("Reading grammar db file {file}", xmlFile);
-                    var doc = XDocument.Load(xmlFile);
-                    var root = doc.Root;
-
-                    // Загружаем парадыгмы
-                    foreach (var paradigm in root.Elements("Paradigm"))
+        Task.Factory.StartNew(() =>
+        {
+            _logger?.LogInformation("Reading grammar db from {directory}", directory);
+            var w = Stopwatch.StartNew();
+            var grammarInfos = Directory.GetFiles(directory, "*.xml").AsParallel()
+                .Select(xmlFile =>
                     {
-                        var paradigmTag = paradigm.Attribute("tag")?.Value;
-                        var paradigmId = paradigm.Attribute("pdgId").Value;
-                        var paradigmMeaning = paradigm.Attribute("meaning")?.Value;
+                        var list = new List<(string, GrammarInfo)>();
+                        _logger?.LogTrace("Reading grammar db file {file}", xmlFile);
+                        var doc = XDocument.Load(xmlFile);
+                        var root = doc.Root;
 
-                        foreach (var variant in paradigm.Elements("Variant"))
+                        // Загружаем парадыгмы
+                        foreach (var paradigm in root.Elements("Paradigm"))
                         {
-                            var variantId = variant.Attribute("id").Value;
-                            var lemma = variant.Attribute("lemma").Value;
-                            var normalizedLemma = Normalizer.GrammarDbLightNormalize(lemma);
-                            var variantTag = variant.Attribute("tag")?.Value;
+                            var paradigmTag = paradigm.Attribute("tag")?.Value;
+                            var paradigmId = paradigm.Attribute("pdgId").Value;
+                            var paradigmMeaning = paradigm.Attribute("meaning")?.Value;
 
-                            var effectiveTag = variantTag ?? paradigmTag;
-
-                            foreach (var form in variant.Elements("Form"))
+                            foreach (var variant in paradigm.Elements("Variant"))
                             {
-                                var formTag = form.Attribute("tag").Value;
-                                var formValue = form.Value;
+                                var variantId = variant.Attribute("id").Value;
+                                var lemma = variant.Attribute("lemma").Value;
+                                var normalizedLemma = Normalizer.GrammarDbLightNormalize(lemma);
+                                var variantTag = variant.Attribute("tag")?.Value;
 
-                                if (!string.IsNullOrEmpty(formValue))
+                                var effectiveTag = variantTag ?? paradigmTag;
+
+                                foreach (var form in variant.Elements("Form"))
                                 {
-                                    // Нармалізуем форму для індэксавання
-                                    var normalizedForm = Normalizer.GrammarDbAggressiveNormalize(formValue);
+                                    var formTag = form.Attribute("tag").Value;
+                                    var formValue = form.Value;
 
-                                    var grammarInfo = new GrammarInfo(
-                                        ParadigmFormId: new ParadigmFormId(int.Parse(paradigmId), variantId, formTag),
-                                        LinguisticTag: new LinguisticTag(effectiveTag, formTag),
-                                        Lemma: lemma,
-                                        NormalizedLemma: normalizedLemma,
-                                        Meaning: paradigmMeaning
-                                    );
+                                    if (!string.IsNullOrEmpty(formValue))
+                                    {
+                                        // Нармалізуем форму для індэксавання
+                                        var normalizedForm = Normalizer.GrammarDbAggressiveNormalize(formValue);
 
-                                    list.Add((normalizedForm, grammarInfo));
+                                        var grammarInfo = new GrammarInfo(
+                                            ParadigmFormId: new ParadigmFormId(int.Parse(paradigmId), variantId, formTag),
+                                            LinguisticTag: new LinguisticTag(effectiveTag, formTag),
+                                            Lemma: lemma,
+                                            NormalizedLemma: normalizedLemma,
+                                            Meaning: paradigmMeaning
+                                        );
+
+                                        list.Add((normalizedForm, grammarInfo));
+                                    }
                                 }
                             }
                         }
+
+                        return list;
                     }
+                )
+                .ToList();
 
-                    return list;
-                }
-            )
-            .ToList();
+            _formLookup = grammarInfos
+                .SelectMany(x => x)
+                .ToLookup(x => x.Item1, x => x.Item2);
 
-        _formLookup = grammarInfos
-            .SelectMany(x => x)
-            .ToLookup(x => x.Item1, x => x.Item2);
-        _paradigmFormIdDictionary = grammarInfos
-            .SelectMany(x => x)
-            .Select(x => x.Item2)
-            .ToDictionary(x => x.ParadigmFormId);
+            // ToDictionary not used because grammarInfo.ParadigmFormId is not necessarily unique, namely adjective accusative (MAS) forms vary by animate/inanimate.
+            // And I only about one those, so taking the last is acceptable
+            var paradigmFormIdDictionary = new Dictionary<ParadigmFormId, GrammarInfo>();
+            foreach (var grammarInfo in grammarInfos.SelectMany(x => x).Select(x => x.Item2))
+                paradigmFormIdDictionary[grammarInfo.ParadigmFormId] = grammarInfo;
+            _paradigmFormIdDictionary = paradigmFormIdDictionary;
 
-        _logger?.LogInformation("Reading grammar db complete. Tool {elapsed}", w.Elapsed);
-
+            _initCompletionSource.SetResult();
+            _logger?.LogInformation("Reading grammar db complete. Took {elapsed}", w.Elapsed);
+        }).ContinueWith(t =>
+        {
+            _logger?.LogError(t.Exception, "Failed to initialize grammar db.");
+        }, TaskContinuationOptions.OnlyOnFaulted);
     }
+
+    public static Task Initialized => _initCompletionSource.Task;
 
     public static IEnumerable<GrammarInfo> LookupWord(string word)
     {
+        if (!_initCompletionSource.Task.IsCompleted)
+            throw new InvalidOperationException("GrammarDB not initialized yet");
+
         var normalizedWord = Normalizer.GrammarDbAggressiveNormalize(word);
         return _formLookup[normalizedWord];
     }
 
-    public static GrammarInfo GetBy(ParadigmFormId paradigmFormId)
+    public static (string, LinguisticTag) GetLemmaAndLinguisticTag(ParadigmFormId paradigmFormId)
     {
+        if (!_initCompletionSource.Task.IsCompleted)
+            throw new InvalidOperationException("GrammarDB not initialized yet");
+
         return _paradigmFormIdDictionary.TryGetValue(paradigmFormId, out var result)
-            ? result
+            ? (result.Lemma, result.LinguisticTag)
             : throw new NotFoundException("Paradigm Form Id not found");
     }
 }

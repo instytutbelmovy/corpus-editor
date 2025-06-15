@@ -38,6 +38,7 @@ public static class Editing
     public static async Task<CorpusDocumentView> GetDocument(int id, int skipUpToId = 0, int take = 10)
     {
         var corpusDocument = await FilesCache.GetFile(id);
+        await GrammarDB.Initialized;
         return new CorpusDocumentView(
             corpusDocument.Header,
             corpusDocument.Paragraphs
@@ -59,15 +60,16 @@ public static class Editing
         if (id < 0 || paragraphId < 0 || sentenceId < 0)
             throw new BadRequestException();
 
+        await GrammarDB.Initialized;
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         await EditDocument(id, paragraphId, paragraphStamp, sentenceId, sentenceStamp, wordIndex, sentenceItem =>
         {
-            var grammarInfo = GrammarDB.GetBy(paradigmFormId);
+            var (lemma, linguisticTag) = GrammarDB.GetLemmaAndLinguisticTag(paradigmFormId);
             return sentenceItem with
             {
                 ParadigmFormId = paradigmFormId,
-                Lemma = grammarInfo.Lemma,
-                LinguisticTag = grammarInfo.LinguisticTag,
+                Lemma = lemma,
+                LinguisticTag = linguisticTag,
                 Metadata = sentenceItem.Metadata == null
                     ? new LinguisticItemMetadata(null, today)
                     : sentenceItem.Metadata with { ResolvedOn = today },
@@ -109,6 +111,7 @@ public static class Editing
                 : si.Metadata with { ResolvedOn = null },
         });
 
+        await GrammarDB.Initialized;
         return GrammarDB.LookupWord(text);
     }
 
