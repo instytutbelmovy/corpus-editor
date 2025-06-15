@@ -10,14 +10,14 @@ public record ParagraphView(int Id, Guid ConcurrencyStamp)
     {
     }
 
-    public IEnumerable<SentenceView> Sentences { get; init; } = null!;
+    public required IEnumerable<SentenceView> Sentences { get; init; }
 }
 
 public record SentenceView(int Id, Guid ConcurrencyStamp)
 {
     public SentenceView(Sentence sentence) : this(sentence.Id, sentence.ConcurrencyStamp) { }
 
-    public IEnumerable<LinguisticItemView> SentenceItems { get; init; } = null!;
+    public required IEnumerable<LinguisticItemView> SentenceItems { get; init; }
 }
 
 public record LinguisticItemView(LinguisticItem LinguisticItem, IEnumerable<GrammarInfo> Options);
@@ -35,9 +35,9 @@ public static class Editing
         todosApi.MapPut("/{id:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/text", PutText);
     }
 
-    public static async Task<CorpusDocumentView> GetDocument(int id, [FromServices] FilesCache files, int skipUpToId = 0, int take = 10)
+    public static async Task<CorpusDocumentView> GetDocument(int id, int skipUpToId = 0, int take = 10)
     {
-        var corpusDocument = await files.GetFile(id);
+        var corpusDocument = await FilesCache.GetFile(id);
         return new CorpusDocumentView(
             corpusDocument.Header,
             corpusDocument.Paragraphs
@@ -54,115 +54,90 @@ public static class Editing
                 }));
     }
 
-    public static async Task PutParadigmFormId(int id, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] ParadigmFormId paradigmFormId, [FromServices] FilesCache files)
+    public static async Task PutParadigmFormId(int id, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] ParadigmFormId paradigmFormId)
     {
         if (id < 0 || paragraphId < 0 || sentenceId < 0)
             throw new BadRequestException();
 
-        var corpusDocument = await files.GetFile(id);
-        var paragraphIndex = corpusDocument.Paragraphs.BinarySearch(paragraphId, (pId, p) => pId - p.Id);
-        if (paragraphIndex < 0)
-            throw new NotFoundException();
-        var paragraph = corpusDocument.Paragraphs[paragraphIndex];
-        if (paragraph.ConcurrencyStamp != paragraphStamp)
-            throw new ConflictException();
-        var sentenceIndex = paragraph.Sentences.BinarySearch(sentenceId, (sId, s) => sId - s.Id);
-        if (sentenceIndex < 0)
-            throw new NotFoundException();
-        var sentence = paragraph.Sentences[sentenceIndex];
-        if (sentence.ConcurrencyStamp != sentenceStamp)
-            throw new ConflictException();
-
-        if (sentence.SentenceItems.Count < wordIndex)
-            throw new NotFoundException();
-
-        var sentenceItem = sentence.SentenceItems[wordIndex];
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var grammarInfo = GrammarDB.GetBy(paradigmFormId);
-        sentenceItem = sentenceItem with
+        await EditDocument(id, paragraphId, paragraphStamp, sentenceId, sentenceStamp, wordIndex, sentenceItem =>
         {
-            ParadigmFormId = paradigmFormId,
-            Lemma = grammarInfo.Lemma,
-            LinguisticTag = grammarInfo.LinguisticTag,
-            Metadata = sentenceItem.Metadata == null
-                ? new LinguisticItemMetadata(null, today)
-                : sentenceItem.Metadata with { ResolvedOn = today },
-        };
-        sentence.SentenceItems[sentenceIndex] = sentenceItem;
+            var grammarInfo = GrammarDB.GetBy(paradigmFormId);
+            return sentenceItem with
+            {
+                ParadigmFormId = paradigmFormId,
+                Lemma = grammarInfo.Lemma,
+                LinguisticTag = grammarInfo.LinguisticTag,
+                Metadata = sentenceItem.Metadata == null
+                    ? new LinguisticItemMetadata(null, today)
+                    : sentenceItem.Metadata with { ResolvedOn = today },
+            };
+        });
     }
 
-    public static async Task PutLemmaTags(int id, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] LemmaTag lemmaTag, [FromServices] FilesCache files)
+    public static async Task PutLemmaTags(int id, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] LemmaTag lemmaTag)
     {
         if (id < 0 || paragraphId < 0 || sentenceId < 0)
             throw new BadRequestException();
 
-        var corpusDocument = await files.GetFile(id);
-        var paragraphIndex = corpusDocument.Paragraphs.BinarySearch(paragraphId, (pId, p) => pId - p.Id);
-        if (paragraphIndex < 0)
-            throw new NotFoundException();
-        var paragraph = corpusDocument.Paragraphs[paragraphIndex];
-        if (paragraph.ConcurrencyStamp != paragraphStamp)
-            throw new ConflictException();
-        var sentenceIndex = paragraph.Sentences.BinarySearch(sentenceId, (sId, s) => sId - s.Id);
-        if (sentenceIndex < 0)
-            throw new NotFoundException();
-        var sentence = paragraph.Sentences[sentenceIndex];
-        if (sentence.ConcurrencyStamp != sentenceStamp)
-            throw new ConflictException();
-
-        if (sentence.SentenceItems.Count < wordIndex)
-            throw new NotFoundException();
-
-        var sentenceItem = sentence.SentenceItems[wordIndex];
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        sentenceItem = sentenceItem with
+        await EditDocument(id, paragraphId, paragraphStamp, sentenceId, sentenceStamp, wordIndex, si => si with
         {
             ParadigmFormId = null,
             Lemma = lemmaTag.Lemma,
             // todo check fullness of linguistic tag and depending on that set ResolvedOn to null or today
             LinguisticTag = LinguisticTag.FromString(lemmaTag.LinguisticTag),
-            Metadata = sentenceItem.Metadata == null
+            Metadata = si.Metadata == null
                 ? new LinguisticItemMetadata(null, today)
-                : sentenceItem.Metadata with { ResolvedOn = today },
-        };
-        sentence.SentenceItems[sentenceIndex] = sentenceItem;
+                : si.Metadata with { ResolvedOn = today },
+        });
     }
 
-    public static async Task<IEnumerable<GrammarInfo>> PutText(int id, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] string text, [FromServices] FilesCache files)
+    public static async Task<IEnumerable<GrammarInfo>> PutText(int id, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] string text)
     {
         if (id < 0 || paragraphId < 0 || sentenceId < 0 || string.IsNullOrEmpty(text))
             throw new BadRequestException();
 
-        var corpusDocument = await files.GetFile(id);
-        var paragraphIndex = corpusDocument.Paragraphs.BinarySearch(paragraphId, (pId, p) => pId - p.Id);
-        if (paragraphIndex < 0)
-            throw new NotFoundException();
-        var paragraph = corpusDocument.Paragraphs[paragraphIndex];
-        if (paragraph.ConcurrencyStamp != paragraphStamp)
-            throw new ConflictException();
-        var sentenceIndex = paragraph.Sentences.BinarySearch(sentenceId, (sId, s) => sId - s.Id);
-        if (sentenceIndex < 0)
-            throw new NotFoundException();
-        var sentence = paragraph.Sentences[sentenceIndex];
-        if (sentence.ConcurrencyStamp != sentenceStamp)
-            throw new ConflictException();
-
-        if (sentence.SentenceItems.Count < wordIndex)
-            throw new NotFoundException();
-
-        var sentenceItem = sentence.SentenceItems[wordIndex];
-        sentenceItem = sentenceItem with
+        await EditDocument(id, paragraphId, paragraphStamp, sentenceId, sentenceStamp, wordIndex, si => si with
         {
             ParadigmFormId = null,
             Text = text,
             Lemma = null,
             LinguisticTag = null,
-            Metadata = sentenceItem.Metadata == null
+            Metadata = si.Metadata == null
                 ? null
-                : sentenceItem.Metadata with { ResolvedOn = null },
-        };
-        sentence.SentenceItems[sentenceIndex] = sentenceItem;
+                : si.Metadata with { ResolvedOn = null },
+        });
 
         return GrammarDB.LookupWord(text);
+    }
+
+    private static async Task EditDocument(int documentId, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, Func<LinguisticItem, LinguisticItem> transform)
+    {
+        var document = await FilesCache.GetFile(documentId);
+        lock (document)
+        {
+            var paragraphIndex = document.Paragraphs.BinarySearch(paragraphId, (pId, p) => pId - p.Id);
+            if (paragraphIndex < 0)
+                throw new NotFoundException();
+            var paragraph = document.Paragraphs[paragraphIndex];
+            if (paragraph.ConcurrencyStamp != paragraphStamp)
+                throw new ConflictException();
+            var sentenceIndex = paragraph.Sentences.BinarySearch(sentenceId, (sId, s) => sId - s.Id);
+            if (sentenceIndex < 0)
+                throw new NotFoundException();
+            var sentence = paragraph.Sentences[sentenceIndex];
+            if (sentence.ConcurrencyStamp != sentenceStamp)
+                throw new ConflictException();
+
+            if (sentence.SentenceItems.Count < wordIndex)
+                throw new NotFoundException();
+
+            var sentenceItem = sentence.SentenceItems[wordIndex];
+            var transformedItem = transform(sentenceItem);
+            sentence.SentenceItems[sentenceIndex] = transformedItem;
+        }
+
+        await FilesCache.FlushFile(documentId);
     }
 }

@@ -22,13 +22,14 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 builder.Services.AddTransient(_ => new SqliteConnection(dbConnectionString));
 builder.Services.AddSettings<Settings>(builder.Configuration);
-builder.Services.AddSingleton<FilesCache>();
 
 var app = builder.Build();
 
 app.Services.InitLoggerFor(nameof(VertiIO), VertiIO.InitializeLogging);
 app.Services.InitLoggerFor(nameof(GrammarDB), GrammarDB.InitializeLogging);
-GrammarDB.Initialize(app.Services.GetRequiredService<Settings>().GrammarDbPath);
+var settings = app.Services.GetRequiredService<Settings>();
+FilesCache.Initialize(settings);
+GrammarDB.Initialize(settings.GrammarDbPath);
 
 app.Use(ExceptionMiddleware.HandleException);
 app.MapRegistry();

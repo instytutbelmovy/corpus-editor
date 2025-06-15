@@ -2,21 +2,21 @@
 
 namespace Editor;
 
-public class FilesCache
+public static class FilesCache
 {
-    private readonly Settings _settings;
-    private readonly ConcurrentDictionary<int, Document> _documents = new();
+    private static Settings _settings = null!;
+    private static readonly ConcurrentDictionary<int, Document> Documents = new();
 
-    public FilesCache(Settings settings)
+    public static void Initialize(Settings settings)
     {
         _settings = settings;
     }
 
-    public async Task<CorpusDocument> GetFile(int id)
+    public static async Task<CorpusDocument> GetFile(int id)
     {
-        if (_documents.TryGetValue(id, out var document))
+        if (Documents.TryGetValue(id, out var document))
         {
-            document.LastAccessedOn = DateTime.Now;
+            document.LastAccessedOn = DateTime.UtcNow;
             return document.CorpusDocument;
         }
 
@@ -27,14 +27,31 @@ public class FilesCache
             await VertiIO.WriteDocument(_settings.FilesDirectory, rewriteCorpusDocument);
             corpusDocument = rewriteCorpusDocument;
         }
-        document = _documents.GetOrAdd(id, _ => new Document { CorpusDocument = corpusDocument, LastAccessedOn = DateTime.Now });
-        document.LastAccessedOn = DateTime.Now;
+        document = Documents.GetOrAdd(id, _ => new Document { CorpusDocument = corpusDocument, LastAccessedOn = DateTime.UtcNow, WriteLock = new SemaphoreSlim(1, 1)});
+        document.LastAccessedOn = DateTime.UtcNow;
         return document.CorpusDocument;
+    }
+
+    public static async Task FlushFile(int id)
+    {
+        if (!Documents.TryGetValue(id, out var document))
+            throw new InvalidOperationException($"File {id} is not present in the cache");
+
+        await document.WriteLock.WaitAsync();
+        try
+        {
+            await VertiIO.WriteDocument(_settings.FilesDirectory, document.CorpusDocument);
+        }
+        finally
+        {
+            document.WriteLock.Release();
+        }
     }
 
     private class Document
     {
-        public required CorpusDocument CorpusDocument { get; set; }
+        public required CorpusDocument CorpusDocument { get; init; }
         public required DateTime LastAccessedOn { get; set; }
+        public required SemaphoreSlim WriteLock { get; init; }
     }
 }
