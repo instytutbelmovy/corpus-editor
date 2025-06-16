@@ -11,6 +11,7 @@ Console.OutputEncoding = Encoding.UTF8;
 CultureInfo.DefaultThreadCurrentCulture = CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
 
 var builder = WebApplication.CreateSlimBuilder(args);
+builder.WebHost.UseStaticWebAssets();
 
 var dbConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 InitDatabase(dbConnectionString);
@@ -21,16 +22,21 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.TypeInfoResolverChain.Insert(1, VertiJsonSerializerContext.Default);
 });
 builder.Services.AddTransient(_ => new SqliteConnection(dbConnectionString));
-builder.Services.AddSettings<Settings>(builder.Configuration);
 
-var app = builder.Build();
+var settings = new Settings();
+builder.Configuration.Bind(nameof(Settings), settings);
 
-app.Services.InitLoggerFor(nameof(VertiIO), VertiIO.InitializeLogging);
-app.Services.InitLoggerFor(nameof(GrammarDB), GrammarDB.InitializeLogging);
-var settings = app.Services.GetRequiredService<Settings>();
+Registry.Initialize(settings);
 FilesCache.Initialize(settings);
 GrammarDB.Initialize(settings.GrammarDbPath);
 
+var app = builder.Build();
+
+ExceptionMiddleware.Initialize(app.Environment, app.Services.GetLoggerFor(nameof(ExceptionMiddleware)));
+app.Services.InitLoggerFor(nameof(VertiIO), VertiIO.InitializeLogging);
+app.Services.InitLoggerFor(nameof(GrammarDB), GrammarDB.InitializeLogging);
+
+app.MapStaticAssets();
 app.Use(ExceptionMiddleware.HandleException);
 app.MapRegistry();
 app.MapEditing();

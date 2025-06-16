@@ -28,7 +28,7 @@ public static class Editing
 {
     public static void MapEditing(this IEndpointRouteBuilder builder)
     {
-        var todosApi = builder.MapGroup("/registry-files");
+        var todosApi = builder.MapGroup("/api/registry-files");
         todosApi.MapGet("/{id:int}", GetDocument);
         todosApi.MapPut("/{id:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/paradigm-form-id", PutParadigmFormId);
         todosApi.MapPut("/{id:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/lemma-tag", PutLemmaTags);

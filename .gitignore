@@ -4,3 +4,4 @@ obj/
 Editor.db
 files/
 grammar-base/
+.vscode/
