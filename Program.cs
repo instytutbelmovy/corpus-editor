@@ -26,7 +26,6 @@ builder.Services.AddTransient(_ => new SqliteConnection(dbConnectionString));
 var settings = new Settings();
 builder.Configuration.Bind(nameof(Settings), settings);
 
-Registry.Initialize(settings);
 FilesCache.Initialize(settings);
 GrammarDB.Initialize(settings.GrammarDbPath);
 
