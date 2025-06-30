@@ -35,7 +35,7 @@ public static class Editing
         todosApi.MapPut("/{id:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/text", PutText);
     }
 
-    public static async Task<CorpusDocumentView> GetDocument(int id, int skipUpToId = 0, int take = 10)
+    public static async Task<CorpusDocumentView> GetDocument(int id, int skipUpToId = 0, int take = 20)
     {
         var corpusDocument = await FilesCache.GetFile(id);
         await GrammarDB.Initialized;
@@ -138,7 +138,7 @@ public static class Editing
 
             var sentenceItem = sentence.SentenceItems[wordIndex];
             var transformedItem = transform(sentenceItem);
-            sentence.SentenceItems[sentenceIndex] = transformedItem;
+            sentence.SentenceItems[wordIndex] = transformedItem;
         }
 
         await FilesCache.FlushFile(documentId);
