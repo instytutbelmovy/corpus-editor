@@ -95,6 +95,25 @@ export function useSelectedWord(
     ) => {
       if (!selectedWord || !documentId) return;
 
+      // Правяраем, ці ўжо выбрана гэтая парадыгма
+      const currentParadigmFormId = selectedWord.item.paradigmFormId;
+      const isAlreadySelected =
+        currentParadigmFormId &&
+        currentParadigmFormId.paradigmId === paradigmFormId.paradigmId &&
+        currentParadigmFormId.variantId === paradigmFormId.variantId &&
+        currentParadigmFormId.formTag === paradigmFormId.formTag;
+
+      // Калі парадыгма ўжо выбрана, проста пераходзім да наступнага слова без захавання
+      if (isAlreadySelected) {
+        const nextWord = findNextUnresolvedWord();
+        if (nextWord) {
+          setSelectedWord(nextWord);
+        } else {
+          setSelectedWord(null);
+        }
+        return;
+      }
+
       const wordKey = `${selectedWord.paragraphId}-${selectedWord.sentenceId}-${selectedWord.wordIndex}`;
 
       // Адразу пераходзім да наступнага слова

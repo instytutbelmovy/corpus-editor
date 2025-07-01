@@ -1,4 +1,6 @@
 import { SelectedWord, ParadigmFormId } from '@/types/document';
+import { useDisplaySettings } from '../hooks/useDisplaySettings';
+import { ParadigmOptions, SettingsButton } from './index';
 
 interface EditingPanelProps {
   selectedWord: SelectedWord | null;
@@ -15,6 +17,8 @@ export function EditingPanel({
   onSaveParadigm,
   onClearError,
 }: EditingPanelProps) {
+  const { displayMode, setDisplayMode } = useDisplaySettings();
+
   if (!selectedWord) {
     // На дэсктопе паказваем пустую панэль, на мабільным не паказваем
     return (
@@ -43,94 +47,41 @@ export function EditingPanel({
             <h3 className="text-lg font-semibold text-gray-900">
               {selectedWord.item.text}
             </h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors p-1"
-              title="Закрыць"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            <div className="flex items-center space-x-2">
+              <SettingsButton
+                displayMode={displayMode}
+                onDisplayModeChange={setDisplayMode}
+              />
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                title="Закрыць"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
 
           <div className="mb-4">
-            <div className="text-sm text-gray-500 mb-2">
-              Варыянты парадыгмы:
-            </div>
-            <div className="space-y-2 overflow-y-auto lg:overflow-visible">
-              {selectedWord.options.length === 0 ? (
-                <div className="p-4 text-center text-gray-500">
-                  <div className="text-2xl mb-2">📝</div>
-                  <p>Няма даступных варыянтаў парадыгмы для гэтага слова</p>
-                </div>
-              ) : (
-                selectedWord.options.map(option => {
-                  const isSelected =
-                    selectedWord.item.paradigmFormId &&
-                    selectedWord.item.paradigmFormId.paradigmId ===
-                      option.paradigmFormId.paradigmId &&
-                    selectedWord.item.paradigmFormId.variantId ===
-                      option.paradigmFormId.variantId &&
-                    selectedWord.item.paradigmFormId.formTag ===
-                      option.paradigmFormId.formTag;
-
-                  return (
-                    <div
-                      key={`${option.paradigmFormId.paradigmId}-${option.paradigmFormId.variantId}-${option.paradigmFormId.formTag}`}
-                      className={`border rounded-lg p-3 transition-colors cursor-pointer ${
-                        isSelected
-                          ? 'border-green-500 bg-green-50'
-                          : 'border-gray-200 hover:border-blue-300'
-                      }`}
-                      onClick={() => onSaveParadigm(option.paradigmFormId)}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="font-medium text-gray-900 mb-1">
-                            {option.normalizedLemma}
-                          </div>
-                          <div className="text-sm text-gray-600 mb-1">
-                            {option.linguisticTag.paradigmTag}
-                            {option.linguisticTag.formTag &&
-                              ` (${option.linguisticTag.formTag})`}
-                          </div>
-                          {option.meaning && (
-                            <div className="text-sm text-gray-500 italic">
-                              {option.meaning}
-                            </div>
-                          )}
-                        </div>
-                        {isSelected && (
-                          <div className="ml-2 text-green-500">
-                            <svg
-                              className="w-5 h-5"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
+            <div className="overflow-y-auto lg:overflow-visible">
+              <ParadigmOptions
+                options={selectedWord.options}
+                selectedParadigmFormId={selectedWord.item.paradigmFormId}
+                displayMode={displayMode}
+                onSelect={onSaveParadigm}
+              />
             </div>
           </div>
 
