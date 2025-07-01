@@ -1,4 +1,4 @@
-import { DocumentData, ParadigmFormId } from '@/types/document';
+import { DocumentData, ParadigmFormId, GrammarInfo } from '@/types/document';
 
 interface DocumentListItem {
   id: number;
@@ -58,6 +58,32 @@ export class DocumentService {
     if (!response.ok) {
       throw new Error('Не ўдалося захаваць змены');
     }
+  }
+
+  async updateWordText(
+    documentId: string,
+    paragraphId: number,
+    paragraphStamp: string,
+    sentenceId: number,
+    sentenceStamp: string,
+    wordIndex: number,
+    text: string
+  ): Promise<GrammarInfo[]> {
+    const url = `/api/registry-files/${documentId}/${paragraphId}.${paragraphStamp}/${sentenceId}.${sentenceStamp}/${wordIndex}/text`;
+
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(text),
+    });
+
+    if (!response.ok) {
+      throw new Error('Не ўдалося змяніць тэкст слова');
+    }
+
+    return response.json();
   }
 }
 

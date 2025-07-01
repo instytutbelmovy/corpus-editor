@@ -1,5 +1,6 @@
 import {
   DocumentData,
+  SelectedWord,
   LinguisticItem as LinguisticItemType,
 } from '@/types/document';
 import { Paragraph } from './Paragraph';
@@ -7,7 +8,7 @@ import { LoadingIndicator } from './LoadingIndicator';
 
 interface DocumentContentProps {
   documentData: DocumentData;
-  selectedWord: LinguisticItemType | null;
+  selectedWord: SelectedWord | null;
   pendingSaves: Set<string>;
   loadingMore: boolean;
   hasMore: boolean;

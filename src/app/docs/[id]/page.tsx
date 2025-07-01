@@ -38,6 +38,7 @@ export default function DocumentPage() {
     setSaveError,
     pendingSaves,
     handleSaveParadigm,
+    handleUpdateWordText,
   } = useSelectedWord(documentId, documentData);
 
   // Хук для клавіятурнай навігацыі
@@ -91,6 +92,16 @@ export default function DocumentPage() {
     [documentData, handleSaveParadigm, updateDocument]
   );
 
+  // Функцыя для абнаўлення тэксту слова
+  const handleUpdateWordTextWrapper = useCallback(
+    async (text: string) => {
+      if (!documentData) return;
+
+      await handleUpdateWordText(text, updateDocument);
+    },
+    [documentData, handleUpdateWordText, updateDocument]
+  );
+
   // Станы загрузкі і памылак
   if (loading) {
     return <LoadingScreen />;
@@ -116,7 +127,7 @@ export default function DocumentPage() {
             {/* Тэкст дакумэнта */}
             <DocumentContent
               documentData={documentData}
-              selectedWord={selectedWord?.item || null}
+              selectedWord={selectedWord}
               pendingSaves={pendingSaves}
               loadingMore={loadingMore}
               hasMore={hasMore}
@@ -131,6 +142,7 @@ export default function DocumentPage() {
               onClose={() => setSelectedWord(null)}
               onSaveParadigm={handleSaveParadigmWrapper}
               onClearError={() => setSaveError(null)}
+              onUpdateWordText={handleUpdateWordTextWrapper}
             />
           </div>
         </div>

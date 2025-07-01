@@ -1,6 +1,7 @@
 import { SelectedWord, ParadigmFormId } from '@/types/document';
 import { useDisplaySettings } from '../hooks/useDisplaySettings';
 import { ParadigmOptions, SettingsButton } from './index';
+import { useState } from 'react';
 
 interface EditingPanelProps {
   selectedWord: SelectedWord | null;
@@ -8,6 +9,7 @@ interface EditingPanelProps {
   onClose: () => void;
   onSaveParadigm: (paradigmFormId: ParadigmFormId) => void;
   onClearError: () => void;
+  onUpdateWordText?: (text: string) => Promise<void>;
 }
 
 export function EditingPanel({
@@ -16,8 +18,42 @@ export function EditingPanel({
   onClose,
   onSaveParadigm,
   onClearError,
+  onUpdateWordText,
 }: EditingPanelProps) {
   const { displayMode, setDisplayMode } = useDisplaySettings();
+  const [isEditingText, setIsEditingText] = useState(false);
+  const [editText, setEditText] = useState('');
+  const [isSavingText, setIsSavingText] = useState(false);
+
+  // Пачынаем рэдагаванне тэксту
+  const handleStartEditText = () => {
+    if (selectedWord) {
+      setEditText(selectedWord.item.text);
+      setIsEditingText(true);
+    }
+  };
+
+  // Захоўваем зменены тэкст
+  const handleSaveText = async () => {
+    if (!onUpdateWordText || !selectedWord || editText.trim() === '') return;
+
+    setIsSavingText(true);
+    try {
+      await onUpdateWordText(editText.trim());
+      setIsEditingText(false);
+      setEditText('');
+    } catch (error) {
+      console.error('Памылка захавання тэксту:', error);
+    } finally {
+      setIsSavingText(false);
+    }
+  };
+
+  // Скасоўваем рэдагаванне
+  const handleCancelEditText = () => {
+    setIsEditingText(false);
+    setEditText('');
+  };
 
   if (!selectedWord) {
     // На дэсктопе паказваем пустую панэль, на мабільным не паказваем
@@ -44,9 +80,68 @@ export function EditingPanel({
       >
         <div className="p-4">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">
-              {selectedWord.item.text}
-            </h3>
+            <div className="flex-1">
+              {isEditingText ? (
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="text"
+                    value={editText}
+                    onChange={e => setEditText(e.target.value)}
+                    className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Увядзіце новы тэкст"
+                    autoFocus
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        handleSaveText();
+                      } else if (e.key === 'Escape') {
+                        handleCancelEditText();
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={handleSaveText}
+                    disabled={isSavingText || editText.trim() === ''}
+                    className="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSavingText ? '...' : '✓'}
+                  </button>
+                  <button
+                    onClick={handleCancelEditText}
+                    disabled={isSavingText}
+                    className="px-2 py-1 bg-gray-300 text-gray-700 text-xs rounded hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {selectedWord.item.text}
+                  </h3>
+                  {onUpdateWordText && (
+                    <button
+                      onClick={handleStartEditText}
+                      className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                      title="Рэдагаваць тэкст"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                        />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
             <div className="flex items-center space-x-2">
               <SettingsButton
                 displayMode={displayMode}

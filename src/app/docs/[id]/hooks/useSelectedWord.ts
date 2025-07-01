@@ -1,5 +1,10 @@
 import { useState, useCallback } from 'react';
-import { SelectedWord, DocumentData, ParadigmFormId } from '@/types/document';
+import {
+  SelectedWord,
+  DocumentData,
+  ParadigmFormId,
+  GrammarInfo,
+} from '@/types/document';
 import { documentService } from '@/services/documentService';
 
 export function useSelectedWord(
@@ -229,6 +234,87 @@ export function useSelectedWord(
     [selectedWord, documentId, findNextUnresolvedWord]
   );
 
+  // Функцыя для абнаўлення тэксту слова
+  const handleUpdateWordText = useCallback(
+    async (
+      text: string,
+      onDocumentUpdate: (updater: (prev: DocumentData) => DocumentData) => void
+    ) => {
+      if (!selectedWord || !documentId) return;
+
+      try {
+        // Выклікаем API для змены тэксту
+        const newOptions: GrammarInfo[] = await documentService.updateWordText(
+          documentId,
+          selectedWord.paragraphId,
+          selectedWord.paragraphStamp,
+          selectedWord.sentenceId,
+          selectedWord.sentenceStamp,
+          selectedWord.wordIndex,
+          text
+        );
+
+        // Абнаўляем дакумэнт з новым тэкстам і варыянтамі
+        onDocumentUpdate(prev => {
+          const newData = { ...prev };
+          for (const paragraph of newData.paragraphs) {
+            if (paragraph.id !== selectedWord.paragraphId) continue;
+            for (const sentence of paragraph.sentences) {
+              if (sentence.id !== selectedWord.sentenceId) continue;
+              const item = sentence.sentenceItems[selectedWord.wordIndex];
+
+              // Абнаўляем тэкст слова
+              item.linguisticItem.text = text;
+
+              // Скідаем выбраную парадыгму, бо слова змянілася
+              item.linguisticItem.paradigmFormId = null;
+              item.linguisticItem.lemma = null;
+              item.linguisticItem.linguisticTag = null;
+
+              // Скідаем метададзеныя
+              if (item.linguisticItem.metadata) {
+                item.linguisticItem.metadata.resolvedOn = null;
+              }
+
+              // Абнаўляем варыянты
+              item.options = newOptions;
+            }
+          }
+          return newData;
+        });
+
+        // Абнаўляем выбранае слова з новымі дадзенымі
+        setSelectedWord(prev => {
+          if (!prev) return null;
+
+          return {
+            ...prev,
+            item: {
+              ...prev.item,
+              text: text,
+              paradigmFormId: null,
+              lemma: null,
+              linguisticTag: null,
+              metadata: prev.item.metadata
+                ? {
+                    ...prev.item.metadata,
+                    resolvedOn: null,
+                  }
+                : null,
+            },
+            options: newOptions,
+          };
+        });
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Невядомая памылка';
+        setSaveError(errorMessage);
+        throw err; // Перакідаем памылку далей для апрацоўкі ў кампаненце
+      }
+    },
+    [selectedWord, documentId]
+  );
+
   return {
     selectedWord,
     setSelectedWord,
@@ -236,5 +322,6 @@ export function useSelectedWord(
     setSaveError,
     pendingSaves,
     handleSaveParadigm,
+    handleUpdateWordText,
   };
 }

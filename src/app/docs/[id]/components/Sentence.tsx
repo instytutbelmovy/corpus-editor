@@ -1,13 +1,14 @@
 import {
   Sentence as SentenceType,
   LinguisticItem as LinguisticItemType,
+  SelectedWord,
 } from '@/types/document';
 import { LinguisticItem } from './LinguisticItem';
 
 interface SentenceProps {
   sentence: SentenceType;
   paragraphId: number;
-  selectedWord: LinguisticItemType | null;
+  selectedWord: SelectedWord | null;
   pendingSaves: Set<string>;
   onWordClick: (item: LinguisticItemType) => void;
 }
@@ -23,7 +24,12 @@ export function Sentence({
     <span key={sentence.id}>
       {sentence.sentenceItems.map((sentenceItem, index) => {
         const currentItem = sentenceItem.linguisticItem;
-        const isCurrentlyEditing = selectedWord === currentItem;
+        const isCurrentlyEditing = Boolean(
+          selectedWord &&
+            selectedWord.paragraphId === paragraphId &&
+            selectedWord.sentenceId === sentence.id &&
+            selectedWord.wordIndex === index
+        );
 
         // Правяраем ці чакае слова захавання
         let isPendingSave = false;

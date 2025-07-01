@@ -1,0 +1,7 @@
+---
+description: 
+globs: *.md
+alwaysApply: false
+---
+- Only developer information should go into readme.md, like how to run the project.
+- Functionality description is not needed there.

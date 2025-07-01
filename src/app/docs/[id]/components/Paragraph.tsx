@@ -1,12 +1,13 @@
 import {
   Paragraph as ParagraphType,
+  SelectedWord,
   LinguisticItem as LinguisticItemType,
 } from '@/types/document';
 import { Sentence } from './Sentence';
 
 interface ParagraphProps {
   paragraph: ParagraphType;
-  selectedWord: LinguisticItemType | null;
+  selectedWord: SelectedWord | null;
   pendingSaves: Set<string>;
   onWordClick: (item: LinguisticItemType) => void;
 }
