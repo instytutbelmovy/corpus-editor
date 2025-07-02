@@ -11,6 +11,7 @@ interface ParadigmOptionsProps {
   displayMode: 'full' | 'compact';
   onSelect: (paradigmFormId: ParadigmFormId) => void;
   onManualInput?: () => void;
+  onBeforeSelect?: () => Promise<void>;
 }
 
 interface GroupedOptions {
@@ -132,6 +133,7 @@ export function ParadigmOptions({
   displayMode,
   onSelect,
   onManualInput,
+  onBeforeSelect,
 }: ParadigmOptionsProps) {
   const groupedOptions = groupOptionsByPartOfSpeech(options);
 
@@ -186,7 +188,12 @@ export function ParadigmOptions({
                         ? 'border-green-500 bg-green-50'
                         : 'border-gray-200 hover:border-blue-300'
                     }`}
-                    onClick={() => onSelect(option.paradigmFormId)}
+                    onClick={async () => {
+                      if (onBeforeSelect) {
+                        await onBeforeSelect();
+                      }
+                      onSelect(option.paradigmFormId);
+                    }}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">

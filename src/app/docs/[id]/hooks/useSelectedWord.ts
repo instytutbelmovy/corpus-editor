@@ -120,6 +120,9 @@ export function useSelectedWord(
         return;
       }
 
+      // Захоўваем каментар перад пераходам да наступнага слова
+      // (каментар будзе захаваны праз EditingPanel перад пераходам)
+
       const wordKey = `${selectedWord.paragraphId}-${selectedWord.sentenceId}-${selectedWord.wordIndex}`;
 
       // Адразу пераходзім да наступнага слова
@@ -243,6 +246,9 @@ export function useSelectedWord(
     ) => {
       if (!selectedWord || !documentId) return;
 
+      // Захоўваем каментар перад абнаўленнем тэксту
+      // (каментар будзе захаваны праз EditingPanel перад пераходам)
+
       try {
         // Выклікаем API для змены тэксту
         const newOptions: GrammarInfo[] = await documentService.updateWordText(
@@ -324,6 +330,9 @@ export function useSelectedWord(
       onDocumentUpdate: (updater: (prev: DocumentData) => DocumentData) => void
     ) => {
       if (!selectedWord || !documentId) return;
+
+      // Захоўваем каментар перад пераходам да наступнага слова
+      // (каментар будзе захаваны праз EditingPanel перад пераходам)
 
       const wordKey = `${selectedWord.paragraphId}-${selectedWord.sentenceId}-${selectedWord.wordIndex}`;
 
@@ -438,6 +447,63 @@ export function useSelectedWord(
     [selectedWord, documentId, findNextUnresolvedWord]
   );
 
+  // Функцыя для захавання каментара
+  const handleSaveComment = useCallback(
+    async (
+      comment: string,
+      onDocumentUpdate: (updater: (prev: DocumentData) => DocumentData) => void
+    ) => {
+      if (!selectedWord || !documentId) return;
+
+      // Правяраем, ці змяніўся каментар
+      if (selectedWord.item.comment === comment) {
+        return; // Каментар не змяніўся, не захоўваем
+      }
+
+      try {
+        await documentService.saveComment(
+          documentId,
+          selectedWord.paragraphId,
+          selectedWord.paragraphStamp,
+          selectedWord.sentenceId,
+          selectedWord.sentenceStamp,
+          selectedWord.wordIndex,
+          comment
+        );
+
+        // Абнаўляем лакальна пасля паспяховага захавання
+        onDocumentUpdate(prev => {
+          const newData = { ...prev };
+          for (const paragraph of newData.paragraphs) {
+            if (paragraph.id !== selectedWord.paragraphId) continue;
+            for (const sentence of paragraph.sentences) {
+              if (sentence.id !== selectedWord.sentenceId) continue;
+              const item = sentence.sentenceItems[selectedWord.wordIndex];
+              item.linguisticItem.comment = comment;
+            }
+          }
+          return newData;
+        });
+
+        // Абнаўляем выбранае слова з новым каментарам
+        setSelectedWord(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            item: {
+              ...prev.item,
+              comment: comment,
+            },
+          };
+        });
+      } catch (err) {
+        console.error('Памылка захавання каментара:', err);
+        // Для каментараў не паказваем памылку карыстальніку, толькі логуем
+      }
+    },
+    [selectedWord, documentId]
+  );
+
   return {
     selectedWord,
     setSelectedWord,
@@ -447,5 +513,6 @@ export function useSelectedWord(
     handleSaveParadigm,
     handleUpdateWordText,
     handleSaveManualCategories,
+    handleSaveComment,
   };
 }

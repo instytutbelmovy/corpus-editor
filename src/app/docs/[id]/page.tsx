@@ -41,6 +41,7 @@ export default function DocumentPage() {
     handleSaveParadigm,
     handleUpdateWordText,
     handleSaveManualCategories,
+    handleSaveComment,
   } = useSelectedWord(documentId, documentData);
 
   // Хук для клавіятурнай навігацыі
@@ -81,7 +82,7 @@ export default function DocumentPage() {
         }
       }
     },
-    [documentData]
+    [documentData, setSelectedWord]
   );
 
   // Функцыя для захавання парадыгмы
@@ -112,6 +113,16 @@ export default function DocumentPage() {
       await handleSaveManualCategories(lemma, linguisticTag, updateDocument);
     },
     [documentData, handleSaveManualCategories, updateDocument]
+  );
+
+  // Функцыя для захавання каментара
+  const handleSaveCommentWrapper = useCallback(
+    async (comment: string) => {
+      if (!documentData) return;
+
+      await handleSaveComment(comment, updateDocument);
+    },
+    [documentData, handleSaveComment, updateDocument]
   );
 
   // Станы загрузкі і памылак
@@ -156,6 +167,7 @@ export default function DocumentPage() {
               onClearError={() => setSaveError(null)}
               onUpdateWordText={handleUpdateWordTextWrapper}
               onSaveManualCategories={handleSaveManualCategoriesWrapper}
+              onSaveComment={handleSaveCommentWrapper}
             />
           </div>
         </div>

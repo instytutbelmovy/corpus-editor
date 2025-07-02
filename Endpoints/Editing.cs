@@ -33,6 +33,7 @@ public static class Editing
         todosApi.MapPut("/{id:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/paradigm-form-id", PutParadigmFormId);
         todosApi.MapPut("/{id:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/lemma-tag", PutLemmaTags);
         todosApi.MapPut("/{id:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/text", PutText);
+        todosApi.MapPut("/{id:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/comment", PutComment);
     }
 
     public static async Task<CorpusDocumentView> GetDocument(int id, int skipUpToId = 0, int take = 20)
@@ -113,6 +114,17 @@ public static class Editing
 
         await GrammarDB.Initialized;
         return GrammarDB.LookupWord(text);
+    }
+
+    public static async Task PutComment(int id, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] string comment)
+    {
+        if (id < 0 || paragraphId < 0 || sentenceId < 0)
+            throw new BadRequestException();
+
+        await EditDocument(id, paragraphId, paragraphStamp, sentenceId, sentenceStamp, wordIndex, si => si with
+        {
+            Comment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim(),
+        });
     }
 
     private static async Task EditDocument(int documentId, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, Func<LinguisticItem, LinguisticItem> transform)

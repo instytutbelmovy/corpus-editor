@@ -110,6 +110,30 @@ export class DocumentService {
       throw new Error('Не ўдалося захаваць лінгвістычныя катэгорыі');
     }
   }
+
+  async saveComment(
+    documentId: string,
+    paragraphId: number,
+    paragraphStamp: string,
+    sentenceId: number,
+    sentenceStamp: string,
+    wordIndex: number,
+    comment: string
+  ): Promise<void> {
+    const url = `/api/registry-files/${documentId}/${paragraphId}.${paragraphStamp}/${sentenceId}.${sentenceStamp}/${wordIndex}/comment`;
+
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(comment),
+    });
+
+    if (!response.ok) {
+      throw new Error('Не ўдалося захаваць каментар');
+    }
+  }
 }
 
 export const documentService = new DocumentService();

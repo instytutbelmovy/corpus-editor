@@ -18,6 +18,7 @@ export function useInfiniteScroll({
   const observerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const currentRef = observerRef.current;
     const observer = new IntersectionObserver(
       entries => {
         const target = entries[0];
@@ -31,13 +32,13 @@ export function useInfiniteScroll({
       }
     );
 
-    if (observerRef.current) {
-      observer.observe(observerRef.current);
+    if (currentRef) {
+      observer.observe(currentRef);
     }
 
     return () => {
-      if (observerRef.current) {
-        observer.unobserve(observerRef.current);
+      if (currentRef) {
+        observer.unobserve(currentRef);
       }
     };
   }, [hasMore, loadingMore, loading, lastParagraphId, onLoadMore]);

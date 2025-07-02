@@ -10,7 +10,7 @@ import {
   SettingsButton,
   ManualLinguisticInput,
 } from './index';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface EditingPanelProps {
   selectedWord: SelectedWord | null;
@@ -23,6 +23,7 @@ interface EditingPanelProps {
     lemma: string,
     linguisticTag: LinguisticTag
   ) => Promise<void>;
+  onSaveComment?: (comment: string) => Promise<void>;
 }
 
 export function EditingPanel({
@@ -33,6 +34,7 @@ export function EditingPanel({
   onClearError,
   onUpdateWordText,
   onSaveManualCategories,
+  onSaveComment,
 }: EditingPanelProps) {
   const { displayMode, setDisplayMode } = useDisplaySettings();
   const [isEditingText, setIsEditingText] = useState(false);
@@ -40,6 +42,10 @@ export function EditingPanel({
   const [isSavingText, setIsSavingText] = useState(false);
   const [showManualInput, setShowManualInput] = useState(false);
   const [isSavingManual, setIsSavingManual] = useState(false);
+  const [comment, setComment] = useState('');
+  const [isSavingComment, setIsSavingComment] = useState(false);
+  const commentTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedCommentRef = useRef<string>('');
 
   // Вызначаем, ці было слова адрэдагавана ў ручным рэжыме
   const isManuallyEdited =
@@ -61,6 +67,41 @@ export function EditingPanel({
   useEffect(() => {
     setIsEditingText(false);
     setEditText('');
+  }, [selectedWord]);
+
+  // Захоўваем каментар неадкладна (пры пераходзе на наступнае слова)
+  const saveCommentImmediately = useCallback(async () => {
+    if (
+      onSaveComment &&
+      selectedWord &&
+      comment !== lastSavedCommentRef.current
+    ) {
+      // Скідаем таймаут, калі ён ёсць
+      if (commentTimeoutRef.current) {
+        clearTimeout(commentTimeoutRef.current);
+      }
+      setIsSavingComment(true);
+      try {
+        await onSaveComment(comment);
+        lastSavedCommentRef.current = comment;
+      } catch (error) {
+        console.error('Памылка захавання каментара:', error);
+      } finally {
+        setIsSavingComment(false);
+      }
+    }
+  }, [onSaveComment, selectedWord, comment]);
+
+  // Ініцыялізуем каментар пры змене выбраннага слова
+  useEffect(() => {
+    if (selectedWord) {
+      const newComment = selectedWord.item.comment || '';
+      setComment(newComment);
+      lastSavedCommentRef.current = newComment;
+    } else {
+      setComment('');
+      lastSavedCommentRef.current = '';
+    }
   }, [selectedWord]);
 
   // Пачынаем рэдагаванне тэксту
@@ -102,6 +143,7 @@ export function EditingPanel({
 
     setIsSavingManual(true);
     try {
+      await saveCommentImmediately(); // Захоўваем каментар перад пераходам
       await onSaveManualCategories(lemma, linguisticTag);
       setShowManualInput(false);
       // Пасля захавання мы вяртаемся да выбару прапанаваных опцый
@@ -121,6 +163,44 @@ export function EditingPanel({
     // Але не скідваем існуючыя значэнні, каб карыстальнік мог іх зноў выкарыстаць
     // Кнопка "Вярнуцца да ручнага ўводу" будзе даступная
   };
+
+  // Захоўваем каментар з дэбаўнсінгам
+  const handleCommentChange = (newComment: string) => {
+    setComment(newComment);
+
+    // Скідаем папярэдні таймаут
+    if (commentTimeoutRef.current) {
+      clearTimeout(commentTimeoutRef.current);
+    }
+
+    // Усталёўваем новы таймаут для аўтазахавання праз 1 секунду
+    commentTimeoutRef.current = setTimeout(async () => {
+      if (
+        onSaveComment &&
+        selectedWord &&
+        newComment !== lastSavedCommentRef.current
+      ) {
+        setIsSavingComment(true);
+        try {
+          await onSaveComment(newComment);
+          lastSavedCommentRef.current = newComment;
+        } catch (error) {
+          console.error('Памылка захавання каментара:', error);
+        } finally {
+          setIsSavingComment(false);
+        }
+      }
+    }, 1000);
+  };
+
+  // Ачыстка таймаута пры размаўтанні кампанента
+  useEffect(() => {
+    return () => {
+      if (commentTimeoutRef.current) {
+        clearTimeout(commentTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Атрымліваем існуючыя значэнні для ручнага ўводу
   const getExistingManualValues = () => {
@@ -428,7 +508,10 @@ export function EditingPanel({
                   onDisplayModeChange={setDisplayMode}
                 />
                 <button
-                  onClick={onClose}
+                  onClick={async () => {
+                    await saveCommentImmediately();
+                    onClose();
+                  }}
                   className="text-gray-400 hover:text-gray-600 transition-colors p-1"
                   title="Закрыць"
                 >
@@ -470,9 +553,33 @@ export function EditingPanel({
                       ? () => setShowManualInput(true)
                       : undefined
                   }
+                  onBeforeSelect={saveCommentImmediately}
                 />
               )}
             </div>
+          </div>
+
+          {/* Каментар */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-gray-700">
+                Каментар
+              </label>
+              {isSavingComment && (
+                <div className="text-xs text-gray-500 flex items-center">
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500 mr-1"></div>
+                  Захоўваецца...
+                </div>
+              )}
+            </div>
+            <textarea
+              value={comment}
+              onChange={e => handleCommentChange(e.target.value)}
+              placeholder="Дадайце каментар да гэтага слова..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              rows={3}
+              style={{ minHeight: '80px' }}
+            />
           </div>
 
           {saveError && (
