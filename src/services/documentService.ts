@@ -85,6 +85,31 @@ export class DocumentService {
 
     return response.json();
   }
+
+  async saveLemmaTag(
+    documentId: string,
+    paragraphId: number,
+    paragraphStamp: string,
+    sentenceId: number,
+    sentenceStamp: string,
+    wordIndex: number,
+    lemma: string,
+    linguisticTag: string
+  ): Promise<void> {
+    const url = `/api/registry-files/${documentId}/${paragraphId}.${paragraphStamp}/${sentenceId}.${sentenceStamp}/${wordIndex}/lemma-tag`;
+
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ lemma, linguisticTag }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Не ўдалося захаваць лінгвістычныя катэгорыі');
+    }
+  }
 }
 
 export const documentService = new DocumentService();

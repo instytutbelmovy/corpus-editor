@@ -1,7 +1,16 @@
-import { SelectedWord, ParadigmFormId } from '@/types/document';
+import {
+  SelectedWord,
+  ParadigmFormId,
+  LinguisticTag,
+  parseLinguisticTag,
+} from '@/types/document';
 import { useDisplaySettings } from '../hooks/useDisplaySettings';
-import { ParadigmOptions, SettingsButton } from './index';
-import { useState } from 'react';
+import {
+  ParadigmOptions,
+  SettingsButton,
+  ManualLinguisticInput,
+} from './index';
+import { useState, useEffect } from 'react';
 
 interface EditingPanelProps {
   selectedWord: SelectedWord | null;
@@ -10,6 +19,10 @@ interface EditingPanelProps {
   onSaveParadigm: (paradigmFormId: ParadigmFormId) => void;
   onClearError: () => void;
   onUpdateWordText?: (text: string) => Promise<void>;
+  onSaveManualCategories?: (
+    lemma: string,
+    linguisticTag: LinguisticTag
+  ) => Promise<void>;
 }
 
 export function EditingPanel({
@@ -19,11 +32,36 @@ export function EditingPanel({
   onSaveParadigm,
   onClearError,
   onUpdateWordText,
+  onSaveManualCategories,
 }: EditingPanelProps) {
   const { displayMode, setDisplayMode } = useDisplaySettings();
   const [isEditingText, setIsEditingText] = useState(false);
   const [editText, setEditText] = useState('');
   const [isSavingText, setIsSavingText] = useState(false);
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [isSavingManual, setIsSavingManual] = useState(false);
+
+  // Вызначаем, ці было слова адрэдагавана ў ручным рэжыме
+  const isManuallyEdited =
+    selectedWord &&
+    selectedWord.item.paradigmFormId === null &&
+    selectedWord.item.linguisticTag !== null &&
+    !!selectedWord.item.metadata?.resolvedOn;
+
+  // Ініцыялізуем ручны ўвод, калі слова было адрэдагавана ўручную
+  useEffect(() => {
+    if (isManuallyEdited && selectedWord?.item.linguisticTag) {
+      setShowManualInput(true);
+    } else {
+      setShowManualInput(false);
+    }
+  }, [selectedWord, isManuallyEdited]);
+
+  // Скідаем стан рэдагавання тэксту пры змене выбраннага слова
+  useEffect(() => {
+    setIsEditingText(false);
+    setEditText('');
+  }, [selectedWord]);
 
   // Пачынаем рэдагаванне тэксту
   const handleStartEditText = () => {
@@ -53,6 +91,247 @@ export function EditingPanel({
   const handleCancelEditText = () => {
     setIsEditingText(false);
     setEditText('');
+  };
+
+  // Захоўваем ручна ўведзеныя катэгорыі
+  const handleSaveManualInput = async (
+    lemma: string,
+    linguisticTag: LinguisticTag
+  ) => {
+    if (!onSaveManualCategories) return;
+
+    setIsSavingManual(true);
+    try {
+      await onSaveManualCategories(lemma, linguisticTag);
+      setShowManualInput(false);
+      // Пасля захавання мы вяртаемся да выбару прапанаваных опцый
+      // Але слова цяпер пазначана як адрэдагаванае ўручную
+      // Кнопка "Вярнуцца да ручнага ўводу" будзе даступная
+    } catch (error) {
+      console.error('Памылка захавання лінгвістычных катэгорый:', error);
+    } finally {
+      setIsSavingManual(false);
+    }
+  };
+
+  // Скасоўваем ручны ўвод
+  const handleCancelManualInput = () => {
+    setShowManualInput(false);
+    // Калі слова было адрэдагавана ўручную, то пры скасаванні мы вяртаемся да выбару прапанаваных опцый
+    // Але не скідваем існуючыя значэнні, каб карыстальнік мог іх зноў выкарыстаць
+    // Кнопка "Вярнуцца да ручнага ўводу" будзе даступная
+  };
+
+  // Атрымліваем існуючыя значэнні для ручнага ўводу
+  const getExistingManualValues = () => {
+    if (!selectedWord?.item.linguisticTag || !selectedWord?.item.lemma) {
+      return null;
+    }
+
+    const categories = parseLinguisticTag(selectedWord.item.linguisticTag);
+
+    // Пераўтвараем катэгорыі ў фармат, які патрабуе ManualLinguisticInput
+    const categoryValues: Record<string, string> = {};
+
+    // Знаходзім частку мовы
+    let partOfSpeech = '';
+    if (categories.partOfSpeech === 'назоўнік') partOfSpeech = 'N';
+    else if (categories.partOfSpeech === 'прыметнік') partOfSpeech = 'A';
+    else if (categories.partOfSpeech === 'лічэбнік') partOfSpeech = 'M';
+    else if (categories.partOfSpeech === 'займеньнік') partOfSpeech = 'S';
+    else if (categories.partOfSpeech === 'дзеяслоў') partOfSpeech = 'V';
+    else if (categories.partOfSpeech === 'дзеепрыметнік') partOfSpeech = 'P';
+    else if (categories.partOfSpeech === 'прыслоўе') partOfSpeech = 'R';
+    else if (categories.partOfSpeech === 'злучнік') partOfSpeech = 'C';
+
+    // Дадаем значэнні катэгорый
+    if (categories.properName === 'агульны') categoryValues.properName = 'C';
+    else if (categories.properName === 'уласны')
+      categoryValues.properName = 'P';
+
+    if (categories.animacy === 'адушаўлёны') categoryValues.animacy = 'A';
+    else if (categories.animacy === 'неадушаўлёны')
+      categoryValues.animacy = 'I';
+
+    if (categories.personhood === 'асабовы') categoryValues.personhood = 'P';
+    else if (categories.personhood === 'неасабовы')
+      categoryValues.personhood = 'I';
+
+    if (categories.abbreviation === 'скарачэньне')
+      categoryValues.abbreviation = 'B';
+    else if (
+      categories.abbreviation === 'не скарачэньне' ||
+      categories.abbreviation === ''
+    )
+      categoryValues.abbreviation = 'N';
+
+    if (categories.gender === 'мужчынскі') categoryValues.gender = 'M';
+    else if (categories.gender === 'жаночы') categoryValues.gender = 'F';
+    else if (categories.gender === 'ніякі') categoryValues.gender = 'N';
+    else if (categories.gender === 'агульны') categoryValues.gender = 'C';
+    else if (categories.gender === 'субстантываваны')
+      categoryValues.gender = 'S';
+    else if (categories.gender === 'субстантываваны множналікавы')
+      categoryValues.gender = 'U';
+    else if (categories.gender === 'толькі множны лік/адсутны')
+      categoryValues.gender = 'P';
+
+    if (categories.declension === '1 скланеньне')
+      categoryValues.declension = '1';
+    else if (categories.declension === '2 скланеньне')
+      categoryValues.declension = '2';
+    else if (categories.declension === '3 скланеньне')
+      categoryValues.declension = '3';
+    else if (categories.declension === 'нескланяльны')
+      categoryValues.declension = '0';
+    else if (categories.declension === 'рознаскланяльны')
+      categoryValues.declension = '4';
+    else if (categories.declension === "ад'ектыўны тып скланеньня")
+      categoryValues.declension = '5';
+    else if (categories.declension === 'зьмешаны тып скланеньня')
+      categoryValues.declension = '6';
+    else if (categories.declension === 'множналікавы')
+      categoryValues.declension = '7';
+
+    if (categories.case === 'назоўны') categoryValues.case = 'N';
+    else if (categories.case === 'родны') categoryValues.case = 'G';
+    else if (categories.case === 'давальны') categoryValues.case = 'D';
+    else if (categories.case === 'вінавальны') categoryValues.case = 'A';
+    else if (categories.case === 'творны') categoryValues.case = 'I';
+    else if (categories.case === 'месны') categoryValues.case = 'L';
+    else if (categories.case === 'клічны') categoryValues.case = 'V';
+
+    if (categories.number === 'адзіночны') categoryValues.number = 'S';
+    else if (categories.number === 'множны') categoryValues.number = 'P';
+
+    if (categories.adjectiveType === 'якасны')
+      categoryValues.adjectiveType = 'Q';
+    else if (categories.adjectiveType === 'адносны')
+      categoryValues.adjectiveType = 'R';
+    else if (categories.adjectiveType === 'прыналежны')
+      categoryValues.adjectiveType = 'P';
+    else if (categories.adjectiveType === 'нескланяльны')
+      categoryValues.adjectiveType = '0';
+
+    if (categories.degree === 'станоўчая') categoryValues.degree = 'P';
+    else if (categories.degree === 'вышэйшая') categoryValues.degree = 'C';
+    else if (categories.degree === 'найвышэйшая') categoryValues.degree = 'S';
+
+    if (categories.adverbFunction === 'у функцыі прыслоўя')
+      categoryValues.adverbFunction = 'R';
+
+    if (categories.inflectionType === 'як у назоўніка')
+      categoryValues.inflectionType = 'N';
+    else if (categories.inflectionType === 'як у прыметніка')
+      categoryValues.inflectionType = 'A';
+    else if (categories.inflectionType === 'нязьменны')
+      categoryValues.inflectionType = '0';
+
+    if (categories.numeralType === 'колькасны')
+      categoryValues.numeralType = 'C';
+    else if (categories.numeralType === 'парадкавы')
+      categoryValues.numeralType = 'O';
+    else if (categories.numeralType === 'зборны')
+      categoryValues.numeralType = 'K';
+    else if (categories.numeralType === 'дробавы')
+      categoryValues.numeralType = 'F';
+
+    if (categories.numeralStructure === 'просты')
+      categoryValues.numeralStructure = 'S';
+    else if (categories.numeralStructure === 'складаны')
+      categoryValues.numeralStructure = 'C';
+
+    if (categories.numeralInflection === 'нескланяльны')
+      categoryValues.numeralInflection = '0';
+
+    if (categories.pronounType === 'асабовы') categoryValues.pronounType = 'P';
+    else if (categories.pronounType === 'зваротны')
+      categoryValues.pronounType = 'R';
+    else if (categories.pronounType === 'прыналежны')
+      categoryValues.pronounType = 'S';
+    else if (categories.pronounType === 'указальны')
+      categoryValues.pronounType = 'D';
+    else if (categories.pronounType === 'азначальны')
+      categoryValues.pronounType = 'E';
+    else if (categories.pronounType === 'пытальна-адносны')
+      categoryValues.pronounType = 'L';
+    else if (categories.pronounType === 'адмоўны')
+      categoryValues.pronounType = 'N';
+    else if (categories.pronounType === 'няпэўны')
+      categoryValues.pronounType = 'F';
+
+    if (categories.person === 'першая') categoryValues.person = '1';
+    else if (categories.person === 'другая') categoryValues.person = '2';
+    else if (categories.person === 'трэцяя') categoryValues.person = '3';
+    else if (categories.person === 'безасабовы') categoryValues.person = '0';
+
+    if (categories.verbTransitivity === 'пераходны')
+      categoryValues.verbTransitivity = 'T';
+    else if (categories.verbTransitivity === 'непераходны')
+      categoryValues.verbTransitivity = 'I';
+    else if (categories.verbTransitivity === 'пераходны/непераходны')
+      categoryValues.verbTransitivity = 'D';
+
+    if (categories.verbAspect === 'закончанае') categoryValues.verbAspect = 'P';
+    else if (categories.verbAspect === 'незакончанае')
+      categoryValues.verbAspect = 'M';
+
+    if (categories.verbReflexivity === 'зваротны')
+      categoryValues.verbReflexivity = 'R';
+    else if (categories.verbReflexivity === 'незваротны')
+      categoryValues.verbReflexivity = 'N';
+
+    if (categories.verbConjugation === 'першае')
+      categoryValues.verbConjugation = '1';
+    else if (categories.verbConjugation === 'другое')
+      categoryValues.verbConjugation = '2';
+    else if (categories.verbConjugation === 'рознаспрагальны')
+      categoryValues.verbConjugation = '3';
+
+    if (categories.verbTense === 'цяперашні') categoryValues.verbTense = 'R';
+    else if (categories.verbTense === 'прошлы') categoryValues.verbTense = 'P';
+    else if (categories.verbTense === 'будучы') categoryValues.verbTense = 'F';
+    else if (categories.verbTense === 'загадны') categoryValues.verbTense = 'I';
+    else if (categories.verbTense === 'інфінітыў')
+      categoryValues.verbTense = '0';
+
+    if (categories.verbMood === 'дзеепрыслоўе') categoryValues.verbMood = 'G';
+
+    if (categories.participleType === 'незалежны')
+      categoryValues.participleType = 'A';
+    else if (categories.participleType === 'залежны')
+      categoryValues.participleType = 'P';
+
+    if (categories.participleForm === 'кароткая форма')
+      categoryValues.participleForm = 'R';
+
+    if (categories.adverbOrigin === 'ад назоўнікаў')
+      categoryValues.adverbOrigin = 'N';
+    else if (categories.adverbOrigin === 'ад прыметнікаў')
+      categoryValues.adverbOrigin = 'A';
+    else if (categories.adverbOrigin === 'ад лічэбнікаў')
+      categoryValues.adverbOrigin = 'M';
+    else if (categories.adverbOrigin === 'ад займеннікаў')
+      categoryValues.adverbOrigin = 'S';
+    else if (categories.adverbOrigin === 'ад дзеепрыслоўяў')
+      categoryValues.adverbOrigin = 'G';
+    else if (categories.adverbOrigin === 'ад дзеясловаў')
+      categoryValues.adverbOrigin = 'V';
+    else if (categories.adverbOrigin === 'ад часціц')
+      categoryValues.adverbOrigin = 'E';
+    else if (categories.adverbOrigin === 'ад прыназоўнікаў')
+      categoryValues.adverbOrigin = 'I';
+
+    if (categories.conjunctionType === 'падпарадкавальны')
+      categoryValues.conjunctionType = 'S';
+    else if (categories.conjunctionType === 'злучальны')
+      categoryValues.conjunctionType = 'K';
+
+    return {
+      lemma: selectedWord.item.lemma,
+      partOfSpeech,
+      categories: categoryValues,
+    };
   };
 
   if (!selectedWord) {
@@ -142,41 +421,57 @@ export function EditingPanel({
                 </div>
               )}
             </div>
-            <div className="flex items-center space-x-2">
-              <SettingsButton
-                displayMode={displayMode}
-                onDisplayModeChange={setDisplayMode}
-              />
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1"
-                title="Закрыць"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+            {!isEditingText && (
+              <div className="flex items-center space-x-2">
+                <SettingsButton
+                  displayMode={displayMode}
+                  onDisplayModeChange={setDisplayMode}
+                />
+                <button
+                  onClick={onClose}
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                  title="Закрыць"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="mb-4">
             <div className="overflow-y-auto lg:overflow-visible">
-              <ParadigmOptions
-                options={selectedWord.options}
-                selectedParadigmFormId={selectedWord.item.paradigmFormId}
-                displayMode={displayMode}
-                onSelect={onSaveParadigm}
-              />
+              {showManualInput ? (
+                <ManualLinguisticInput
+                  onSave={handleSaveManualInput}
+                  onCancel={handleCancelManualInput}
+                  isSaving={isSavingManual}
+                  initialValues={getExistingManualValues()}
+                />
+              ) : (
+                <ParadigmOptions
+                  options={selectedWord.options}
+                  selectedParadigmFormId={selectedWord.item.paradigmFormId}
+                  displayMode={displayMode}
+                  onSelect={onSaveParadigm}
+                  onManualInput={
+                    onSaveManualCategories
+                      ? () => setShowManualInput(true)
+                      : undefined
+                  }
+                />
+              )}
             </div>
           </div>
 

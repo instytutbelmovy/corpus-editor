@@ -4,6 +4,7 @@ import {
   DocumentData,
   ParadigmFormId,
   GrammarInfo,
+  LinguisticTag,
 } from '@/types/document';
 import { documentService } from '@/services/documentService';
 
@@ -315,6 +316,128 @@ export function useSelectedWord(
     [selectedWord, documentId]
   );
 
+  // Функцыя для захавання ручна ўведзеных лінгвістычных катэгорый
+  const handleSaveManualCategories = useCallback(
+    async (
+      lemma: string,
+      linguisticTag: LinguisticTag,
+      onDocumentUpdate: (updater: (prev: DocumentData) => DocumentData) => void
+    ) => {
+      if (!selectedWord || !documentId) return;
+
+      const wordKey = `${selectedWord.paragraphId}-${selectedWord.sentenceId}-${selectedWord.wordIndex}`;
+
+      // Дадаем слова ў спіс чакаючых захавання
+      setPendingSaves(prev => new Set(prev).add(wordKey));
+
+      // Абнаўляем лакальна толькі лему і тэг, але НЕ ўсталёўваем resolvedOn
+      onDocumentUpdate(prev => {
+        const newData = { ...prev };
+        for (const paragraph of newData.paragraphs) {
+          if (paragraph.id !== selectedWord.paragraphId) continue;
+          for (const sentence of paragraph.sentences) {
+            if (sentence.id !== selectedWord.sentenceId) continue;
+            const item = sentence.sentenceItems[selectedWord.wordIndex];
+            item.linguisticItem.paradigmFormId = null; // Скідаем парадыгму
+            item.linguisticItem.lemma = lemma;
+            item.linguisticItem.linguisticTag = linguisticTag;
+            // НЕ ўсталёўваем resolvedOn пакуль запыт не скончыцца паспяхова
+          }
+        }
+        return newData;
+      });
+
+      try {
+        // Фарматуем linguisticTag для API
+        const tagString =
+          linguisticTag.paradigmTag +
+          (linguisticTag.formTag ? '|' + linguisticTag.formTag : '');
+
+        await documentService.saveLemmaTag(
+          documentId,
+          selectedWord.paragraphId,
+          selectedWord.paragraphStamp,
+          selectedWord.sentenceId,
+          selectedWord.sentenceStamp,
+          selectedWord.wordIndex,
+          lemma,
+          tagString
+        );
+
+        // Пасля паспяховага захавання ўсталёўваем resolvedOn
+        onDocumentUpdate(prev => {
+          const newData = { ...prev };
+          for (const paragraph of newData.paragraphs) {
+            if (paragraph.id !== selectedWord.paragraphId) continue;
+            for (const sentence of paragraph.sentences) {
+              if (sentence.id !== selectedWord.sentenceId) continue;
+              const item = sentence.sentenceItems[selectedWord.wordIndex];
+              if (!item.linguisticItem.metadata)
+                item.linguisticItem.metadata = {
+                  suggested: null,
+                  resolvedOn: null,
+                };
+              item.linguisticItem.metadata.resolvedOn =
+                new Date().toISOString();
+            }
+          }
+          return newData;
+        });
+
+        // Удаляем з спісу чакаючых пасля паспяховага захавання
+        setPendingSaves(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(wordKey);
+          return newSet;
+        });
+
+        // Пераходзім да наступнага слова
+        const nextWord = findNextUnresolvedWord();
+        if (nextWord) {
+          setSelectedWord(nextWord);
+        } else {
+          setSelectedWord(null);
+        }
+      } catch (err) {
+        // У выпадку памылкі вяртаем слова ў нявызначаны стан
+        onDocumentUpdate(prev => {
+          const newData = { ...prev };
+          for (const paragraph of newData.paragraphs) {
+            if (paragraph.id !== selectedWord.paragraphId) continue;
+            for (const sentence of paragraph.sentences) {
+              if (sentence.id !== selectedWord.sentenceId) continue;
+              const item = sentence.sentenceItems[selectedWord.wordIndex];
+              // Вяртаем да папярэдняга стану
+              item.linguisticItem.paradigmFormId =
+                selectedWord.item.paradigmFormId;
+              item.linguisticItem.lemma = selectedWord.item.lemma;
+              item.linguisticItem.linguisticTag =
+                selectedWord.item.linguisticTag;
+              if (item.linguisticItem.metadata) {
+                item.linguisticItem.metadata.resolvedOn =
+                  selectedWord.item.metadata?.resolvedOn || null;
+              }
+            }
+          }
+          return newData;
+        });
+
+        // Удаляем з спісу чакаючых
+        setPendingSaves(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(wordKey);
+          return newSet;
+        });
+
+        const errorMessage =
+          err instanceof Error ? err.message : 'Невядомая памылка';
+        setSaveError(errorMessage);
+        throw err; // Перакідаем памылку далей для апрацоўкі ў кампаненце
+      }
+    },
+    [selectedWord, documentId, findNextUnresolvedWord]
+  );
+
   return {
     selectedWord,
     setSelectedWord,
@@ -323,5 +446,6 @@ export function useSelectedWord(
     pendingSaves,
     handleSaveParadigm,
     handleUpdateWordText,
+    handleSaveManualCategories,
   };
 }

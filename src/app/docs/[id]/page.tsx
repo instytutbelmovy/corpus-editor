@@ -5,6 +5,7 @@ import { useCallback } from 'react';
 import {
   LinguisticItem as LinguisticItemType,
   ParadigmFormId,
+  LinguisticTag,
 } from '@/types/document';
 import {
   useDocument,
@@ -39,6 +40,7 @@ export default function DocumentPage() {
     pendingSaves,
     handleSaveParadigm,
     handleUpdateWordText,
+    handleSaveManualCategories,
   } = useSelectedWord(documentId, documentData);
 
   // Хук для клавіятурнай навігацыі
@@ -102,6 +104,16 @@ export default function DocumentPage() {
     [documentData, handleUpdateWordText, updateDocument]
   );
 
+  // Функцыя для захавання ручна ўведзеных катэгорый
+  const handleSaveManualCategoriesWrapper = useCallback(
+    async (lemma: string, linguisticTag: LinguisticTag) => {
+      if (!documentData) return;
+
+      await handleSaveManualCategories(lemma, linguisticTag, updateDocument);
+    },
+    [documentData, handleSaveManualCategories, updateDocument]
+  );
+
   // Станы загрузкі і памылак
   if (loading) {
     return <LoadingScreen />;
@@ -143,6 +155,7 @@ export default function DocumentPage() {
               onSaveParadigm={handleSaveParadigmWrapper}
               onClearError={() => setSaveError(null)}
               onUpdateWordText={handleUpdateWordTextWrapper}
+              onSaveManualCategories={handleSaveManualCategoriesWrapper}
             />
           </div>
         </div>

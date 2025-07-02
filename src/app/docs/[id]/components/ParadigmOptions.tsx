@@ -10,6 +10,7 @@ interface ParadigmOptionsProps {
   selectedParadigmFormId: ParadigmFormId | null;
   displayMode: 'full' | 'compact';
   onSelect: (paradigmFormId: ParadigmFormId) => void;
+  onManualInput?: () => void;
 }
 
 interface GroupedOptions {
@@ -130,6 +131,7 @@ export function ParadigmOptions({
   selectedParadigmFormId,
   displayMode,
   onSelect,
+  onManualInput,
 }: ParadigmOptionsProps) {
   const groupedOptions = groupOptionsByPartOfSpeech(options);
 
@@ -138,6 +140,14 @@ export function ParadigmOptions({
       <div className="p-4 text-center text-gray-500">
         <div className="text-2xl mb-2">📝</div>
         <p>Няма даступных варыянтаў парадыгмы для гэтага слова</p>
+        {onManualInput && (
+          <button
+            onClick={onManualInput}
+            className="mt-4 bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors"
+          >
+            Ручны ўвод катэгорый
+          </button>
+        )}
       </div>
     );
   }
@@ -231,6 +241,31 @@ export function ParadigmOptions({
           </div>
         );
       })}
+
+      {/* Кнопка ручнага ўводу */}
+      {onManualInput && (
+        <div className="pt-4 border-t border-gray-200">
+          <button
+            onClick={onManualInput}
+            className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+              />
+            </svg>
+            <span>Ручны ўвод катэгорый</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -7,3 +7,4 @@ export { Sentence } from './Sentence';
 export { Paragraph } from './Paragraph';
 export { ParadigmOptions } from './ParadigmOptions';
 export { SettingsButton } from './SettingsButton';
+export { ManualLinguisticInput } from './ManualLinguisticInput';
