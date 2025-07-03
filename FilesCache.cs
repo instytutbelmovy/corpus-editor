@@ -36,7 +36,8 @@ public static class FilesCache
             var document = GetFileInternal(header.N).Result;
             var updatedHeader = header with { PercentCompletion = document.CorpusDocument.ComputeCompletion() };
 
-            VertiIO.UpdateDocumentHeader(_settings.FilesDirectory, updatedHeader).Wait();
+            var filePath = Path.Combine(_settings.FilesDirectory, document.CorpusDocument.Header.N + ".verti");
+            VertiIO.UpdateDocumentHeader(filePath, updatedHeader).Wait();
             result.Add(new CorpusDocumentBasicInfo(updatedHeader.N, updatedHeader.Title, updatedHeader.PercentCompletion.Value));
         }
 
@@ -57,7 +58,10 @@ public static class FilesCache
         await document.WriteLock.WaitAsync();
         try
         {
-            await VertiIO.WriteDocument(_settings.FilesDirectory, document.CorpusDocument);
+            var tempFilePath = Path.GetTempFileName();
+            await VertiIO.WriteDocument(tempFilePath, document.CorpusDocument);
+            var filePath = Path.Combine(_settings.FilesDirectory, document.CorpusDocument.Header.N + ".verti");
+            File.Move(tempFilePath, filePath, overwrite: true);
         }
         finally
         {
@@ -80,7 +84,8 @@ public static class FilesCache
             return document;
         }
 
-        var corpusDocument = await VertiIO.ReadDocument(_settings.FilesDirectory, id);
+        var filePath = Path.Combine(_settings.FilesDirectory, id + ".verti");
+        var corpusDocument = await VertiIO.ReadDocument(filePath);
         var rewriteCorpusDocument = CorpusDocument.CheckIdsAndConcurrencyStamps(corpusDocument);
         if (rewriteCorpusDocument != null)
         {

@@ -44,9 +44,8 @@ public static class VertiIO
         return documents;
     }
 
-    public static async Task<CorpusDocument> ReadDocument(string folder, int id)
+    public static async Task<CorpusDocument> ReadDocument(string filePath)
     {
-        var filePath = Path.Combine(folder, $"{id}.verti");
         if (!File.Exists(filePath))
         {
             throw new FileNotFoundException($"File {filePath} not found");
@@ -152,9 +151,8 @@ public static class VertiIO
         return document;
     }
 
-    public static async Task WriteDocument(string folder, CorpusDocument document)
+    public static async Task WriteDocument(string filePath, CorpusDocument document)
     {
-        var filePath = Path.Combine(folder, document.Header.N + ".verti");
         try
         {
             await using var writer = new StreamWriter(filePath, false, System.Text.Encoding.UTF8);
@@ -228,15 +226,14 @@ public static class VertiIO
         }
     }
 
-    public static async Task UpdateDocumentHeader(string folder, CorpusDocumentHeader header)
+    public static async Task UpdateDocumentHeader(string filePath, CorpusDocumentHeader header)
     {
-        var filePath = Path.Combine(folder, $"{header.N}.verti");
         if (!File.Exists(filePath))
         {
             throw new FileNotFoundException($"File {filePath} not found");
         }
 
-        var tempFilePath = Path.Combine(folder, $"{header.N}.verti.tmp");
+        var tempFilePath = Path.GetTempFileName();
         using (var reader = new StreamReader(filePath))
         await using (var writer = new StreamWriter(tempFilePath, false, System.Text.Encoding.UTF8))
         {
@@ -255,8 +252,7 @@ public static class VertiIO
                 await writer.WriteLineAsync(line);
         }
 
-        File.Delete(filePath);
-        File.Move(tempFilePath, filePath);
+        File.Move(tempFilePath, filePath, overwrite: true);
     }
 
     private static CorpusDocumentHeader ReadCorpusDocumentHeader(string line)
