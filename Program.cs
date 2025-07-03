@@ -1,11 +1,12 @@
-using System.Globalization;
-using System.Text;
 using Dapper;
 using Editor;
 using Editor.Migrations;
+using Microsoft.AspNetCore.Rewrite;
 using Microsoft.Data.Sqlite;
+using System.Globalization;
+using System.Text;
 
-[module:DapperAot]
+[module: DapperAot]
 
 Console.OutputEncoding = Encoding.UTF8;
 CultureInfo.DefaultThreadCurrentCulture = CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture = CultureInfo.InvariantCulture;
@@ -35,15 +36,16 @@ ExceptionMiddleware.Initialize(app.Environment, app.Services.GetLoggerFor(nameof
 app.Services.InitLoggerFor(nameof(VertiIO), VertiIO.InitializeLogging);
 app.Services.InitLoggerFor(nameof(GrammarDB), GrammarDB.InitializeLogging);
 
+app.UseRewriter(new RewriteOptions()
+    .Add(context => SpaUrlRewrites.DoRewrite(context, app.Services)));
 app.MapStaticAssets();
 app.Use(ExceptionMiddleware.HandleException);
 app.MapRegistry();
 app.MapEditing();
 
-// Fallback для SPA - усё, што не API, вяртае index.html
-app.MapFallbackToFile("index.html");
+app.MapFallbackToFile("404.html");
 
-app.Run();
+await app.RunAsync();
 
 return;
 
