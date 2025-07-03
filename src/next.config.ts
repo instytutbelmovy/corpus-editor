@@ -18,6 +18,10 @@ if (process.env.NODE_ENV === 'development') {
   nextConfig = {
     output: 'export',
     distDir: '../wwwroot',
+    trailingSlash: true,
+    images: {
+      unoptimized: true,
+    },
   };
 }
 

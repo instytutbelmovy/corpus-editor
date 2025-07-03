@@ -40,6 +40,9 @@ app.Use(ExceptionMiddleware.HandleException);
 app.MapRegistry();
 app.MapEditing();
 
+// Fallback для SPA - усё, што не API, вяртае index.html
+app.MapFallbackToFile("index.html");
+
 app.Run();
 
 return;

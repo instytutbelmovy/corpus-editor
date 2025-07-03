@@ -1,6 +1,4 @@
-'use client';
-
-import { useParams } from 'next/navigation';
+import { useRouter } from 'next/router';
 import { useCallback } from 'react';
 import {
   LinguisticItem as LinguisticItemType,
@@ -12,13 +10,17 @@ import {
   useSelectedWord,
   useKeyboardNavigation,
   useInfiniteScroll,
-} from './hooks';
-import { DocumentHeader, DocumentContent, EditingPanel } from './components';
-import { LoadingScreen, ErrorScreen } from '@/components';
+} from '@/app/docs/hooks';
+import {
+  DocumentHeader,
+  DocumentContent,
+  EditingPanel,
+} from '@/app/docs/components';
+import { LoadingScreen, ErrorScreen } from '@/app/components';
 
 export default function DocumentPage() {
-  const params = useParams();
-  const documentId = params.id as string;
+  const router = useRouter();
+  const documentId = router.query.id as string;
 
   // Хукі для работы з дакумэнтам
   const {
