@@ -89,7 +89,7 @@ public static class FilesCache
         var rewriteCorpusDocument = CorpusDocument.CheckIdsAndConcurrencyStamps(corpusDocument);
         if (rewriteCorpusDocument != null)
         {
-            await VertiIO.WriteDocument(_settings.FilesDirectory, rewriteCorpusDocument);
+            await VertiIO.WriteDocument(filePath, rewriteCorpusDocument);
             corpusDocument = rewriteCorpusDocument;
         }
         document = Documents.GetOrAdd(id, _ => new Document { CorpusDocument = corpusDocument, LastAccessedOn = DateTime.UtcNow, WriteLock = new SemaphoreSlim(1, 1) });

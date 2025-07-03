@@ -4,7 +4,6 @@ let nextConfig: NextConfig;
 
 if (process.env.NODE_ENV === 'development') {
   nextConfig = {
-    distDir: 'wwwroot',
     rewrites: async () => {
       return [
         {
@@ -19,9 +18,6 @@ if (process.env.NODE_ENV === 'development') {
     output: 'export',
     distDir: '../wwwroot',
     trailingSlash: true,
-    images: {
-      unoptimized: true,
-    },
   };
 }
 
