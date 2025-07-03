@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Frozen;
+using System.Diagnostics;
 using System.Xml.Linq;
 
 namespace Editor;
@@ -88,7 +89,7 @@ public static class GrammarDB
             var paradigmFormIdDictionary = new Dictionary<ParadigmFormId, GrammarInfo>();
             foreach (var grammarInfo in grammarInfos.SelectMany(x => x).Select(x => x.Item2))
                 paradigmFormIdDictionary[grammarInfo.ParadigmFormId] = grammarInfo;
-            _paradigmFormIdDictionary = paradigmFormIdDictionary;
+            _paradigmFormIdDictionary = paradigmFormIdDictionary.ToFrozenDictionary();
 
             _initCompletionSource.SetResult();
             _logger?.LogInformation("Reading grammar db complete. Took {elapsed}", w.Elapsed);
