@@ -198,7 +198,7 @@ export function ParadigmOptions({
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="font-medium text-gray-900 mb-2">
-                          {option.normalizedLemma}
+                          {option.lemma}
                         </div>
 
                         <div className="flex flex-wrap gap-1">

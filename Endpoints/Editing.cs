@@ -51,7 +51,7 @@ public static class Editing
                         .Select(s => new SentenceView(s)
                         {
                             SentenceItems = s.SentenceItems
-                                .Select(si => new LinguisticItemView(si, si.Type == SentenceItemType.Word ? GrammarDB.LookupWord(si.Text) : [])),
+                                .Select(si => new LinguisticItemView(si, si.Type == SentenceItemType.Word ? GrammarDB.LookupWord(si.Text).Select(x => x with { Lemma = Normalizer.NormalizeTypographicStress(x.Lemma) }) : [])),
                         }),
                 }));
     }

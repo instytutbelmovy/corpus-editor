@@ -29,7 +29,6 @@ export interface GrammarInfo {
   paradigmFormId: ParadigmFormId;
   linguisticTag: LinguisticTag;
   lemma: string;
-  normalizedLemma: string;
   meaning: string | null;
 }
 

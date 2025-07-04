@@ -13,6 +13,7 @@ public static class Normalizer
 
     private static readonly Dictionary<char, char> GrammarSearchAggressiveNormalize;
     private static readonly Dictionary<char, char> GrammarSearchLightNormalize;
+    private static readonly Dictionary<char, char> TypographicStressNormalize = new() { { GrammarDbStress[0], CorrectStress[0] } };
 
     [ThreadStatic]
     private static StringBuilder? _stringBuilder;
@@ -65,6 +66,8 @@ public static class Normalizer
     public static string GrammarDbAggressiveNormalize(string word) => NormalizeWith(word, GrammarSearchAggressiveNormalize);
 
     public static string GrammarDbLightNormalize(string word) => NormalizeWith(word, GrammarSearchLightNormalize);
+    
+    public static string NormalizeTypographicStress(string word) => NormalizeOnly(word, TypographicStressNormalize);
 
     private static string NormalizeWith(string word, Dictionary<char, char> mapping)
     {
@@ -83,6 +86,28 @@ public static class Normalizer
             }
             else
                 somethingChanged = true;
+        }
+
+        return somethingChanged ? _stringBuilder.ToString() : word;
+    }
+
+    private static string NormalizeOnly(string word, Dictionary<char, char> mapping)
+    {
+        if (string.IsNullOrEmpty(word))
+            return word;
+
+        _stringBuilder ??= new ();
+        _stringBuilder.Clear();
+        bool somethingChanged = false;
+        for (int i = 0; i < word.Length; i++)
+        {
+            if (mapping.TryGetValue(word[i], out var mapped))
+            {
+                _stringBuilder.Append(mapped);
+                somethingChanged = true; 
+            }
+            else
+                _stringBuilder.Append(word[i]);
         }
 
         return somethingChanged ? _stringBuilder.ToString() : word;

@@ -8,7 +8,6 @@ public record GrammarInfo(
     ParadigmFormId ParadigmFormId,
     LinguisticTag LinguisticTag,
     string Lemma,
-    string NormalizedLemma,
     string? Meaning
 );
 
@@ -46,7 +45,6 @@ public static class GrammarDB
                             {
                                 var variantId = variant.Attribute("id").Value;
                                 var lemma = variant.Attribute("lemma").Value;
-                                var normalizedLemma = Normalizer.GrammarDbLightNormalize(lemma);
                                 var variantTag = variant.Attribute("tag")?.Value;
 
                                 var effectiveTag = variantTag ?? paradigmTag;
@@ -65,7 +63,6 @@ public static class GrammarDB
                                             ParadigmFormId: new ParadigmFormId(int.Parse(paradigmId), variantId, formTag),
                                             LinguisticTag: new LinguisticTag(effectiveTag, formTag),
                                             Lemma: lemma,
-                                            NormalizedLemma: normalizedLemma,
                                             Meaning: paradigmMeaning
                                         );
 
