@@ -197,25 +197,27 @@ export function ParadigmOptions({
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <div className="font-medium text-gray-900 mb-2">
-                          {option.lemma}
-                        </div>
+                        <div className="flex flex-row items-baseline md:flex-col md:items-start">
+                          <div className="font-medium text-gray-900 mb-0 md:mb-2">
+                            {option.lemma}
+                          </div>
 
-                        <div className="flex flex-wrap gap-1">
-                          {Object.entries(categories).map(([key, value]) => {
-                            if (!value || key === 'partOfSpeech') return null;
-                            const isCommon =
-                              key in commonCategories &&
-                              commonCategories[
-                                key as keyof LinguisticCategories
-                              ] === value;
-                            return renderCategory(
-                              key,
-                              value,
-                              isCommon,
-                              displayMode
-                            );
-                          })}
+                          <div className="flex flex-wrap gap-1 ml-2 md:ml-0">
+                            {Object.entries(categories).map(([key, value]) => {
+                              if (!value || key === 'partOfSpeech') return null;
+                              const isCommon =
+                                key in commonCategories &&
+                                commonCategories[
+                                  key as keyof LinguisticCategories
+                                ] === value;
+                              return renderCategory(
+                                key,
+                                value,
+                                isCommon,
+                                displayMode
+                              );
+                            })}
+                          </div>
                         </div>
 
                         {option.meaning && (

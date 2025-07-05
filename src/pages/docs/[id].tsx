@@ -141,24 +141,26 @@ export default function DocumentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div className="h-screen bg-gray-50 flex flex-col">
+      <div className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8 flex-1 flex flex-col max-h-full">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex-1 flex flex-col min-h-0 max-h-full">
           {/* Загаловак */}
           <DocumentHeader header={documentData.header} />
 
           {/* Асноўны кантэнт з тэкстам і панэллю рэдагавання */}
-          <div className="flex flex-col lg:flex-row gap-6">
+          <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0 max-h-full">
             {/* Тэкст дакумэнта */}
-            <DocumentContent
-              documentData={documentData}
-              selectedWord={selectedWord}
-              pendingSaves={pendingSaves}
-              loadingMore={loadingMore}
-              hasMore={hasMore}
-              onWordClick={handleWordClick}
-              observerRef={observerRef}
-            />
+            <div className="flex-1 overflow-y-auto min-h-0 max-h-full">
+              <DocumentContent
+                documentData={documentData}
+                selectedWord={selectedWord}
+                pendingSaves={pendingSaves}
+                loadingMore={loadingMore}
+                hasMore={hasMore}
+                onWordClick={handleWordClick}
+                observerRef={observerRef}
+              />
+            </div>
 
             {/* Панэль рэдагавання */}
             <EditingPanel

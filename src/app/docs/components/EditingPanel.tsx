@@ -417,7 +417,7 @@ export function EditingPanel({
   if (!selectedWord) {
     // На дэсктопе паказваем пустую панэль, на мабільным не паказваем
     return (
-      <div className="hidden lg:block lg:w-80 lg:min-h-screen lg:border-l lg:border-gray-200 lg:bg-gray-50 lg:p-4">
+      <div className="hidden lg:block lg:static lg:w-80 lg:h-full lg:border-l lg:border-gray-200 lg:bg-gray-50 lg:p-4">
         <div className="text-center text-gray-500 py-8">
           <div className="text-2xl mb-2">📝</div>
           <p className="text-sm">Выберыце слова для рэдагавання</p>
@@ -434,7 +434,7 @@ export function EditingPanel({
         aria-hidden="true"
       />
       <div
-        className="fixed bottom-0 left-0 w-full h-2/3 bg-white border-t border-gray-200 shadow-2xl z-50 rounded-t-2xl overflow-y-auto lg:static lg:h-auto lg:w-80 lg:min-h-screen lg:border-t-0 lg:border-l lg:border-r-0 lg:border-b-0 lg:rounded-none lg:shadow-none"
+        className="fixed bottom-0 left-0 w-full h-2/3 bg-white border-t border-gray-200 shadow-2xl z-50 rounded-t-2xl overflow-y-auto lg:static lg:w-80 lg:h-full lg:border-t-0 lg:border-l lg:border-r-0 lg:border-b-0 lg:rounded-none lg:shadow-none lg:overflow-y-auto"
         style={{ touchAction: 'manipulation' }}
       >
         <div className="p-4">

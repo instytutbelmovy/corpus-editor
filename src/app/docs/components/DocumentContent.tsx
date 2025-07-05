@@ -26,7 +26,7 @@ export function DocumentContent({
   observerRef,
 }: DocumentContentProps) {
   return (
-    <div className="flex-1 prose max-w-none">
+    <div className="prose max-w-none">
       {documentData.paragraphs.map(paragraph => (
         <Paragraph
           key={paragraph.id}
