@@ -32,7 +32,6 @@ WORKDIR /app
 
 # Капіруем збудаваны праект
 COPY --from=build /app/out ./
-COPY grammar-base ./grammar-base/
 COPY files ./files/
 RUN chown -R appuser:appgroup /app
 

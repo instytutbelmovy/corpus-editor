@@ -11,9 +11,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="GrammarDbConverter\**" />
     <Compile Remove="src\**" />
+    <Content Remove="GrammarDbConverter\**" />
     <Content Remove="src\**" />
+    <EmbeddedResource Remove="GrammarDbConverter\**" />
     <EmbeddedResource Remove="src\**" />
+    <None Remove="GrammarDbConverter\**" />
     <None Remove="src\**" />
   </ItemGroup>
 

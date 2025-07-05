@@ -5,6 +5,8 @@ VisualStudioVersion = 17.9.34723.18
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Editor", "Editor.csproj", "{3564F4D0-0FCB-479D-A7CE-44FDFAFBAEEC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GrammarDbConverter", "GrammarDbConverter\GrammarDbConverter.csproj", "{ABC873AC-FB48-4028-B177-44A399E3C7D7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{3564F4D0-0FCB-479D-A7CE-44FDFAFBAEEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3564F4D0-0FCB-479D-A7CE-44FDFAFBAEEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3564F4D0-0FCB-479D-A7CE-44FDFAFBAEEC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ABC873AC-FB48-4028-B177-44A399E3C7D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ABC873AC-FB48-4028-B177-44A399E3C7D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ABC873AC-FB48-4028-B177-44A399E3C7D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ABC873AC-FB48-4028-B177-44A399E3C7D7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,6 +1,8 @@
 ﻿using System.Collections.Frozen;
 using System.Diagnostics;
-using System.Xml.Linq;
+using System.Globalization;
+using System.Text.RegularExpressions;
+using Microsoft.Data.Sqlite;
 
 namespace Editor;
 
@@ -11,109 +13,147 @@ public record GrammarInfo(
     string? Meaning
 );
 
-public static class GrammarDB
+public static partial class GrammarDB
 {
-    private static ILookup<string, GrammarInfo> _formLookup = null!;
-    private static IDictionary<ParadigmFormId, GrammarInfo> _paradigmFormIdDictionary = null!;
     private static ILogger? _logger;
-    private static TaskCompletionSource _initCompletionSource = new();
+    private static string? _connectionString;
 
     public static void InitializeLogging(ILogger logger) => _logger = logger;
 
-    public static void Initialize(string directory)
+    public static void Initialize(string dbPath)
     {
-        Task.Factory.StartNew(() =>
-        {
-            _logger?.LogInformation("Reading grammar db from {directory}", directory);
-            var w = Stopwatch.StartNew();
-            var grammarInfos = Directory.GetFiles(directory, "*.xml").AsParallel()
-                .Select(xmlFile =>
-                    {
-                        var list = new List<(string, GrammarInfo)>();
-                        _logger?.LogTrace("Reading grammar db file {file}", xmlFile);
-                        var doc = XDocument.Load(xmlFile);
-                        var root = doc.Root;
-
-                        // Загружаем парадыгмы
-                        foreach (var paradigm in root.Elements("Paradigm"))
-                        {
-                            var paradigmTag = paradigm.Attribute("tag")?.Value;
-                            var paradigmId = paradigm.Attribute("pdgId").Value;
-                            var paradigmMeaning = paradigm.Attribute("meaning")?.Value;
-
-                            foreach (var variant in paradigm.Elements("Variant"))
-                            {
-                                var variantId = variant.Attribute("id").Value;
-                                var lemma = variant.Attribute("lemma").Value;
-                                var variantTag = variant.Attribute("tag")?.Value;
-
-                                var effectiveTag = variantTag ?? paradigmTag;
-
-                                foreach (var form in variant.Elements("Form"))
-                                {
-                                    var formTag = form.Attribute("tag").Value;
-                                    var formValue = form.Value;
-
-                                    if (!string.IsNullOrEmpty(formValue))
-                                    {
-                                        // Нармалізуем форму для індэксавання
-                                        var normalizedForm = Normalizer.GrammarDbAggressiveNormalize(formValue);
-
-                                        var grammarInfo = new GrammarInfo(
-                                            ParadigmFormId: new ParadigmFormId(int.Parse(paradigmId), variantId, formTag),
-                                            LinguisticTag: new LinguisticTag(effectiveTag, formTag),
-                                            Lemma: lemma,
-                                            Meaning: paradigmMeaning
-                                        );
-
-                                        list.Add((normalizedForm, grammarInfo));
-                                    }
-                                }
-                            }
-                        }
-
-                        return list;
-                    }
-                )
-                .ToList();
-
-            _formLookup = grammarInfos
-                .SelectMany(x => x)
-                .ToLookup(x => x.Item1, x => x.Item2);
-
-            // ToDictionary not used because grammarInfo.ParadigmFormId is not necessarily unique, namely adjective accusative (MAS) forms vary by animate/inanimate.
-            // And I only about one those, so taking the last is acceptable
-            var paradigmFormIdDictionary = new Dictionary<ParadigmFormId, GrammarInfo>();
-            foreach (var grammarInfo in grammarInfos.SelectMany(x => x).Select(x => x.Item2))
-                paradigmFormIdDictionary[grammarInfo.ParadigmFormId] = grammarInfo;
-            _paradigmFormIdDictionary = paradigmFormIdDictionary.ToFrozenDictionary();
-
-            _initCompletionSource.SetResult();
-            _logger?.LogInformation("Reading grammar db complete. Took {elapsed}", w.Elapsed);
-        }).ContinueWith(t =>
-        {
-            _logger?.LogError(t.Exception, "Failed to initialize grammar db.");
-        }, TaskContinuationOptions.OnlyOnFaulted);
+        _connectionString = $"Data Source={dbPath}";
+        _logger?.LogInformation("GrammarDB initialized with database: {dbPath}", dbPath);
     }
-
-    public static Task Initialized => _initCompletionSource.Task;
 
     public static IEnumerable<GrammarInfo> LookupWord(string word)
     {
-        if (!_initCompletionSource.Task.IsCompleted)
-            throw new InvalidOperationException("GrammarDB not initialized yet");
-
         var normalizedWord = Normalizer.GrammarDbAggressiveNormalize(word);
-        return _formLookup[normalizedWord];
+        var results = new List<GrammarInfo>();
+
+        using var connection = new SqliteConnection(_connectionString);
+        connection.Open();
+
+        // 1. Шукаем форму ў табліцы Forms
+        const string formsQuery = "SELECT Paradigms FROM Forms WHERE NormalizedForm = @NormalizedForm";
+        using var formsCommand = new SqliteCommand(formsQuery, connection);
+        formsCommand.Parameters.AddWithValue("@NormalizedForm", normalizedWord);
+
+        using var formsReader = formsCommand.ExecuteReader();
+        if (formsReader.Read())
+        {
+            var paradigmsString = formsReader.GetString(0);
+
+            foreach (var match in ParadigmKeyParsingRegex().EnumerateMatches(paradigmsString))
+            {
+                var paradigmIdStart = match.Index;
+                int variantIdStart = paradigmIdStart, formTagStart, formTagEnd;
+                while (char.IsDigit(paradigmsString[variantIdStart]))
+                    variantIdStart++;
+
+                formTagStart = variantIdStart;
+                while (paradigmsString[formTagStart] != '|')
+                    formTagStart++;
+                formTagStart++;
+                formTagEnd = formTagStart;
+                while (formTagEnd < paradigmsString.Length && paradigmsString[formTagEnd] != ',')
+                    formTagEnd++;
+
+                var paradigmId = Int32.Parse(paradigmsString.AsSpan(paradigmIdStart..variantIdStart), NumberStyles.None);
+                var variantId = paradigmsString[variantIdStart..(formTagStart - 1)];
+                var formTag = paradigmsString[formTagStart..formTagEnd];
+
+                const string paradigmQuery = "SELECT Lemma, ParadigmTag, Meaning FROM Paradigms WHERE ParadigmId = @ParadigmId AND VariantId = @VariantId";
+                using var paradigmCommand = new SqliteCommand(paradigmQuery, connection);
+                paradigmCommand.Parameters.AddWithValue("@ParadigmId", paradigmId);
+                paradigmCommand.Parameters.AddWithValue("@VariantId", variantId);
+
+                using var paradigmReader = paradigmCommand.ExecuteReader();
+                if (!paradigmReader.Read())
+                    throw new InvalidOperationException($"Paradigm {paradigmId}{variantId} not found");
+                var lemma = paradigmReader.GetString(0);
+                var paradigmTag = paradigmReader.GetString(1);
+                var meaning = paradigmReader.IsDBNull(2) ? null : paradigmReader.GetString(2);
+
+                var grammarInfo = new GrammarInfo(
+                    ParadigmFormId: new ParadigmFormId(paradigmId, variantId, formTag),
+                    LinguisticTag: new LinguisticTag(paradigmTag, formTag),
+                    Lemma: lemma,
+                    Meaning: meaning
+                );
+
+                results.Add(grammarInfo);
+            }
+        }
+
+        return results;
     }
 
     public static (string, LinguisticTag) GetLemmaAndLinguisticTag(ParadigmFormId paradigmFormId)
     {
-        if (!_initCompletionSource.Task.IsCompleted)
-            throw new InvalidOperationException("GrammarDB not initialized yet");
+        using var connection = new SqliteConnection(_connectionString);
+        connection.Open();
 
-        return _paradigmFormIdDictionary.TryGetValue(paradigmFormId, out var result)
-            ? (result.Lemma, result.LinguisticTag)
-            : throw new NotFoundException("Paradigm Form Id not found");
+        const string query = "SELECT Lemma, ParadigmTag FROM Paradigms WHERE ParadigmId = @ParadigmId AND VariantId = @VariantId";
+        using var command = new SqliteCommand(query, connection);
+        command.Parameters.AddWithValue("@ParadigmId", paradigmFormId.ParadigmId);
+        command.Parameters.AddWithValue("@VariantId", paradigmFormId.VariantId);
+
+        using var reader = command.ExecuteReader();
+        if (reader.Read())
+        {
+            var lemma = reader.GetString(0);
+            var paradigmTag = reader.GetString(1);
+            var linguisticTag = new LinguisticTag(paradigmTag, paradigmFormId.FormTag);
+
+            return (lemma, linguisticTag);
+        }
+
+        throw new NotFoundException("Paradigm Form Id not found");
+    }
+
+
+    [GeneratedRegex(@"\d+[a-z]?\|\w?")]
+    private static partial Regex ParadigmKeyParsingRegex();
+
+    private static bool TryParseParadigmKey(string paradigmKey, out int paradigmId, out string variantId, out string formTag)
+    {
+        paradigmId = 0;
+        variantId = "";
+        formTag = "";
+
+        try
+        {
+            // Шукаем першую лічбу (ParadigmId)
+            var paradigmIdEnd = 0;
+            while (paradigmIdEnd < paradigmKey.Length && char.IsDigit(paradigmKey[paradigmIdEnd]))
+            {
+                paradigmIdEnd++;
+            }
+
+            if (paradigmIdEnd == 0) return false;
+
+            paradigmId = int.Parse(paradigmKey[..paradigmIdEnd]);
+            var remaining = paradigmKey[paradigmIdEnd..];
+
+            // Астатняе - гэта VariantId + FormTag
+            // FormTag зазвычай кароткі (1-3 сімвалы), таму бярём апошнія сімвалы
+            if (remaining.Length >= 2)
+            {
+                formTag = remaining[^1..]; // Апошні сімвал як FormTag
+                variantId = remaining[..^1];
+            }
+            else
+            {
+                variantId = remaining;
+                formTag = "";
+            }
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }
