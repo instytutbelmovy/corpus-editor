@@ -65,6 +65,32 @@ public static class AwsFilesCache
         return (await GetFileInternal(id)).CorpusDocument;
     }
 
+    public static async Task<Stream> GetRawFile(int id)
+    {
+        await Initialized.Task;
+
+        var objectKey = $"{id}.verti";
+        try
+        {
+            var getRequest = new GetObjectRequest
+            {
+                BucketName = _awsSettings.BucketName,
+                Key = objectKey,
+            };
+
+            var response = await _s3Client.GetObjectAsync(getRequest);
+            return response.ResponseStream;
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            throw new FileNotFoundException($"File {objectKey} not found in S3");
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"Error reading file from S3: {ex.Message}", ex);
+        }
+    }
+
     public static async Task FlushFile(int id)
     {
         await Initialized.Task;

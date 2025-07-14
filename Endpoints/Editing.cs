@@ -30,6 +30,7 @@ public static class Editing
     {
         var todosApi = builder.MapGroup("/api/registry-files");
         todosApi.MapGet("/{id:int}", GetDocument);
+        todosApi.MapGet("/{id:int}/download", DownloadDocument);
         todosApi.MapPut("/{id:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/paradigm-form-id", PutParadigmFormId);
         todosApi.MapPut("/{id:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/lemma-tag", PutLemmaTags);
         todosApi.MapPut("/{id:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/text", PutText);
@@ -53,6 +54,24 @@ public static class Editing
                                 .Select(si => new LinguisticItemView(si, si.Type == SentenceItemType.Word ? GrammarDB.LookupWord(si.Text).Select(x => x with { Lemma = Normalizer.NormalizeTypographicStress(x.Lemma) }) : [])),
                         }),
                 }));
+    }
+
+    public static async Task<IResult> DownloadDocument(int id)
+    {
+        if (id < 0)
+            throw new BadRequestException();
+
+        try
+        {
+            var stream = await AwsFilesCache.GetRawFile(id);
+            var fileName = $"{id}.verti";
+            
+            return Results.File(stream, "text/plain", fileName);
+        }
+        catch (FileNotFoundException)
+        {
+            throw new NotFoundException();
+        }
     }
 
     public static async Task PutParadigmFormId(int id, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] ParadigmFormId paradigmFormId)
