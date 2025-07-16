@@ -1,16 +1,10 @@
-import { DocumentData, ParadigmFormId, GrammarInfo } from '@/types/document';
-
-interface DocumentListItem {
-  id: number;
-  title: string;
-  percentCompletion: number;
-}
+import { DocumentData, ParadigmFormId, GrammarInfo, DocumentHeader } from '@/types/document';
 
 interface CreateDocumentData {
-  documentNumber: number;
+  n: number;
   title: string;
-  link?: string;
-  publicationYear?: number;
+  url?: string;
+  publicationDate?: number;
   textType: 'вусны' | 'пісьмовы';
   style?: 'публіцыстычны' | 'мастацкі' | 'афіцыйна-справавы' | 'навуковы' | 'гутарковы';
   genres: string[];
@@ -24,22 +18,22 @@ export class DocumentService {
     this.baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
   }
 
-  async fetchDocuments(): Promise<DocumentListItem[]> {
+  async fetchDocuments(): Promise<DocumentHeader[]> {
     const response = await fetch('/api/registry-files');
     if (!response.ok) {
       throw new Error('Памылка загрузкі дакумэнтаў');
     }
     const data = await response.json();
-    data.sort((a: DocumentListItem, b: DocumentListItem) => a.id - b.id);
+    data.sort((a: DocumentHeader, b: DocumentHeader) => a.n - b.n);
     return data;
   }
 
   async createDocument(documentData: CreateDocumentData): Promise<void> {
     const formData = new FormData();
-    formData.append('documentNumber', documentData.documentNumber.toString());
+    formData.append('n', documentData.n.toString());
     formData.append('title', documentData.title);
-    if (documentData.link) formData.append('link', documentData.link);
-    if (documentData.publicationYear) formData.append('publicationYear', documentData.publicationYear.toString());
+    if (documentData.url) formData.append('url', documentData.url);
+    if (documentData.publicationDate) formData.append('publicationDate', documentData.publicationDate.toString());
     formData.append('textType', documentData.textType);
     if (documentData.style) formData.append('style', documentData.style);
     documentData.genres.forEach(genre => formData.append('genres', genre));

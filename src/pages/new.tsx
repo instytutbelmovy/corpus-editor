@@ -4,10 +4,10 @@ import Link from 'next/link';
 import { documentService } from '@/services/documentService';
 
 interface UploadFormData {
-  documentNumber: number;
+  n: number;
   title: string;
-  link?: string;
-  publicationYear?: number;
+  url?: string;
+  publicationDate?: number;
   textType: 'вусны' | 'пісьмовы';
   style?: 'публіцыстычны' | 'мастацкі' | 'афіцыйна-справавы' | 'навуковы' | 'гутарковы';
   genres: string[];
@@ -36,10 +36,10 @@ const genreOptions = [
 export default function NewDocument() {
   const router = useRouter();
   const [formData, setFormData] = useState<UploadFormData>({
-    documentNumber: 0,
+    n: 0,
     title: '',
-    link: '',
-    publicationYear: undefined,
+    url: '',
+    publicationDate: undefined,
     textType: 'пісьмовы',
     style: undefined,
     genres: [],
@@ -75,8 +75,8 @@ export default function NewDocument() {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.documentNumber || formData.documentNumber <= 0) {
-      newErrors.documentNumber = 'Нумар дакумента павінен быць дадатным лікам';
+    if (!formData.n || formData.n <= 0) {
+      newErrors.id = 'Нумар дакумента павінен быць дадатным лікам';
     }
 
     if (!formData.title.trim()) {
@@ -93,8 +93,8 @@ export default function NewDocument() {
       }
     }
 
-    if (formData.publicationYear && (formData.publicationYear < 1900 || formData.publicationYear > new Date().getFullYear())) {
-      newErrors.publicationYear = 'Год публікацыі павінен быць паміж 1900 і цяперашнім годам';
+    if (formData.publicationDate && (formData.publicationDate < 1900 || formData.publicationDate > new Date().getFullYear())) {
+      newErrors.publicationDate = 'Год публікацыі павінен быць паміж 1900 і цяперашнім годам';
     }
 
     setErrors(newErrors);
@@ -112,10 +112,10 @@ export default function NewDocument() {
 
     try {
       await documentService.createDocument({
-        documentNumber: formData.documentNumber,
+        n: formData.n,
         title: formData.title,
-        link: formData.link,
-        publicationYear: formData.publicationYear,
+        url: formData.url,
+        publicationDate: formData.publicationDate,
         textType: formData.textType,
         style: formData.style,
         genres: formData.genres,
@@ -168,43 +168,43 @@ export default function NewDocument() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Нумар дакумента */}
               <div>
-                <label htmlFor="documentNumber" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="n" className="block text-sm font-medium text-gray-700 mb-2">
                   Нумар дакумента *
                 </label>
                 <input
                   type="number"
-                  id="documentNumber"
-                  value={formData.documentNumber || ''}
-                  onChange={(e) => handleInputChange('documentNumber', parseInt(e.target.value) || 0)}
+                  id="n"
+                  value={formData.n || ''}
+                  onChange={(e) => handleInputChange('n', parseInt(e.target.value) || 0)}
                   className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.documentNumber ? 'border-red-300' : 'border-gray-300'
+                    errors.id ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder="Увядзіце нумар дакумента"
                 />
-                {errors.documentNumber && (
-                  <p className="mt-1 text-sm text-red-600">{errors.documentNumber}</p>
+                {errors.id && (
+                  <p className="mt-1 text-sm text-red-600">{errors.id}</p>
                 )}
               </div>
 
               {/* Год публікацыі */}
               <div>
-                <label htmlFor="publicationYear" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="publicationDate" className="block text-sm font-medium text-gray-700 mb-2">
                   Год публікацыі
                 </label>
                 <input
                   type="number"
-                  id="publicationYear"
-                  value={formData.publicationYear || ''}
-                  onChange={(e) => handleInputChange('publicationYear', parseInt(e.target.value) || undefined)}
+                  id="publicationDate"
+                  value={formData.publicationDate || ''}
+                  onChange={(e) => handleInputChange('publicationDate', parseInt(e.target.value) || undefined)}
                   className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.publicationYear ? 'border-red-300' : 'border-gray-300'
+                    errors.publicationDate ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder="2024"
                   min="1900"
                   max={new Date().getFullYear()}
                 />
-                {errors.publicationYear && (
-                  <p className="mt-1 text-sm text-red-600">{errors.publicationYear}</p>
+                {errors.publicationDate && (
+                  <p className="mt-1 text-sm text-red-600">{errors.publicationDate}</p>
                 )}
               </div>
             </div>
@@ -231,14 +231,14 @@ export default function NewDocument() {
 
             {/* Спасылка */}
             <div>
-              <label htmlFor="link" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-2">
                 Спасылка
               </label>
               <input
                 type="url"
-                id="link"
-                value={formData.link}
-                onChange={(e) => handleInputChange('link', e.target.value)}
+                id="url"
+                value={formData.url}
+                onChange={(e) => handleInputChange('url', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="https://example.com"
               />

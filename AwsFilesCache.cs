@@ -5,18 +5,11 @@ using Amazon.S3.Model;
 
 namespace Editor;
 
-public class CorpusDocumentBasicInfo(int id, string? title, int percentCompletion)
-{
-    public int Id { get; } = id;
-    public string? Title { get; } = title;
-    public int PercentCompletion { get; set; } = percentCompletion;
-}
-
 public static class AwsFilesCache
 {
     private static AwsSettings _awsSettings = null!;
     private static IAmazonS3 _s3Client = null!;
-    private static ConcurrentDictionary<int, CorpusDocumentBasicInfo> DocumentHeaders;
+    private static ConcurrentDictionary<int, CorpusDocumentHeader> DocumentHeaders;
     private static readonly ConcurrentDictionary<int, Document> Documents = new();
     private static readonly TaskCompletionSource Initialized = new();
     private static ILogger _logger;
@@ -35,12 +28,12 @@ public static class AwsFilesCache
         Task.Factory.StartNew(async () =>
         {
             var documentHeaders = await GetDocumentHeadersFromS3();
-            var result = new List<CorpusDocumentBasicInfo>();
+            var result = new List<CorpusDocumentHeader>();
             foreach (var header in documentHeaders)
             {
                 if (header.PercentCompletion != null)
                 {
-                    result.Add(new CorpusDocumentBasicInfo(header.N, header.Title, header.PercentCompletion.Value));
+                    result.Add(header);
                     continue;
                 }
 
@@ -49,27 +42,27 @@ public static class AwsFilesCache
 
                 var objectKey = $"{document.CorpusDocument.Header.N}.verti";
                 await UpdateDocumentHeaderInS3(objectKey, updatedHeader);
-                result.Add(new CorpusDocumentBasicInfo(updatedHeader.N, updatedHeader.Title, updatedHeader.PercentCompletion.Value));
+                result.Add(updatedHeader);
             }
 
-            DocumentHeaders = new ConcurrentDictionary<int, CorpusDocumentBasicInfo>(result.ToDictionary(x => x.Id));
+            DocumentHeaders = new ConcurrentDictionary<int, CorpusDocumentHeader>(result.ToDictionary(x => x.N));
             Initialized.SetResult();
             _logger.LogInformation("Initialized AWS Files Cache");
         });
     }
 
-    public static async Task<CorpusDocument> GetFile(int id)
+    public static async Task<CorpusDocument> GetFile(int n)
     {
         await Initialized.Task;
 
-        return (await GetFileInternal(id)).CorpusDocument;
+        return (await GetFileInternal(n)).CorpusDocument;
     }
 
-    public static async Task<Stream> GetRawFile(int id)
+    public static async Task<Stream> GetRawFile(int n)
     {
         await Initialized.Task;
 
-        var objectKey = $"{id}.verti";
+        var objectKey = $"{n}.verti";
         try
         {
             var getRequest = new GetObjectRequest
@@ -91,12 +84,12 @@ public static class AwsFilesCache
         }
     }
 
-    public static async Task FlushFile(int id)
+    public static async Task FlushFile(int n)
     {
         await Initialized.Task;
 
-        if (!Documents.TryGetValue(id, out var document))
-            throw new InvalidOperationException($"File {id} is not present in the cache");
+        if (!Documents.TryGetValue(n, out var document))
+            throw new InvalidOperationException($"File {n} is not present in the cache");
 
         document.LastAccessedOn = DateTime.UtcNow;
         await document.WriteLock.WaitAsync();
@@ -110,10 +103,10 @@ public static class AwsFilesCache
             document.WriteLock.Release();
         }
 
-        DocumentHeaders[id].PercentCompletion = document.CorpusDocument.ComputeCompletion();
+        DocumentHeaders[n].PercentCompletion = document.CorpusDocument.ComputeCompletion();
     }
 
-    public static async ValueTask<ICollection<CorpusDocumentBasicInfo>> GetAllDocumentHeaders()
+    public static async ValueTask<ICollection<CorpusDocumentHeader>> GetAllDocumentHeaders()
     {
         await Initialized.Task;
         return DocumentHeaders.Values;
@@ -135,18 +128,18 @@ public static class AwsFilesCache
             WriteLock = new SemaphoreSlim(1, 1),
         };
         Documents[corpusDocument.Header.N] = document;
-        DocumentHeaders[corpusDocument.Header.N] = new CorpusDocumentBasicInfo(corpusDocument.Header.N, corpusDocument.Header.Title, corpusDocument.Header.PercentCompletion.Value);
+        DocumentHeaders[corpusDocument.Header.N] = corpusDocument.Header;
     }
 
-    private static async Task<Document> GetFileInternal(int id)
+    private static async Task<Document> GetFileInternal(int n)
     {
-        if (Documents.TryGetValue(id, out var document))
+        if (Documents.TryGetValue(n, out var document))
         {
             document.LastAccessedOn = DateTime.UtcNow;
             return document;
         }
 
-        var objectKey = $"{id}.verti";
+        var objectKey = $"{n}.verti";
         var corpusDocument = await ReadDocumentFromS3(objectKey);
         var rewriteCorpusDocument = CorpusDocument.CheckIdsAndConcurrencyStamps(corpusDocument);
         if (rewriteCorpusDocument != null)
@@ -154,7 +147,7 @@ public static class AwsFilesCache
             await WriteDocumentToS3(objectKey, rewriteCorpusDocument);
             corpusDocument = rewriteCorpusDocument;
         }
-        document = Documents.GetOrAdd(id, _ => new Document { CorpusDocument = corpusDocument, LastAccessedOn = DateTime.UtcNow, WriteLock = new SemaphoreSlim(1, 1) });
+        document = Documents.GetOrAdd(n, _ => new Document { CorpusDocument = corpusDocument, LastAccessedOn = DateTime.UtcNow, WriteLock = new SemaphoreSlim(1, 1) });
         document.LastAccessedOn = DateTime.UtcNow;
         return document;
     }

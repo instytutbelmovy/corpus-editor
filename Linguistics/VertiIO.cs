@@ -274,9 +274,11 @@ public static class VertiIO
             PublicationDate: docXml.Attribute("publication_date")?.Value,
             Url: docXml.Attribute("url")?.Value,
             Type: docXml.Attribute("type")?.Value,
-            Style: docXml.Attribute("style")?.Value,
-            PercentCompletion: int.TryParse(docXml.Attribute("percent_completion")?.Value, out var percentCompletion) ? percentCompletion : null
-        );
+            Style: docXml.Attribute("style")?.Value
+        )
+        {
+            PercentCompletion = int.TryParse(docXml.Attribute("percent_completion")?.Value, out var percentCompletion) ? percentCompletion : null
+        };
         return corpusDocumentHeader;
     }
 

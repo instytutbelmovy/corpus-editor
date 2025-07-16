@@ -11,7 +11,7 @@ public static class Registry
         todosApi.MapPost("/", UploadFile);
     }
 
-    public static ValueTask<ICollection<CorpusDocumentBasicInfo>> GetAllFiles()
+    public static ValueTask<ICollection<CorpusDocumentHeader>> GetAllFiles()
     {
         return AwsFilesCache.GetAllDocumentHeaders();
     }
@@ -26,10 +26,10 @@ public static class Registry
         if (file == null)
             return Results.BadRequest("'file' not present in the form");
 
-        var documentNumber = Convert.ToInt32(form["documentNumber"]);
+        var n = Convert.ToInt32(form["n"]);
         var title = form["title"].ToString();
-        var link = form["link"].ToString();
-        var publicationYear = form["publicationYear"].ToString();
+        var url = form["url"].ToString();
+        var publicationDate = form["publicationDate"].ToString();
         var textType = form["textType"].ToString();
         var style = form["style"].ToString();
 
@@ -53,7 +53,10 @@ public static class Registry
         }).ToList();
 
         var percentCompletion = CorpusDocument.ComputeCompletion(paragraphs);
-        var header = new CorpusDocumentHeader(documentNumber, title, null, null, publicationYear, link, textType, style, percentCompletion);
+        var header = new CorpusDocumentHeader(n, title, null, null, publicationDate, url, textType, style)
+        {
+            PercentCompletion = percentCompletion,
+        };
         var corpusDocument = new CorpusDocument(header, paragraphs.ToList());
 
         await AwsFilesCache.AddFile(corpusDocument);

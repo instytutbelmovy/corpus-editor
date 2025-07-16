@@ -1,6 +1,9 @@
 ﻿namespace Editor;
 
-public record CorpusDocumentHeader(int N, string? Title, string? Author, string? Language, string? PublicationDate, string? Url, string? Type, string? Style, int? PercentCompletion = null);
+public record CorpusDocumentHeader(int N, string? Title, string? Author, string? Language, string? PublicationDate, string? Url, string? Type, string? Style)
+{
+    public int? PercentCompletion { get; set; }
+};
 
 public record CorpusDocument(CorpusDocumentHeader Header, List<Paragraph> Paragraphs)
 {

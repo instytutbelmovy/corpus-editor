@@ -2,17 +2,13 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { documentService } from '@/services';
 import { LoadingScreen, ErrorScreen } from '@/app/components';
-
-interface Document {
-  id: number;
-  title: string;
-  percentCompletion: number;
-}
+import { DocumentHeader } from '@/types/document';
 
 export default function Home() {
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const [documents, setDocuments] = useState<DocumentHeader[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     const fetchDocuments = async () => {
@@ -56,15 +52,33 @@ export default function Home() {
                   Выберыце дакумэнт для рэдагавання
                 </p>
               </div>
-              <Link
-                href="/new"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-150"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Дадаць дакумэнт
-              </Link>
+              <div className="flex items-center space-x-3">
+                <div className="inline-flex items-center space-x-3">
+                  <span className="text-sm font-medium text-gray-700">Дэталі</span>
+                  <button
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    style={{
+                      backgroundColor: isExpanded ? '#3B82F6' : '#D1D5DB'
+                    }}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${
+                        isExpanded ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
+                <Link
+                  href="/new"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-150"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Дадаць
+                </Link>
+              </div>
             </div>
           </div>
 
@@ -79,6 +93,22 @@ export default function Home() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Назва
                   </th>
+                  {isExpanded && (
+                    <>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Дата публікацыі
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        URL
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Тып
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Стыль
+                      </th>
+                    </>
+                  )}
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Прагрэс
                   </th>
@@ -89,20 +119,47 @@ export default function Home() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {documents.map(doc => (
                   <tr
-                    key={doc.id}
+                    key={doc.n}
                     className="hover:bg-gray-50 transition-colors duration-150"
                   >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {doc.id}
+                      {doc.n}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900">
                       <Link
-                        href={`/docs/${doc.id}`}
+                        href={`/docs/${doc.n}`}
                         className="text-blue-600 hover:text-blue-800 hover:underline transition-colors duration-150"
                       >
                         {doc.title}
                       </Link>
                     </td>
+                    {isExpanded && (
+                      <>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {doc.publicationDate || '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {doc.url ? (
+                            <a
+                              href={doc.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              {doc.url.length > 30 ? `${doc.url.substring(0, 30)}...` : doc.url}
+                            </a>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {doc.type || '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {doc.style || '-'}
+                        </td>
+                      </>
+                    )}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="w-16 bg-gray-200 rounded-full h-2 mr-3">
@@ -119,7 +176,7 @@ export default function Home() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <div className="relative">
                         <button
-                          onClick={() => handleDownload(doc.id)}
+                          onClick={() => handleDownload(doc.n)}
                           className="text-gray-400 hover:text-gray-600 transition-colors duration-150"
                           title="Сьцягнуць"
                         >
