@@ -1,9 +1,8 @@
 import {
   GrammarInfo,
   ParadigmFormId,
-  parseLinguisticTag,
-  LinguisticCategories,
 } from '@/types/document';
+import { parseLinguisticTag, LinguisticCategories } from '@/types/linguisticCategories';
 
 interface ParadigmOptionsProps {
   options: GrammarInfo[];

@@ -9,10 +9,10 @@ public static class AwsFilesCache
 {
     private static AwsSettings _awsSettings = null!;
     private static IAmazonS3 _s3Client = null!;
-    private static ConcurrentDictionary<int, CorpusDocumentHeader> DocumentHeaders;
+    private static ConcurrentDictionary<int, CorpusDocumentHeader> _documentHeaders = null!;
     private static readonly ConcurrentDictionary<int, Document> Documents = new();
     private static readonly TaskCompletionSource Initialized = new();
-    private static ILogger _logger;
+    private static ILogger? _logger;
 
     public static void InitializeLogging(ILogger logger) => _logger = logger;
 
@@ -24,7 +24,7 @@ public static class AwsFilesCache
         _awsSettings = awsSettings;
         _s3Client = new AmazonS3Client(_awsSettings.AccessKeyId, _awsSettings.SecretAccessKey, RegionEndpoint.GetBySystemName(awsSettings.Region));
 
-        _logger.LogInformation("Initializing AWS Files Cache with bucket: {BucketName}", awsSettings.BucketName);
+        _logger?.LogInformation("Initializing AWS Files Cache with bucket: {BucketName}", awsSettings.BucketName);
         Task.Factory.StartNew(async () =>
         {
             var documentHeaders = await GetDocumentHeadersFromS3();
@@ -45,9 +45,9 @@ public static class AwsFilesCache
                 result.Add(updatedHeader);
             }
 
-            DocumentHeaders = new ConcurrentDictionary<int, CorpusDocumentHeader>(result.ToDictionary(x => x.N));
+            _documentHeaders = new ConcurrentDictionary<int, CorpusDocumentHeader>(result.ToDictionary(x => x.N));
             Initialized.SetResult();
-            _logger.LogInformation("Initialized AWS Files Cache");
+            _logger?.LogInformation("Initialized AWS Files Cache");
         });
     }
 
@@ -103,19 +103,33 @@ public static class AwsFilesCache
             document.WriteLock.Release();
         }
 
-        DocumentHeaders[n].PercentCompletion = document.CorpusDocument.ComputeCompletion();
+        _documentHeaders[n].PercentCompletion = document.CorpusDocument.ComputeCompletion();
     }
 
     public static async ValueTask<ICollection<CorpusDocumentHeader>> GetAllDocumentHeaders()
     {
         await Initialized.Task;
-        return DocumentHeaders.Values;
+        return _documentHeaders.Values;
+    }
+
+    public static async ValueTask<CorpusDocumentHeader> GetDocumentHeader(int n)
+    {
+        await Initialized.Task;
+
+        return _documentHeaders.TryGetValue(n, out var header)
+            ? header
+            : throw new NotFoundException();
+    }
+
+    public static void UpdateHeaderCache(int id)
+    {
+        _documentHeaders[id] = Documents[id].CorpusDocument.Header;
     }
 
     public static async Task AddFile(CorpusDocument corpusDocument)
     {
         await Initialized.Task;
-        if (DocumentHeaders.ContainsKey(corpusDocument.Header.N))
+        if (_documentHeaders.ContainsKey(corpusDocument.Header.N))
             throw new InvalidOperationException($"File with ID {corpusDocument.Header.N} already exists in the cache");
 
         var objectKey = $"{corpusDocument.Header.N}.verti";
@@ -128,7 +142,7 @@ public static class AwsFilesCache
             WriteLock = new SemaphoreSlim(1, 1),
         };
         Documents[corpusDocument.Header.N] = document;
-        DocumentHeaders[corpusDocument.Header.N] = corpusDocument.Header;
+        _documentHeaders[corpusDocument.Header.N] = corpusDocument.Header;
     }
 
     private static async Task<Document> GetFileInternal(int n)
@@ -284,14 +298,11 @@ public static class AwsFilesCache
     {
         try
         {
-            // First, read the existing document
             var document = await ReadDocumentFromS3(objectKey);
 
-            // Update the header
-            var updatedDocument = document with { Header = header };
+            document.Header = header;
 
-            // Write back to S3
-            await WriteDocumentToS3(objectKey, updatedDocument);
+            await WriteDocumentToS3(objectKey, document);
         }
         catch (Exception ex)
         {

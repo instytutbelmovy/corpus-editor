@@ -9,6 +9,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [openMenu, setOpenMenu] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchDocuments = async () => {
@@ -25,8 +26,31 @@ export default function Home() {
     fetchDocuments();
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (openMenu !== null) {
+        setOpenMenu(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [openMenu]);
+
   const handleDownload = (documentId: number) => {
     window.open(`/api/registry-files/${documentId}/download`, '_blank');
+  };
+
+  const handleMenuClick = (event: React.MouseEvent, docId: number) => {
+    event.stopPropagation();
+    setOpenMenu(openMenu === docId ? null : docId);
+  };
+
+  const handleMenuActionClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    setOpenMenu(null);
   };
 
   if (loading) {
@@ -175,15 +199,46 @@ export default function Home() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <div className="relative">
-                        <button
-                          onClick={() => handleDownload(doc.n)}
-                          className="text-gray-400 hover:text-gray-600 transition-colors duration-150"
-                          title="Сьцягнуць"
-                        >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                          </svg>
-                        </button>
+                        <div className="relative inline-block text-left">
+                          <button
+                            onClick={(event) => handleMenuClick(event, doc.n)}
+                            className="text-gray-400 hover:text-gray-600 transition-colors duration-150 p-1 rounded-full hover:bg-gray-100"
+                            title="Дзеянні"
+                          >
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                            </svg>
+                          </button>
+                          
+                          {openMenu === doc.n && (
+                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
+                              <div className="py-1">
+                                <Link
+                                  href={`/docs/${doc.n}/metadata`}
+                                  onClick={handleMenuActionClick}
+                                  className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
+                                >
+                                  <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                  Метаданыя
+                                </Link>
+                                <button
+                                  onClick={(event) => {
+                                    handleMenuActionClick(event);
+                                    handleDownload(doc.n);
+                                  }}
+                                  className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
+                                >
+                                  <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                  </svg>
+                                  Сцягнуць
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </td>
                   </tr>

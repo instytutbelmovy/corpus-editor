@@ -2,8 +2,8 @@ import {
   SelectedWord,
   ParadigmFormId,
   LinguisticTag,
-  parseLinguisticTag,
 } from '@/types/document';
+import { parseLinguisticTag } from '@/types/linguisticCategories';
 import { useDisplaySettings } from '../hooks/useDisplaySettings';
 import {
   ParadigmOptions,

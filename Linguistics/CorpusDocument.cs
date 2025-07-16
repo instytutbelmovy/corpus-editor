@@ -7,6 +7,9 @@ public record CorpusDocumentHeader(int N, string? Title, string? Author, string?
 
 public record CorpusDocument(CorpusDocumentHeader Header, List<Paragraph> Paragraphs)
 {
+    public CorpusDocumentHeader Header { get; set; } = Header;
+    public List<Paragraph> Paragraphs { get; set; } = Paragraphs;
+
     public int ComputeCompletion()
         => ComputeCompletion(Paragraphs);
 
@@ -76,8 +79,7 @@ public record CorpusDocument(CorpusDocumentHeader Header, List<Paragraph> Paragr
                 replaceParagraphs ??= [..document.Paragraphs.Take(i)];
             }
 
-            if (replaceParagraphs != null)
-                replaceParagraphs.Add(paragraph);
+            replaceParagraphs?.Add(paragraph);
 
             previousParagraphId = paragraph.Id;
         }

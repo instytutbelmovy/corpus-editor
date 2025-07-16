@@ -24,6 +24,14 @@ public record LinguisticItemView(LinguisticItem LinguisticItem, IEnumerable<Gram
 
 public record LemmaTag(string Lemma, string LinguisticTag);
 
+public record UpdateMetadataRequest(
+    string Title,
+    string? Url,
+    string? PublicationDate,
+    string? Type,
+    string? Style
+);
+
 public static class Editing
 {
     public static void MapEditing(this IEndpointRouteBuilder builder)
@@ -35,6 +43,8 @@ public static class Editing
         todosApi.MapPut("/{n:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/lemma-tag", PutLemmaTags);
         todosApi.MapPut("/{n:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/text", PutText);
         todosApi.MapPut("/{n:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/comment", PutComment);
+        todosApi.MapGet("/{id}/metadata", GetMetadata);
+        todosApi.MapPut("/{id}/metadata", PutMetadata);
     }
 
     public static async Task<CorpusDocumentView> GetDocument(int n, int skipUpToId = 0, int take = 20)
@@ -141,6 +151,31 @@ public static class Editing
         {
             Comment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim(),
         });
+    }
+
+    public static ValueTask<CorpusDocumentHeader> GetMetadata(int id)
+    {
+        return AwsFilesCache.GetDocumentHeader(id);
+    }
+
+    public static async Task PutMetadata(int id, UpdateMetadataRequest request)
+    {
+        var document = await AwsFilesCache.GetFile(id);
+        lock (document)
+        {
+            var header = document.Header;
+            document.Header = header with
+            {
+                Title = request.Title,
+                Url = request.Url,
+                PublicationDate = request.PublicationDate,
+                Type = request.Type,
+                Style = request.Style,
+            };
+        }
+
+        AwsFilesCache.UpdateHeaderCache(id);
+        await AwsFilesCache.FlushFile(id);
     }
 
     private static async Task EditDocument(int documentId, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, Func<LinguisticItem, LinguisticItem> transform)

@@ -4,10 +4,9 @@ interface CreateDocumentData {
   n: number;
   title: string;
   url?: string;
-  publicationDate?: number;
+  publicationDate?: string;
   textType: 'вусны' | 'пісьмовы';
   style?: 'публіцыстычны' | 'мастацкі' | 'афіцыйна-справавы' | 'навуковы' | 'гутарковы';
-  genres: string[];
   file: File;
 }
 
@@ -36,7 +35,6 @@ export class DocumentService {
     if (documentData.publicationDate) formData.append('publicationDate', documentData.publicationDate.toString());
     formData.append('textType', documentData.textType);
     if (documentData.style) formData.append('style', documentData.style);
-    documentData.genres.forEach(genre => formData.append('genres', genre));
     formData.append('file', documentData.file);
 
     const response = await fetch('/api/registry-files', {
@@ -63,6 +61,29 @@ export class DocumentService {
       throw new Error('Не ўдалося загрузіць дакумэнт');
     }
     return response.json();
+  }
+
+  async fetchDocumentMetadata(documentId: number): Promise<DocumentHeader> {
+    const response = await fetch(`/api/registry-files/${documentId}/metadata`);
+    if (!response.ok) {
+      throw new Error('Не ўдалося загрузіць метаданыя дакумента');
+    }
+    return response.json();
+  }
+
+  async updateMetadata(documentId: number, metadata: Omit<DocumentHeader, 'n' | 'percentCompletion' | 'author' | 'language'>): Promise<void> {
+    const response = await fetch(`/api/registry-files/${documentId}/metadata`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(metadata),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Не ўдалося абнавіць метаданыя');
+    }
   }
 
   async saveParadigmFormId(
