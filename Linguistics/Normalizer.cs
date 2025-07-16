@@ -68,6 +68,12 @@ public static class Normalizer
     public static string GrammarDbLightNormalize(string word) => NormalizeWith(word, GrammarSearchLightNormalize);
     
     public static string NormalizeTypographicStress(string word) => NormalizeOnly(word, TypographicStressNormalize);
+    
+    public static string TokinizationNormalize(string word) => NormalizeWith(word, GrammarSearchLightNormalize);
+    
+    public static bool IsApostrophe(char ch) => AllApostrophes.Contains(ch);
+    
+    public static bool IsLetter(char ch) => char.IsLetter(ch);
 
     private static string NormalizeWith(string word, Dictionary<char, char> mapping)
     {

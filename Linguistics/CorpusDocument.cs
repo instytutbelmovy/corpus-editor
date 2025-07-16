@@ -5,9 +5,12 @@ public record CorpusDocumentHeader(int N, string? Title, string? Author, string?
 public record CorpusDocument(CorpusDocumentHeader Header, List<Paragraph> Paragraphs)
 {
     public int ComputeCompletion()
+        => ComputeCompletion(Paragraphs);
+
+    public static int ComputeCompletion(IEnumerable<Paragraph> paragraphs)
     {
         int completedWords = 0, totalWords = 0;
-        foreach (var paragraph in Paragraphs)
+        foreach (var paragraph in paragraphs)
         foreach (var sentence in paragraph.Sentences)
         foreach (var linguisticItem in sentence.SentenceItems.Where(x => x.Type == SentenceItemType.Word))
         {

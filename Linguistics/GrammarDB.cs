@@ -1,6 +1,4 @@
-﻿using System.Collections.Frozen;
-using System.Diagnostics;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.RegularExpressions;
 using Microsoft.Data.Sqlite;
 
@@ -26,7 +24,7 @@ public static partial class GrammarDB
         _logger?.LogInformation("GrammarDB initialized with database: {dbPath}", dbPath);
     }
 
-    public static IEnumerable<GrammarInfo> LookupWord(string word)
+    public static List<GrammarInfo> LookupWord(string word)
     {
         var normalizedWord = Normalizer.GrammarDbAggressiveNormalize(word);
         var results = new List<GrammarInfo>();
@@ -112,48 +110,43 @@ public static partial class GrammarDB
         throw new NotFoundException("Paradigm Form Id not found");
     }
 
+    public static (ParadigmFormId?, string?, LinguisticTag?) InferGrammarInfo(string word)
+    {
+        var grammarInfoList = LookupWord(word);
+
+        if (!grammarInfoList.Any())
+            return (null, null, null);
+
+        if (grammarInfoList.Count == 1)
+        {
+            var grammarInfo = grammarInfoList[0];
+            return (
+                grammarInfo.ParadigmFormId,
+                grammarInfo.Lemma,
+                grammarInfo.LinguisticTag
+            );
+        }
+
+        var intersectionParadigmFormId = grammarInfoList
+            .Aggregate<GrammarInfo, ParadigmFormId?>(null, (current, grammarInfo) => current?.IntersectWith(grammarInfo.ParadigmFormId));
+
+        var intersectionLinguisticTag = grammarInfoList
+            .Aggregate<GrammarInfo, LinguisticTag?>(null, (current, grammarInfo) => current?.IntersectWith(grammarInfo.LinguisticTag));
+
+        var lemmas = grammarInfoList.Select(info => Normalizer.GrammarDbLightNormalize(info.Lemma)).ToHashSet();
+        var intersectionLemma = lemmas.Count == 1 ? lemmas.First() : null;
+
+        if (intersectionLemma == null)
+        {
+            // добра, а калі і націскі і вялікія літары праігнараваць?
+            lemmas = grammarInfoList.Select(info => Normalizer.GrammarDbAggressiveNormalize(info.Lemma)).ToHashSet();
+            intersectionLemma = lemmas.Count() == 1 ? lemmas.First() : null;
+        }
+
+        // Калі знайшліся зусім розныя варыянты - вяртаем пустыя значэнні
+        return (intersectionParadigmFormId, intersectionLemma, intersectionLinguisticTag);
+    }
 
     [GeneratedRegex(@"\d+[a-z]?\|\w?")]
     private static partial Regex ParadigmKeyParsingRegex();
-
-    private static bool TryParseParadigmKey(string paradigmKey, out int paradigmId, out string variantId, out string formTag)
-    {
-        paradigmId = 0;
-        variantId = "";
-        formTag = "";
-
-        try
-        {
-            // Шукаем першую лічбу (ParadigmId)
-            var paradigmIdEnd = 0;
-            while (paradigmIdEnd < paradigmKey.Length && char.IsDigit(paradigmKey[paradigmIdEnd]))
-            {
-                paradigmIdEnd++;
-            }
-
-            if (paradigmIdEnd == 0) return false;
-
-            paradigmId = int.Parse(paradigmKey[..paradigmIdEnd]);
-            var remaining = paradigmKey[paradigmIdEnd..];
-
-            // Астатняе - гэта VariantId + FormTag
-            // FormTag зазвычай кароткі (1-3 сімвалы), таму бярём апошнія сімвалы
-            if (remaining.Length >= 2)
-            {
-                formTag = remaining[^1..]; // Апошні сімвал як FormTag
-                variantId = remaining[..^1];
-            }
-            else
-            {
-                variantId = remaining;
-                formTag = "";
-            }
-
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
 }

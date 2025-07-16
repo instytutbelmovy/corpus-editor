@@ -16,7 +16,7 @@ public static class AwsFilesCache
 {
     private static AwsSettings _awsSettings = null!;
     private static IAmazonS3 _s3Client = null!;
-    private static IDictionary<int, CorpusDocumentBasicInfo> DocumentHeaders;
+    private static ConcurrentDictionary<int, CorpusDocumentBasicInfo> DocumentHeaders;
     private static readonly ConcurrentDictionary<int, Document> Documents = new();
     private static readonly TaskCompletionSource Initialized = new();
     private static ILogger _logger;
@@ -52,7 +52,7 @@ public static class AwsFilesCache
                 result.Add(new CorpusDocumentBasicInfo(updatedHeader.N, updatedHeader.Title, updatedHeader.PercentCompletion.Value));
             }
 
-            DocumentHeaders = result.ToDictionary(x => x.Id);
+            DocumentHeaders = new ConcurrentDictionary<int, CorpusDocumentBasicInfo>(result.ToDictionary(x => x.Id));
             Initialized.SetResult();
             _logger.LogInformation("Initialized AWS Files Cache");
         });
@@ -117,6 +117,25 @@ public static class AwsFilesCache
     {
         await Initialized.Task;
         return DocumentHeaders.Values;
+    }
+
+    public static async Task AddFile(CorpusDocument corpusDocument)
+    {
+        await Initialized.Task;
+        if (DocumentHeaders.ContainsKey(corpusDocument.Header.N))
+            throw new InvalidOperationException($"File with ID {corpusDocument.Header.N} already exists in the cache");
+
+        var objectKey = $"{corpusDocument.Header.N}.verti";
+        await WriteDocumentToS3(objectKey, corpusDocument);
+
+        var document = new Document
+        {
+            CorpusDocument = corpusDocument,
+            LastAccessedOn = DateTime.UtcNow,
+            WriteLock = new SemaphoreSlim(1, 1),
+        };
+        Documents[corpusDocument.Header.N] = document;
+        DocumentHeaders[corpusDocument.Header.N] = new CorpusDocumentBasicInfo(corpusDocument.Header.N, corpusDocument.Header.Title, corpusDocument.Header.PercentCompletion.Value);
     }
 
     private static async Task<Document> GetFileInternal(int id)

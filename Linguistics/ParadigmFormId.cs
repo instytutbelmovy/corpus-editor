@@ -68,6 +68,8 @@ public partial record ParadigmFormId(
 
     public override int GetHashCode() => HashCode.Combine(ParadigmId, VariantId, FormTag);
 
+    public bool IsSingular() => VariantId != null && FormTag != null;
+
     [GeneratedRegex(@"^\s*(\d+)([a-z]?)(?:\.(.*))?\s*$")]
     private static partial Regex ParsingRegex();
 }

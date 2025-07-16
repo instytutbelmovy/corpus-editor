@@ -47,12 +47,25 @@ export default function Home() {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           {/* Загаловак */}
           <div className="px-6 py-4 border-b border-gray-200">
-            <h1 className="text-2xl font-bold text-gray-900">
-              Лінгвістычны рэдактар
-            </h1>
-            <p className="mt-1 text-sm text-gray-500">
-              Выберыце дакумэнт для рэдагавання
-            </p>
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Лінгвістычны рэдактар
+                </h1>
+                <p className="mt-1 text-sm text-gray-500">
+                  Выберыце дакумэнт для рэдагавання
+                </p>
+              </div>
+              <Link
+                href="/new"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-150"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Дадаць дакумэнт
+              </Link>
+            </div>
           </div>
 
           {/* Табліца дакумэнтаў */}

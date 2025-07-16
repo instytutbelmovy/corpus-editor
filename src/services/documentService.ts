@@ -6,6 +6,17 @@ interface DocumentListItem {
   percentCompletion: number;
 }
 
+interface CreateDocumentData {
+  documentNumber: number;
+  title: string;
+  link?: string;
+  publicationYear?: number;
+  textType: 'вусны' | 'пісьмовы';
+  style?: 'публіцыстычны' | 'мастацкі' | 'афіцыйна-справавы' | 'навуковы' | 'гутарковы';
+  genres: string[];
+  file: File;
+}
+
 export class DocumentService {
   private baseUrl: string;
 
@@ -18,7 +29,31 @@ export class DocumentService {
     if (!response.ok) {
       throw new Error('Памылка загрузкі дакумэнтаў');
     }
-    return response.json();
+    const data = await response.json();
+    data.sort((a: DocumentListItem, b: DocumentListItem) => a.id - b.id);
+    return data;
+  }
+
+  async createDocument(documentData: CreateDocumentData): Promise<void> {
+    const formData = new FormData();
+    formData.append('documentNumber', documentData.documentNumber.toString());
+    formData.append('title', documentData.title);
+    if (documentData.link) formData.append('link', documentData.link);
+    if (documentData.publicationYear) formData.append('publicationYear', documentData.publicationYear.toString());
+    formData.append('textType', documentData.textType);
+    if (documentData.style) formData.append('style', documentData.style);
+    documentData.genres.forEach(genre => formData.append('genres', genre));
+    formData.append('file', documentData.file);
+
+    const response = await fetch('/api/registry-files', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Памылка пры загрузцы файла');
+    }
   }
 
   async fetchDocument(
