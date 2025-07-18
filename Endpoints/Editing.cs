@@ -38,7 +38,7 @@ public static class Editing
 
     public static async Task<CorpusDocumentView> GetDocument(int id, int skipUpToId = 0, int take = 20)
     {
-        var corpusDocument = await FilesCache.GetFile(id);
+        var corpusDocument = await AwsFilesCache.GetFile(id);
         return new CorpusDocumentView(
             corpusDocument.Header,
             corpusDocument.Paragraphs
@@ -126,7 +126,7 @@ public static class Editing
 
     private static async Task EditDocument(int documentId, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, Func<LinguisticItem, LinguisticItem> transform)
     {
-        var document = await FilesCache.GetFile(documentId);
+        var document = await AwsFilesCache.GetFile(documentId);
         lock (document)
         {
             var paragraphIndex = document.Paragraphs.BinarySearch(paragraphId, (pId, p) => pId - p.Id);
@@ -150,6 +150,6 @@ public static class Editing
             sentence.SentenceItems[wordIndex] = transformedItem;
         }
 
-        await FilesCache.FlushFile(documentId);
+        await AwsFilesCache.FlushFile(documentId);
     }
 }

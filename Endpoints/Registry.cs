@@ -8,8 +8,8 @@ public static class Registry
         todosApi.MapGet("/", GetAllFiles);
     }
 
-    public static ICollection<CorpusDocumentBasicInfo> GetAllFiles()
+    public static ValueTask<ICollection<CorpusDocumentBasicInfo>> GetAllFiles()
     {
-        return FilesCache.GetAllDocumentHeaders();
+        return AwsFilesCache.GetAllDocumentHeaders();
     }
 }

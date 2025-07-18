@@ -27,7 +27,11 @@ builder.Services.AddTransient(_ => new SqliteConnection(dbConnectionString));
 var settings = new Settings();
 builder.Configuration.Bind(nameof(Settings), settings);
 
-FilesCache.Initialize(settings);
+var awsSettings = new AwsSettings();
+builder.Configuration.Bind(nameof(AwsSettings), awsSettings);
+if (string.IsNullOrEmpty(awsSettings.AccessKeyId) || string.IsNullOrEmpty(awsSettings.SecretAccessKey))
+    throw new InvalidOperationException("AWS credentials are not configured. Please set 'AwsSettings:AccessKeyId' and 'AwsSettings:SecretAccessKey' in the configuration.");
+
 GrammarDB.Initialize(settings.GrammarDbPath);
 
 var app = builder.Build();
@@ -35,6 +39,8 @@ var app = builder.Build();
 ExceptionMiddleware.Initialize(app.Environment, app.Services.GetLoggerFor(nameof(ExceptionMiddleware)));
 app.Services.InitLoggerFor(nameof(VertiIO), VertiIO.InitializeLogging);
 app.Services.InitLoggerFor(nameof(GrammarDB), GrammarDB.InitializeLogging);
+app.Services.InitLoggerFor(nameof(AwsFilesCache), AwsFilesCache.InitializeLogging);
+AwsFilesCache.Initialize(awsSettings);
 
 app.UseRewriter(new RewriteOptions()
     .Add(context => SpaUrlRewrites.DoRewrite(context, app.Services)));

@@ -12,6 +12,16 @@ public static class VertiIO
 
     public static void InitializeLogging(ILogger logger) => _logger = logger;
 
+    public static bool TryReadHeader(string line, out CorpusDocumentHeader header)
+    {
+        header = default;
+        if (!line.StartsWith("<doc"))
+            return false;
+
+        header = ReadCorpusDocumentHeader(line);
+        return true;
+    }
+
     public static async Task<List<CorpusDocumentHeader>> GetDocumentHeaders(string folder)
     {
         var documents = new List<CorpusDocumentHeader>();
@@ -25,11 +35,8 @@ public static class VertiIO
                 string? line;
                 while ((line = await reader.ReadLineAsync()) != null)
                 {
-                    if (line.StartsWith("<!--")) continue;
-
-                    if (line.StartsWith("<doc"))
+                    if (TryReadHeader(line, out var doc))
                     {
-                        var doc = ReadCorpusDocumentHeader(line);
                         documents.Add(doc);
                         break;
                     }
