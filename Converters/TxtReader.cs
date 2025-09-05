@@ -37,7 +37,9 @@ public sealed class TxtReader : IDocumentReader
             if (read < 4)
                 return Encoding.UTF8;
 
+#pragma warning disable SYSLIB0001 // I'm not using UTF7 to create something new, just to read. Anyway, I've copied the code from internet, surely it's good.
             if (buffer[0] == 0x2b && buffer[1] == 0x2f && buffer[2] == 0x76) return Encoding.UTF7;
+#pragma warning restore SYSLIB0001
             if (buffer[0] == 0xef && buffer[1] == 0xbb && buffer[2] == 0xbf) return Encoding.UTF8;
             if (buffer[0] == 0xff && buffer[1] == 0xfe && buffer[2] == 0 && buffer[3] == 0) return Encoding.UTF32; //UTF-32LE
             if (buffer[0] == 0xff && buffer[1] == 0xfe) return Encoding.Unicode; //UTF-16LE

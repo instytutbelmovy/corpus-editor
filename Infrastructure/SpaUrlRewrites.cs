@@ -9,10 +9,38 @@ internal static class SpaUrlRewrites
     private static readonly PathString Api = "/api";
     private static readonly PathString Root = "/";
     private static readonly PathString Index = "/index.html";
-    private static readonly PathString NotFound = "/404.html";
-    private static List<SegmentMatcher> Matchers;
+    private static List<SegmentMatcher> _matchers = null!;
 
-    public static void EnsureInitialized(IServiceProvider serviceProvider)
+    public static void DoRewrite(RewriteContext context, IServiceProvider serviceProvider)
+    {
+        // The purpose and magic here is to make it so that dotnet BE would be returning react html files for matching request paths
+        // e.g.
+        //   /       => /index.html
+        //   /docs/2 => /docs/[id]/index.html
+        //
+        // for this to work we build a cache from the static file paths that dotnet has stored metadata for (MapStaticAssets).
+
+        context.Result = RuleResult.SkipRemainingRules;
+        if (context.HttpContext.Request.Path.StartsWithSegments(Api))
+            return;
+        if (context.HttpContext.Request.Path == Root)
+        {
+            context.HttpContext.Request.Path = Index;
+            return;
+        }
+        EnsureInitialized(serviceProvider);
+        for (var i = 0; i < _matchers.Count; i++)
+        {
+            var pattern = _matchers[i];
+            if (pattern.TryMatch(context.HttpContext.Request.Path.Value.AsSpan(1), out var rewrite))
+            {
+                context.HttpContext.Request.Path = rewrite;
+                return;
+            }
+        }
+    }
+
+    private static void EnsureInitialized(IServiceProvider serviceProvider)
     {
         if (_initialized) return;
         lock (Lock)
@@ -29,7 +57,7 @@ internal static class SpaUrlRewrites
             var root = new SegmentMatcher(null, null) { Children = matchers };
             foreach (var endpoint in endpoints)
             {
-                var segments = endpoint.Split('/');
+                var segments = endpoint!.Split('/');
                 SegmentMatcher current = root;
                 for (int i = 0; i < segments.Length - 1; i++)
                 {
@@ -49,30 +77,8 @@ internal static class SpaUrlRewrites
                 }
             }
 
-            Matchers = matchers;
+            _matchers = matchers;
             _initialized = true;
-        }
-    }
-
-    public static void DoRewrite(RewriteContext context, IServiceProvider serviceProvider)
-    {
-        context.Result = RuleResult.SkipRemainingRules;
-        if (context.HttpContext.Request.Path.StartsWithSegments(Api))
-            return;
-        if (context.HttpContext.Request.Path == Root)
-        {
-            context.HttpContext.Request.Path = Index;
-            return;
-        }
-        EnsureInitialized(serviceProvider);
-        for (int i = 0; i < Matchers.Count; i++)
-        {
-            var pattern = Matchers[i];
-            if (pattern.TryMatch(context.HttpContext.Request.Path.Value.AsSpan(1), out var rewrite))
-            {
-                context.HttpContext.Request.Path = rewrite;
-                return;
-            }
         }
     }
 
@@ -86,7 +92,7 @@ internal static class SpaUrlRewrites
 
         public bool TryMatch(ReadOnlySpan<char> path, out PathString rewrite)
         {
-            bool matchesThis = false;
+            bool matchesThis;
             int endOfMatch = -1;
             if (_isDigits)
             {
@@ -100,8 +106,9 @@ internal static class SpaUrlRewrites
             }
             else
             {
-                matchesThis = path.StartsWith(Pattern.AsSpan(), StringComparison.OrdinalIgnoreCase) && (path.Length == Pattern.Length || path[Pattern.Length] == '/');
-                endOfMatch = Pattern.Length - 1;
+                // if we are here than it's not digit === Pattern is not null
+                matchesThis = path.StartsWith(Pattern.AsSpan(), StringComparison.OrdinalIgnoreCase) && (path.Length == Pattern!.Length || path[Pattern.Length] == '/');
+                endOfMatch = Pattern!.Length - 1;
             }
 
             if (matchesThis)

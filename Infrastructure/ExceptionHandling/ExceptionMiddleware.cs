@@ -1,14 +1,13 @@
 using System.Net;
-using Editor;
+
+namespace Editor;
 
 public static class ExceptionMiddleware
 {
-    private static IWebHostEnvironment _environment = null!;
-    private static ILogger _logger;
+    private static ILogger _logger = null!;
 
-    public static void Initialize(IWebHostEnvironment environment, ILogger logger)
+    public static void Initialize(ILogger logger)
     {
-        _environment = environment;
         _logger = logger;
     }
 
@@ -18,23 +17,30 @@ public static class ExceptionMiddleware
         {
             await next();
         }
-        catch (ConflictException)
+        catch (ConflictException e)
         {
+            LogError(e);
             context.Response.StatusCode = (int)HttpStatusCode.Conflict;
         }
-        catch (BadRequestException)
+        catch (BadRequestException e)
         {
+            LogError(e);
             context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
         }
         catch (Exception e) when (e is FileNotFoundException or NotFoundException)
         {
+            LogError(e);
             context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+        }
+        catch (Exception e)
+        {
+            LogError(e);
+            throw;
         }
     }
 
     private static void LogError(Exception e)
     {
-        if (_environment.IsDevelopment())
-            _logger.LogError(e, "Unhandled exception");
+        _logger.LogError(e, "Unhandled exception");
     }
 }

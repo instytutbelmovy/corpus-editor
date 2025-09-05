@@ -34,14 +34,14 @@ public record CorpusDocument(CorpusDocumentHeader Header, List<Paragraph> Paragr
     public static CorpusDocument? CheckIdsAndConcurrencyStamps(CorpusDocument document)
     {
         var previousParagraphId = 0;
-        List<Paragraph> replaceParagraphs = null;
+        List<Paragraph> replaceParagraphs = null!;
         for (int i = 0; i < document.Paragraphs.Count; i++)
         {
             var paragraph = document.Paragraphs[i];
             var updateParagraphId = paragraph.Id <= previousParagraphId;
             var updateParagraphStamp = paragraph.ConcurrencyStamp == default;
             int previousSentenceId = 0;
-            List<Sentence> replaceSentences = null;
+            List<Sentence> replaceSentences = null!;
             for (int j = 0; j < paragraph.Sentences.Count; j++)
             {
                 var sentence = paragraph.Sentences[j];
