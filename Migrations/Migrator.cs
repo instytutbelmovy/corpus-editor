@@ -15,6 +15,7 @@ public static class Migrator
             complete = (currentVersion switch
             {
                 0 => Run(M0001_Initial.Apply),
+                1 => Run(M0002_Auth.Apply),
                 _ => true,
             });
         }

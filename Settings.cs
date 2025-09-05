@@ -2,5 +2,5 @@
 
 public class Settings
 {
-    public string GrammarDbPath { get; set; }
+    public string GrammarDbPath { get; set; } = null!;
 }
