@@ -8,7 +8,8 @@ export interface AuthResponse {
   message?: string;
 }
 
-import { AuthService, DocumentService } from '@/services';
+import { AuthService } from './service';
+import { DocumentService } from '@/app/docs/service';
 
 export interface AuthContextType {
   isAuthenticated: boolean;

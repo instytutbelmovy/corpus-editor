@@ -1,4 +1,4 @@
-import { LinguisticTag } from './document';
+import { LinguisticTag } from './types';
 
 // Лінгвістычныя катэгорыі для разбору тэгаў
 export interface LinguisticCategories {
@@ -635,4 +635,4 @@ export function parseLinguisticTag(tag: LinguisticTag): LinguisticCategories {
   }
 
   return categories;
-} 
+}

@@ -1,5 +1,6 @@
 export { DocumentHeader } from './DocumentHeader';
 export { DocumentContent } from './DocumentContent';
+export { DocumentForm } from './DocumentForm';
 export { EditingPanel } from './EditingPanel';
 export { LoadingIndicator } from './LoadingIndicator';
 export { LinguisticItem } from './LinguisticItem';

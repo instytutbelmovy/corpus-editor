@@ -1,4 +1,4 @@
-import { AuthStorage } from './authStorage';
+import { AuthStorage } from './auth/storage';
 
 export interface ApiResponse<T = unknown> {
   data?: T;

@@ -1,5 +1,5 @@
-import { ApiClient } from './apiClient';
-import { AuthStorage } from './authStorage';
+import { ApiClient } from '@/app/apiClient';
+import { AuthStorage } from './storage';
 
 interface AuthResponse {
   success: boolean;

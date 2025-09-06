@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../_app';
-import { DocumentForm } from '@/app/components';
-import { NewDocumentFormData, FormErrors } from '@/types/documentForm';
+import { DocumentForm } from '@/app/docs/components';
+import { NewDocumentFormData, FormErrors } from '@/app/docs/formTypes';
 
 export default function NewDocument() {
   const { documentService } = useAuth();

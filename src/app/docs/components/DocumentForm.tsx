@@ -6,7 +6,7 @@ import {
   FormErrors,
   textTypeOptions, 
   styleOptions 
-} from '@/types/documentForm';
+} from '../formTypes';
 
 interface DocumentFormProps<T extends NewDocumentFormData | MetadataFormData> {
   initialData: T;
@@ -22,7 +22,7 @@ interface DocumentFormProps<T extends NewDocumentFormData | MetadataFormData> {
   subtitle?: string;
 }
 
-export default function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
+export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
   initialData,
   onSubmit,
   onCancel,

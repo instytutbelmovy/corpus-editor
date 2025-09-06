@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { LinguisticTag } from '@/types/document';
+import { LinguisticTag } from '../types';
 
 interface ManualLinguisticInputProps {
   onSave: (lemma: string, linguisticTag: LinguisticTag) => void;

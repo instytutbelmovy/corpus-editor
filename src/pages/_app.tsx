@@ -2,8 +2,13 @@ import type { AppProps } from 'next/app';
 import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/router';
 import '@/app/globals.css';
-import { AuthService, ApiClient, DocumentService, AuthStorage } from '@/services';
-import { AuthContextType } from '@/types/auth';
+import { ApiClient } from '@/app/apiClient';
+import { AuthService } from '@/app/auth/service';
+import { DocumentService } from '@/app/docs/service';
+import { AuthStorage } from '@/app/auth/storage';
+import { useAuthStore } from '@/app/auth/store';
+import { useDocumentStore } from '@/app/docs/store';
+import { AuthContextType } from '@/app/auth/types';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -16,13 +21,23 @@ export const useAuth = () => {
 };
 
 export default function App({ Component, pageProps }: AppProps) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [authService, setAuthService] = useState<AuthService | null>(null);
-  const [documentService, setDocumentService] = useState<DocumentService | null>(null);
   const router = useRouter();
   const routerRef = useRef(router);
   const hasCheckedAuth = useRef(false);
+
+  // Выкарыстоўваем store замест локальнага стану
+  const { 
+    isAuthenticated, 
+    isLoading, 
+    user, 
+    authService, 
+    signIn: storeSignIn, 
+    signOut: storeSignOut, 
+    checkAuthStatus,
+    setAuthService 
+  } = useAuthStore();
+
+  const { setDocumentService } = useDocumentStore();
 
   // Абнаўляем ref пры змене router
   useEffect(() => {
@@ -32,7 +47,6 @@ export default function App({ Component, pageProps }: AppProps) {
   // Функцыя для перанакіроўкі на ўваход з захаваннем returnTo
   const handleUnauthorizedRef = useRef(() => {
     const currentPath = routerRef.current.asPath;
-    // Правяраем, ці ўжо мы на старонцы ўваходу або ўжо ёсць returnTo
     if (currentPath.startsWith('/sign-in') || currentPath.includes('returnTo=')) {
       routerRef.current.push('/sign-in');
     } else {
@@ -49,7 +63,7 @@ export default function App({ Component, pageProps }: AppProps) {
     
     setAuthService(auth);
     setDocumentService(docs);
-  }, []); // Прыбіраем handleUnauthorized з залежнасцей
+  }, [setAuthService, setDocumentService]);
 
   // Правяраем аўтэнтыфікацыю
   useEffect(() => {
@@ -62,38 +76,34 @@ export default function App({ Component, pageProps }: AppProps) {
         const cachedUser = AuthStorage.get();
         if (cachedUser) {
           // Аптымістычна ўсталёўваем як аўтэнтыфікаванага
-          setIsAuthenticated(true);
-          setIsLoading(false);
+          useAuthStore.getState().setAuthenticated(true);
+          useAuthStore.getState().setLoading(false);
           
           // Потым правяраем на сервере ў фоне
-          const serverAuth = await authService.checkAuthStatus();
+          const serverAuth = await checkAuthStatus();
           if (!serverAuth) {
             // Калі сервер кажа, што не аўтэнтыфікаваны, ачысціць стан
-            setIsAuthenticated(false);
-            hasCheckedAuth.current = false; // Дазволіць пераправерку
+            useAuthStore.getState().setAuthenticated(false);
+            hasCheckedAuth.current = false;
           }
         } else {
           // Калі няма кэша ў localStorage, лічым што не аўтэнтыфікаваны
-          setIsAuthenticated(false);
-          setIsLoading(false);
+          useAuthStore.getState().setAuthenticated(false);
+          useAuthStore.getState().setLoading(false);
         }
       } catch (error) {
         console.error('Auth check failed:', error);
-        setIsAuthenticated(false);
-        setIsLoading(false);
+        useAuthStore.getState().setAuthenticated(false);
+        useAuthStore.getState().setLoading(false);
       }
     };
 
     checkAuth();
-  }, [authService]);
+  }, [authService, checkAuthStatus]);
 
   const signIn = async (email: string, password: string) => {
-    if (!authService) return { success: false, message: 'Сэрвіс не ініцыялізаваны' };
-    
-    const result = await authService.signIn(email, password);
+    const result = await storeSignIn(email, password);
     if (result.success) {
-      setIsAuthenticated(true);
-      
       // Перанакіроўка на returnTo або галоўную старонку
       const returnTo = router.query.returnTo as string;
       if (returnTo) {
@@ -106,11 +116,8 @@ export default function App({ Component, pageProps }: AppProps) {
   };
 
   const signOut = async () => {
-    if (!authService) return;
-    
-    await authService.signOut();
-    setIsAuthenticated(false);
-    hasCheckedAuth.current = false; // Скідаем флаг для новай праверкі
+    await storeSignOut();
+    hasCheckedAuth.current = false;
     router.push('/sign-in');
   };
 
@@ -120,7 +127,7 @@ export default function App({ Component, pageProps }: AppProps) {
     signIn,
     signOut,
     authService,
-    documentService,
+    documentService: useDocumentStore.getState().documentService,
   };
 
   // Перанакіроўка на старонку ўваходу, калі карыстальнік не аўтэнтыфікаваны

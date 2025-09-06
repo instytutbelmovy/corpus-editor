@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { useAuth } from './_app';
+import { useAuthStore } from '@/app/auth/store';
 
 export default function SignIn() {
-  const { authService } = useAuth();
+  const { authService, signIn: storeSignIn, checkAuthStatus } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -20,7 +20,7 @@ export default function SignIn() {
       const cachedUser = authService.getCurrentUser();
       if (cachedUser) {
         // Калі ёсць кэш, правяраем на сервере
-        const isAuthenticated = await authService.checkAuthStatus();
+        const isAuthenticated = await checkAuthStatus();
         if (isAuthenticated) {
           const returnTo = router.query.returnTo as string;
           if (returnTo) {
@@ -34,10 +34,9 @@ export default function SignIn() {
           setPassword('');
         }
       }
-      // Калі няма кэша ў localStorage, нічога не рабім - карыстальнік не аўтэнтыфікаваны
     };
     checkAuth();
-  }, [router, authService]);
+  }, [router, authService, checkAuthStatus]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +50,7 @@ export default function SignIn() {
     }
 
     try {
-      const result = await authService.signIn(email, password);
+      const result = await storeSignIn(email, password);
       
       if (result.success) {
         const returnTo = router.query.returnTo as string;

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../_app';
-import { DocumentForm } from '@/app/components';
-import { MetadataFormData, FormErrors } from '@/types/documentForm';
+import { DocumentForm } from '@/app/docs/components';
+import { MetadataFormData, FormErrors } from '@/app/docs/formTypes';
 
 export default function EditMetadata() {
   const { documentService } = useAuth();

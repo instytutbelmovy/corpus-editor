@@ -2,7 +2,7 @@ import {
   DocumentData,
   SelectedWord,
   LinguisticItem as LinguisticItemType,
-} from '@/types/document';
+} from '../types';
 import { Paragraph } from './Paragraph';
 import { LoadingIndicator } from './LoadingIndicator';
 

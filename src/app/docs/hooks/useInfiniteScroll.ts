@@ -1,20 +1,12 @@
 import { useEffect, useRef } from 'react';
+import { useDocumentStore } from '../store';
 
 interface UseInfiniteScrollProps {
-  hasMore: boolean;
-  loadingMore: boolean;
-  loading: boolean;
-  lastParagraphId: number;
   onLoadMore: (skipUpToId: number) => void;
 }
 
-export function useInfiniteScroll({
-  hasMore,
-  loadingMore,
-  loading,
-  lastParagraphId,
-  onLoadMore,
-}: UseInfiniteScrollProps) {
+export function useInfiniteScroll({ onLoadMore }: UseInfiniteScrollProps) {
+  const { hasMore, loadingMore, loading, lastParagraphId } = useDocumentStore();
   const observerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

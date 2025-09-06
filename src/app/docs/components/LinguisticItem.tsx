@@ -1,4 +1,4 @@
-import { LinguisticItem as LinguisticItemType } from '@/types/document';
+import { LinguisticItem as LinguisticItemType } from '../types';
 
 interface LinguisticItemProps {
   item: LinguisticItemType;

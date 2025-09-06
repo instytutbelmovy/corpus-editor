@@ -1,5 +1,5 @@
-import { DocumentData, ParadigmFormId, GrammarInfo, DocumentHeader } from '@/types/document';
-import { ApiClient } from './apiClient';
+import { DocumentData, ParadigmFormId, GrammarInfo, DocumentHeader } from './types';
+import { ApiClient } from '@/app/apiClient';
 
 interface CreateDocumentData {
   n: number;

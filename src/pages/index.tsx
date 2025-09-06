@@ -1,33 +1,20 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { LoadingScreen, ErrorScreen } from '@/app/components';
-import { DocumentHeader } from '@/types/document';
-import { useAuth } from './_app';
+import { useDocumentStore } from '@/app/docs/store';
+import { useAuthStore } from '@/app/auth/store';
 
 export default function Home() {
-  const { signOut, documentService } = useAuth();
-  const [documents, setDocuments] = useState<DocumentHeader[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { signOut } = useAuthStore();
+  const { documentsList, loading, error, fetchDocuments, documentService } = useDocumentStore();
   const [isExpanded, setIsExpanded] = useState(false);
   const [openMenu, setOpenMenu] = useState<number | null>(null);
 
   useEffect(() => {
-    const fetchDocuments = async () => {
-      if (!documentService) return;
-      
-      try {
-        const data = await documentService.fetchDocuments();
-        setDocuments(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Невядомая памылка');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDocuments();
-  }, [documentService]);
+    if (documentService) {
+      fetchDocuments();
+    }
+  }, [fetchDocuments, documentService]);
 
   useEffect(() => {
     const handleClickOutside = () => {
@@ -153,7 +140,7 @@ export default function Home() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {documents.map(doc => (
+                {documentsList.map(doc => (
                   <tr
                     key={doc.n}
                     className="hover:bg-gray-50 transition-colors duration-150"
