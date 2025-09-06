@@ -1,4 +1,5 @@
 import { DocumentData, ParadigmFormId, GrammarInfo, DocumentHeader } from '@/types/document';
+import { ApiClient } from './apiClient';
 
 interface CreateDocumentData {
   n: number;
@@ -11,18 +12,18 @@ interface CreateDocumentData {
 }
 
 export class DocumentService {
-  private baseUrl: string;
+  private apiClient: ApiClient;
 
-  constructor() {
-    this.baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  constructor(apiClient: ApiClient) {
+    this.apiClient = apiClient;
   }
 
   async fetchDocuments(): Promise<DocumentHeader[]> {
-    const response = await fetch('/api/registry-files');
-    if (!response.ok) {
-      throw new Error('Памылка загрузкі дакумэнтаў');
+    const response = await this.apiClient.get<DocumentHeader[]>('/registry-files');
+    if (response.error) {
+      throw new Error(response.error);
     }
-    const data = await response.json();
+    const data = response.data!;
     data.sort((a: DocumentHeader, b: DocumentHeader) => a.n - b.n);
     return data;
   }
@@ -37,14 +38,10 @@ export class DocumentService {
     if (documentData.style) formData.append('style', documentData.style);
     formData.append('file', documentData.file);
 
-    const response = await fetch('/api/registry-files', {
-      method: 'POST',
-      body: formData
-    });
+    const response = await this.apiClient.postFormData('/registry-files', formData);
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Памылка пры загрузцы файла');
+    if (response.error) {
+      throw new Error(response.error);
     }
   }
 
@@ -52,37 +49,28 @@ export class DocumentService {
     documentId: string,
     skipUpToId: number = 0
   ): Promise<DocumentData> {
-    const url = new URL(`/api/registry-files/${documentId}`, this.baseUrl);
-    url.searchParams.set('skipUpToId', skipUpToId.toString());
-    url.searchParams.set('take', '20');
+    const url = `/registry-files/${documentId}?skipUpToId=${skipUpToId}&take=20`;
 
-    const response = await fetch(url.toString());
-    if (!response.ok) {
-      throw new Error('Не ўдалося загрузіць дакумэнт');
+    const response = await this.apiClient.get<DocumentData>(url);
+    if (response.error) {
+      throw new Error(response.error);
     }
-    return response.json();
+    return response.data!;
   }
 
   async fetchDocumentMetadata(documentId: number): Promise<DocumentHeader> {
-    const response = await fetch(`/api/registry-files/${documentId}/metadata`);
-    if (!response.ok) {
-      throw new Error('Не ўдалося загрузіць метаданыя дакумента');
+    const response = await this.apiClient.get<DocumentHeader>(`/registry-files/${documentId}/metadata`);
+    if (response.error) {
+      throw new Error(response.error);
     }
-    return response.json();
+    return response.data!;
   }
 
   async updateMetadata(documentId: number, metadata: Omit<DocumentHeader, 'n' | 'percentCompletion' | 'author' | 'language'>): Promise<void> {
-    const response = await fetch(`/api/registry-files/${documentId}/metadata`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(metadata),
-    });
+    const response = await this.apiClient.put(`/registry-files/${documentId}/metadata`, metadata);
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Не ўдалося абнавіць метаданыя');
+    if (response.error) {
+      throw new Error(response.error);
     }
   }
 
@@ -95,18 +83,12 @@ export class DocumentService {
     wordIndex: number,
     paradigmFormId: ParadigmFormId
   ): Promise<void> {
-    const url = `/api/registry-files/${documentId}/${paragraphId}.${paragraphStamp}/${sentenceId}.${sentenceStamp}/${wordIndex}/paradigm-form-id`;
+    const url = `/registry-files/${documentId}/${paragraphId}.${paragraphStamp}/${sentenceId}.${sentenceStamp}/${wordIndex}/paradigm-form-id`;
 
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(paradigmFormId),
-    });
+    const response = await this.apiClient.put(url, paradigmFormId);
 
-    if (!response.ok) {
-      throw new Error('Не ўдалося захаваць змены');
+    if (response.error) {
+      throw new Error(response.error);
     }
   }
 
@@ -119,21 +101,15 @@ export class DocumentService {
     wordIndex: number,
     text: string
   ): Promise<GrammarInfo[]> {
-    const url = `/api/registry-files/${documentId}/${paragraphId}.${paragraphStamp}/${sentenceId}.${sentenceStamp}/${wordIndex}/text`;
+    const url = `/registry-files/${documentId}/${paragraphId}.${paragraphStamp}/${sentenceId}.${sentenceStamp}/${wordIndex}/text`;
 
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(text),
-    });
+    const response = await this.apiClient.put<GrammarInfo[]>(url, text);
 
-    if (!response.ok) {
-      throw new Error('Не ўдалося змяніць тэкст слова');
+    if (response.error) {
+      throw new Error(response.error);
     }
 
-    return response.json();
+    return response.data!;
   }
 
   async saveLemmaTag(
@@ -146,18 +122,12 @@ export class DocumentService {
     lemma: string,
     linguisticTag: string
   ): Promise<void> {
-    const url = `/api/registry-files/${documentId}/${paragraphId}.${paragraphStamp}/${sentenceId}.${sentenceStamp}/${wordIndex}/lemma-tag`;
+    const url = `/registry-files/${documentId}/${paragraphId}.${paragraphStamp}/${sentenceId}.${sentenceStamp}/${wordIndex}/lemma-tag`;
 
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ lemma, linguisticTag }),
-    });
+    const response = await this.apiClient.put(url, { lemma, linguisticTag });
 
-    if (!response.ok) {
-      throw new Error('Не ўдалося захаваць лінгвістычныя катэгорыі');
+    if (response.error) {
+      throw new Error(response.error);
     }
   }
 
@@ -170,20 +140,14 @@ export class DocumentService {
     wordIndex: number,
     comment: string
   ): Promise<void> {
-    const url = `/api/registry-files/${documentId}/${paragraphId}.${paragraphStamp}/${sentenceId}.${sentenceStamp}/${wordIndex}/comment`;
+    const url = `/registry-files/${documentId}/${paragraphId}.${paragraphStamp}/${sentenceId}.${sentenceStamp}/${wordIndex}/comment`;
 
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(comment),
-    });
+    const response = await this.apiClient.put(url, comment);
 
-    if (!response.ok) {
-      throw new Error('Не ўдалося захаваць каментар');
+    if (response.error) {
+      throw new Error(response.error);
     }
   }
 }
 
-export const documentService = new DocumentService();
+// Экспарт класа, а не экземпляра

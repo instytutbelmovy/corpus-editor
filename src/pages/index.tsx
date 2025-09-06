@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { documentService } from '@/services';
 import { LoadingScreen, ErrorScreen } from '@/app/components';
 import { DocumentHeader } from '@/types/document';
+import { useAuth } from './_app';
 
 export default function Home() {
+  const { signOut, documentService } = useAuth();
   const [documents, setDocuments] = useState<DocumentHeader[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -13,6 +14,8 @@ export default function Home() {
 
   useEffect(() => {
     const fetchDocuments = async () => {
+      if (!documentService) return;
+      
       try {
         const data = await documentService.fetchDocuments();
         setDocuments(data);
@@ -24,7 +27,7 @@ export default function Home() {
     };
 
     fetchDocuments();
-  }, []);
+  }, [documentService]);
 
   useEffect(() => {
     const handleClickOutside = () => {
@@ -93,6 +96,15 @@ export default function Home() {
                     />
                   </button>
                 </div>
+                <button
+                  onClick={signOut}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-150"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Выйсці
+                </button>
                 <Link
                   href="/docs/new"
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-150"

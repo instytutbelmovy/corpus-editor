@@ -89,26 +89,16 @@ static void ConfigureIdentity(WebApplicationBuilder builder)
     builder.Services.AddAuthorization(options =>
     {
         options.AddPolicy(PolicyExtensions.ViewerPolicy, policy => 
-            policy.RequireAssertion(context => HasMinimumRole(context, Role.Viewer)));
+            policy.RequireAssertion(context => context.User.GetRole() >= Roles.Viewer));
         options.AddPolicy(PolicyExtensions.EditorPolicy, policy => 
-            policy.RequireAssertion(context => HasMinimumRole(context, Role.Editor)));
+            policy.RequireAssertion(context => context.User.GetRole() >= Roles.Editor));
         options.AddPolicy(PolicyExtensions.AdminPolicy, policy => 
-            policy.RequireAssertion(context => HasMinimumRole(context, Role.Admin)));
+            policy.RequireAssertion(context => context.User.GetRole() >= Roles.Admin));
     });
     builder.Services.AddScoped<SignInManager<EditorUser>>();
     builder.Services.AddSingleton<IUserClaimsPrincipalFactory<EditorUser>, EditorClaimsPrincipalFactory>();
     builder.Services.AddHttpContextAccessor();
     return;
-
-    static bool HasMinimumRole(AuthorizationHandlerContext context, Role requiredRole)
-    {
-        var roleClaim = context.User.FindFirst(EditorClaimsPrincipalFactory.RoleClaimType);
-        if (roleClaim == null || !int.TryParse(roleClaim.Value, out var userRoleValue))
-            return false;
-
-        var userRole = (Role)userRoleValue;
-        return userRole >= requiredRole;
-    }
 }
 
 static void ConfigurePipeline(WebApplication app)

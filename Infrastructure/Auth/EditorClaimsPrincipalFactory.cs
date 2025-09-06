@@ -22,3 +22,20 @@ public class EditorClaimsPrincipalFactory : IUserClaimsPrincipalFactory<EditorUs
         return Task.FromResult(principal);
     }
 }
+
+public static class EditorClaimsExtensions
+{
+    public static string? GetUserId(this ClaimsPrincipal principal)
+    {
+        var claim = principal.FindFirst(EditorClaimsPrincipalFactory.UserIdClaimType);
+        return claim?.Value;
+    }
+
+    public static Roles GetRole(this ClaimsPrincipal principal)
+    {
+        var claim = principal.FindFirst(EditorClaimsPrincipalFactory.RoleClaimType);
+        if (claim != null && int.TryParse(claim.Value, out var roleValue))
+            return (Roles)roleValue;
+        return Roles.None;
+    }
+}

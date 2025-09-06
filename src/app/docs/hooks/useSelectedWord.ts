@@ -6,12 +6,13 @@ import {
   GrammarInfo,
   LinguisticTag,
 } from '@/types/document';
-import { documentService } from '@/services/documentService';
+import { useAuth } from '../../../pages/_app';
 
 export function useSelectedWord(
   documentId: string,
   documentData: DocumentData | null
 ) {
+  const { documentService } = useAuth();
   const [selectedWord, setSelectedWord] = useState<SelectedWord | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [pendingSaves, setPendingSaves] = useState<Set<string>>(new Set());
@@ -99,7 +100,7 @@ export function useSelectedWord(
       paradigmFormId: ParadigmFormId,
       onDocumentUpdate: (updater: (prev: DocumentData) => DocumentData) => void
     ) => {
-      if (!selectedWord || !documentId) return;
+      if (!selectedWord || !documentId || !documentService) return;
 
       // Правяраем, ці ўжо выбрана гэтая парадыгма
       const currentParadigmFormId = selectedWord.item.paradigmFormId;
@@ -235,7 +236,7 @@ export function useSelectedWord(
         setSaveError(errorMessage);
       }
     },
-    [selectedWord, documentId, findNextUnresolvedWord]
+    [selectedWord, documentId, findNextUnresolvedWord, documentService]
   );
 
   // Функцыя для абнаўлення тэксту слова
@@ -244,7 +245,7 @@ export function useSelectedWord(
       text: string,
       onDocumentUpdate: (updater: (prev: DocumentData) => DocumentData) => void
     ) => {
-      if (!selectedWord || !documentId) return;
+      if (!selectedWord || !documentId || !documentService) return;
 
       // Захоўваем каментар перад абнаўленнем тэксту
       // (каментар будзе захаваны праз EditingPanel перад пераходам)
@@ -319,7 +320,7 @@ export function useSelectedWord(
         throw err; // Перакідаем памылку далей для апрацоўкі ў кампаненце
       }
     },
-    [selectedWord, documentId]
+    [selectedWord, documentId, documentService]
   );
 
   // Функцыя для захавання ручна ўведзеных лінгвістычных катэгорый
@@ -329,7 +330,7 @@ export function useSelectedWord(
       linguisticTag: LinguisticTag,
       onDocumentUpdate: (updater: (prev: DocumentData) => DocumentData) => void
     ) => {
-      if (!selectedWord || !documentId) return;
+      if (!selectedWord || !documentId || !documentService) return;
 
       // Захоўваем каментар перад пераходам да наступнага слова
       // (каментар будзе захаваны праз EditingPanel перад пераходам)
@@ -444,7 +445,7 @@ export function useSelectedWord(
         throw err; // Перакідаем памылку далей для апрацоўкі ў кампаненце
       }
     },
-    [selectedWord, documentId, findNextUnresolvedWord]
+    [selectedWord, documentId, findNextUnresolvedWord, documentService]
   );
 
   // Функцыя для захавання каментара
@@ -453,7 +454,7 @@ export function useSelectedWord(
       comment: string,
       onDocumentUpdate: (updater: (prev: DocumentData) => DocumentData) => void
     ) => {
-      if (!selectedWord || !documentId) return;
+      if (!selectedWord || !documentId || !documentService) return;
 
       // Правяраем, ці змяніўся каментар
       if (selectedWord.item.comment === comment) {
@@ -501,7 +502,7 @@ export function useSelectedWord(
         // Для каментараў не паказваем памылку карыстальніку, толькі логуем
       }
     },
-    [selectedWord, documentId]
+    [selectedWord, documentId, documentService]
   );
 
   return {

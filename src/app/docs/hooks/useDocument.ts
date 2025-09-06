@@ -1,8 +1,9 @@
 import { useState, useCallback, useEffect } from 'react';
 import { DocumentData } from '@/types/document';
-import { documentService } from '@/services/documentService';
+import { useAuth } from '../../../pages/_app';
 
 export function useDocument(documentId: string) {
+  const { documentService } = useAuth();
   const [documentData, setDocumentData] = useState<DocumentData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -12,6 +13,13 @@ export function useDocument(documentId: string) {
 
   const fetchDocument = useCallback(
     async (skipUpToId: number = 0, isInitial: boolean = false) => {
+      if (!documentService) {
+        setError('Сэрвіс не ініцыялізаваны');
+        setLoading(false);
+        setLoadingMore(false);
+        return;
+      }
+
       try {
         if (isInitial) {
           setLoading(true);
@@ -54,7 +62,7 @@ export function useDocument(documentId: string) {
         setLoadingMore(false);
       }
     },
-    [documentId]
+    [documentId, documentService]
   );
 
   useEffect(() => {
