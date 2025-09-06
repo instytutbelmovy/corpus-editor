@@ -4,7 +4,9 @@ using Editor.Migrations;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.Data.Sqlite;
 using System.Globalization;
+using System.Net;
 using System.Text;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 
 [module: DapperAot]
@@ -16,6 +18,7 @@ CultureInfo.DefaultThreadCurrentCulture = CultureInfo.DefaultThreadCurrentUICult
 
 var builder = WebApplication.CreateSlimBuilder(args);
 ConfigureServices(builder);
+ConfigureIdentity(builder);
 
 
 var app = builder.Build();
@@ -41,16 +44,6 @@ static void ConfigureServices(WebApplicationBuilder builder)
         options.SerializerOptions.TypeInfoResolverChain.Insert(2, AuthJsonSerializerContext.Default);
     });
 
-    builder.Services.AddAuthentication();
-    builder.Services.AddAuthorization();
-    builder.Services.AddIdentityCore<EditorUser>(o =>
-        {
-            o.User.RequireUniqueEmail = true;
-
-            builder.Configuration.Bind("Identity:Password", o.Password);
-        })
-        .AddDefaultTokenProviders()
-        ;
 
     var editorUserStore = new EditorUserStore(dbConnectionString);
     builder.Services.AddSingleton(editorUserStore);
@@ -68,6 +61,56 @@ static void ConfigureServices(WebApplicationBuilder builder)
     GrammarDB.Initialize(settings.GrammarDbPath);
 }
 
+static void ConfigureIdentity(WebApplicationBuilder builder)
+{
+    builder.Services
+        .AddAuthentication()
+        .AddCookie(IdentityConstants.ApplicationScheme, options =>
+        {
+            options.Cookie.HttpOnly = true;
+            options.Events.OnRedirectToLogin = context =>
+            {
+                context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                return Task.CompletedTask;
+            };
+            options.Events.OnRedirectToAccessDenied = context =>
+            {
+                context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
+                return Task.CompletedTask;
+            };
+        });
+    builder.Services.AddIdentityCore<EditorUser>(o =>
+        {
+            o.User.RequireUniqueEmail = true;
+
+            builder.Configuration.Bind("Identity:Password", o.Password);
+        })
+        .AddDefaultTokenProviders();
+    builder.Services.AddAuthorization(options =>
+    {
+        options.AddPolicy(PolicyExtensions.ViewerPolicy, policy => 
+            policy.RequireAssertion(context => HasMinimumRole(context, Role.Viewer)));
+        options.AddPolicy(PolicyExtensions.EditorPolicy, policy => 
+            policy.RequireAssertion(context => HasMinimumRole(context, Role.Editor)));
+        options.AddPolicy(PolicyExtensions.AdminPolicy, policy => 
+            policy.RequireAssertion(context => HasMinimumRole(context, Role.Admin)));
+    });
+    builder.Services.AddScoped<SignInManager<EditorUser>>();
+    builder.Services.AddSingleton<IUserClaimsPrincipalFactory<EditorUser>, EditorClaimsPrincipalFactory>();
+    builder.Services.AddHttpContextAccessor();
+    return;
+
+    static bool HasMinimumRole(AuthorizationHandlerContext context, Role requiredRole)
+    {
+        var roleClaim = context.User.FindFirst(EditorClaimsPrincipalFactory.RoleClaimType);
+        if (roleClaim == null || !int.TryParse(roleClaim.Value, out var userRoleValue))
+            return false;
+
+        var userRole = (Role)userRoleValue;
+        return userRole >= requiredRole;
+    }
+}
+
 static void ConfigurePipeline(WebApplication app)
 {
     ExceptionMiddleware.Initialize(app.Services.GetLoggerFor(nameof(ExceptionMiddleware)));
@@ -81,6 +124,7 @@ static void ConfigurePipeline(WebApplication app)
     app.MapStaticAssets();
     app.Use(ExceptionMiddleware.HandleException);
     app.UseAuthentication();
+    app.UseAuthorization();
     app.MapRegistry();
     app.MapEditing();
     app.MapAuth();

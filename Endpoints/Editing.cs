@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Editor;
 
@@ -37,14 +38,14 @@ public static class Editing
     public static void MapEditing(this IEndpointRouteBuilder builder)
     {
         var todosApi = builder.MapGroup("/api/registry-files");
-        todosApi.MapGet("/{n:int}", GetDocument);
-        todosApi.MapGet("/{n:int}/download", DownloadDocument);
-        todosApi.MapPut("/{n:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/paradigm-form-id", PutParadigmFormId);
-        todosApi.MapPut("/{n:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/lemma-tag", PutLemmaTags);
-        todosApi.MapPut("/{n:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/text", PutText);
-        todosApi.MapPut("/{n:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/comment", PutComment);
-        todosApi.MapGet("/{id}/metadata", GetMetadata);
-        todosApi.MapPut("/{id}/metadata", PutMetadata);
+        todosApi.MapGet("/{n:int}", GetDocument).Viewer();
+        todosApi.MapGet("/{n:int}/download", DownloadDocument).Viewer();
+        todosApi.MapPut("/{n:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/paradigm-form-id", PutParadigmFormId).Editor();
+        todosApi.MapPut("/{n:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/lemma-tag", PutLemmaTags).Editor();
+        todosApi.MapPut("/{n:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/text", PutText).Editor();
+        todosApi.MapPut("/{n:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/comment", PutComment).Editor();
+        todosApi.MapGet("/{id}/metadata", GetMetadata).Viewer();
+        todosApi.MapPut("/{id}/metadata", PutMetadata).Editor();
     }
 
     public static async Task<CorpusDocumentView> GetDocument(int n, int skipUpToId = 0, int take = 20)

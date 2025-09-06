@@ -9,12 +9,13 @@ public static class Auth
     {
         var authApi = builder.MapGroup("/auth");
         authApi.MapPost("/sign-in", SignIn);
-        authApi.MapPost("/refresh", RefreshToken);
+        authApi.MapPost("/sign-out", SignOut);
     }
 
     private static async Task<IResult> SignIn(
         [FromBody] SignInRequest request,
         [FromServices] UserManager<EditorUser> userManager,
+        [FromServices] SignInManager<EditorUser> signInManager,
         [FromServices] EditorUserStore editorUserStore)
     {
         var user = await userManager.FindByEmailAsync(request.Email);
@@ -42,16 +43,19 @@ public static class Auth
             }
         }
 
-        var isValidPassword = await userManager.CheckPasswordAsync(user, request.Password);
-        if (!isValidPassword)
-            return Results.Unauthorized();
+        var result = await signInManager.PasswordSignInAsync(user, request.Password, isPersistent: true, lockoutOnFailure: true);
+        if (result.Succeeded)
+            return Results.Ok();
 
-        return Results.Ok("Каб мяне курвы, спрацавала");
+        if (result.IsLockedOut)
+            return Results.Problem("Карыстальнік часова заблякаваны, паспрабуйце пасьля");
+
+        return Results.Unauthorized();
     }
 
-    private static IResult RefreshToken(
-        [FromBody] RefreshTokenRequest request)
+    private static async Task<IResult> SignOut([FromServices] SignInManager<EditorUser> signInManager)
     {
+        await signInManager.SignOutAsync();
         return Results.Ok();
     }
 }
@@ -60,26 +64,4 @@ public class SignInRequest
 {
     public string Email { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
-}
-
-public class SignInResponse
-{
-    public string AccessToken { get; set; } = string.Empty;
-    public string RefreshToken { get; set; } = string.Empty;
-    public DateTime ExpiresAt { get; set; }
-    public string UserId { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public Role Role { get; set; }
-}
-
-public class RefreshTokenRequest
-{
-    public string RefreshToken { get; set; } = string.Empty;
-}
-
-public class RefreshTokenResponse
-{
-    public string AccessToken { get; set; } = string.Empty;
-    public string RefreshToken { get; set; } = string.Empty;
-    public DateTime ExpiresAt { get; set; }
 }

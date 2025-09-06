@@ -1,4 +1,5 @@
 ﻿using Editor.Converters;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Editor;
 
@@ -7,8 +8,8 @@ public static class Registry
     public static void MapRegistry(this IEndpointRouteBuilder builder)
     {
         var todosApi = builder.MapGroup("/api/registry-files");
-        todosApi.MapGet("/", GetAllFiles);
-        todosApi.MapPost("/", UploadFile);
+        todosApi.MapGet("/", GetAllFiles).Viewer();
+        todosApi.MapPost("/", UploadFile).Editor();
     }
 
     public static ValueTask<ICollection<CorpusDocumentHeader>> GetAllFiles()

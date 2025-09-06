@@ -4,7 +4,7 @@ using Microsoft.Data.Sqlite;
 
 namespace Editor;
 
-public class EditorUserStore : IUserStore<EditorUser>, IUserPasswordStore<EditorUser>, IUserEmailStore<EditorUser>
+public class EditorUserStore : IUserStore<EditorUser>, IUserPasswordStore<EditorUser>, IUserEmailStore<EditorUser>, IUserLockoutStore<EditorUser>
 {
     private readonly string _connectionString;
     private readonly IdentityErrorDescriber ErrorDescriber = new();
@@ -209,5 +209,44 @@ public class EditorUserStore : IUserStore<EditorUser>, IUserPasswordStore<Editor
         }
 
         public string NewConcurrencyStamp { get; set; } = Guid.NewGuid().ToString();
+    }
+
+    public Task<DateTimeOffset?> GetLockoutEndDateAsync(EditorUser user, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(user.LockoutEnd);
+    }
+
+    public Task SetLockoutEndDateAsync(EditorUser user, DateTimeOffset? lockoutEnd, CancellationToken cancellationToken)
+    {
+        user.LockoutEnd = lockoutEnd;
+        return Task.CompletedTask;
+    }
+
+    public Task<int> IncrementAccessFailedCountAsync(EditorUser user, CancellationToken cancellationToken)
+    {
+        user.AccessFailedCount++;
+        return Task.FromResult(user.AccessFailedCount);
+    }
+
+    public Task ResetAccessFailedCountAsync(EditorUser user, CancellationToken cancellationToken)
+    {
+        user.AccessFailedCount = 0;
+        return Task.CompletedTask;
+    }
+
+    public Task<int> GetAccessFailedCountAsync(EditorUser user, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(user.AccessFailedCount);
+    }
+
+    public Task<bool> GetLockoutEnabledAsync(EditorUser user, CancellationToken cancellationToken)
+    {
+        return Task.FromResult(user.LockoutEnabled);
+    }
+
+    public Task SetLockoutEnabledAsync(EditorUser user, bool enabled, CancellationToken cancellationToken)
+    {
+        user.LockoutEnabled = enabled;
+        return Task.CompletedTask;
     }
 }
