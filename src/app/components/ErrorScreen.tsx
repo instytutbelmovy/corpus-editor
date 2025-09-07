@@ -17,7 +17,7 @@ export function ErrorScreen({
 }: ErrorScreenProps) {
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
+      <div className="max-w-4xl mx-auto px-2 sm:px-2 lg:px-4 pt-4 pb-8">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           {showBackButton && (
             <div className="mb-6">

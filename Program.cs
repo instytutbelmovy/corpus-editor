@@ -6,7 +6,6 @@ using Microsoft.Data.Sqlite;
 using System.Globalization;
 using System.Net;
 using System.Text;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 
 [module: DapperAot]
@@ -119,7 +118,8 @@ static void ConfigurePipeline(WebApplication app)
     app.MapEditing();
     app.MapAuth();
 
-    app.MapFallbackToFile("404.html");
+    app.Map("/api/{**path}", () => Results.NotFound());
+    app.MapFallbackToFile("404.html", new StaticFileOptions { OnPrepareResponse = r => r.Context.Response.StatusCode = 404 });
 }
 
 static void InitDatabase(string connectionString)

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import Link from 'next/link';
 import { useAuthStore } from '@/app/auth/store';
 
 export default function SignIn() {
@@ -74,7 +73,7 @@ export default function SignIn() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
           <h2 className="text-3xl font-bold text-gray-900">
-            Уваход у сістэму
+            Уваход у сыстэму
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             Лінгвістычны рэдактар
@@ -155,31 +154,12 @@ export default function SignIn() {
                     Уваход...
                   </div>
                 ) : (
-                  'Увайсці'
+                  'Увайсьці'
                 )}
               </button>
             </div>
           </form>
 
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Або</span>
-              </div>
-            </div>
-
-            <div className="mt-6 text-center">
-              <Link
-                href="/"
-                className="text-sm text-blue-600 hover:text-blue-500 transition-colors duration-150"
-              >
-                Вярнуцца на галоўную
-              </Link>
-            </div>
-          </div>
         </div>
       </div>
     </div>

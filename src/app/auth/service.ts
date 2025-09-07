@@ -1,5 +1,6 @@
 import { ApiClient } from '@/app/apiClient';
 import { AuthStorage } from './storage';
+import { Roles } from './types';
 
 interface AuthResponse {
   success: boolean;
@@ -8,7 +9,7 @@ interface AuthResponse {
 
 interface WhoAmIResponse {
   id: string;
-  role: string;
+  role: number;
 }
 
 export class AuthService {
@@ -25,7 +26,7 @@ export class AuthService {
       // Захоўваем інфармацыю пра карыстальніка ў localStorage
       AuthStorage.set({
         id: response.data.id,
-        role: response.data.role
+        role: response.data.role as Roles
       });
       return { success: true };
     }
@@ -56,7 +57,7 @@ export class AuthService {
       // Абнаўляем інфармацыю пра карыстальніка
       AuthStorage.set({
         id: response.data.id,
-        role: response.data.role
+        role: response.data.role as Roles
       });
       return true;
     }

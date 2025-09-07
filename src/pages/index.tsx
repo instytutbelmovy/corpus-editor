@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { LoadingScreen, ErrorScreen } from '@/app/components';
 import { useDocumentStore } from '@/app/docs/store';
-import { useAuthStore } from '@/app/auth/store';
+import { useUIStore } from '@/app/docs/uiStore';
 
 export default function Home() {
-  const { signOut } = useAuthStore();
   const { documentsList, loading, error, fetchDocuments, documentService } = useDocumentStore();
-  const [isExpanded, setIsExpanded] = useState(false);
+  const { displayMode, setDisplayMode } = useUIStore();
   const [openMenu, setOpenMenu] = useState<number | null>(null);
+  
+  const isExpanded = displayMode === 'full';
 
   useEffect(() => {
     if (documentService) {
@@ -43,6 +44,10 @@ export default function Home() {
     setOpenMenu(null);
   };
 
+  const handleToggleExpanded = () => {
+    setDisplayMode(isExpanded ? 'compact' : 'full');
+  };
+
   if (loading) {
     return <LoadingScreen message="Загрузка дакумэнтаў..." />;
   }
@@ -53,7 +58,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-2 sm:px-2 lg:px-4 pt-4 pb-8">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           {/* Загаловак */}
           <div className="px-6 py-4 border-b border-gray-200">
@@ -62,15 +67,12 @@ export default function Home() {
                 <h1 className="text-2xl font-bold text-gray-900">
                   Лінгвістычны рэдактар
                 </h1>
-                <p className="mt-1 text-sm text-gray-500">
-                  Выберыце дакумэнт для рэдагавання
-                </p>
               </div>
               <div className="flex items-center space-x-3">
                 <div className="inline-flex items-center space-x-3">
                   <span className="text-sm font-medium text-gray-700">Дэталі</span>
                   <button
-                    onClick={() => setIsExpanded(!isExpanded)}
+                    onClick={handleToggleExpanded}
                     className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                     style={{
                       backgroundColor: isExpanded ? '#3B82F6' : '#D1D5DB'
@@ -83,15 +85,6 @@ export default function Home() {
                     />
                   </button>
                 </div>
-                <button
-                  onClick={signOut}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-150"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                  Выйсці
-                </button>
                 <Link
                   href="/docs/new"
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-150"

@@ -95,7 +95,7 @@ export default function DocumentPage() {
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col">
-      <div className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8 flex-1 flex flex-col max-h-full">
+      <div className="max-w-7xl mx-auto px-2 sm:px-2 lg:px-4 pt-4 pb-8 flex-1 flex flex-col max-h-full">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex-1 flex flex-col min-h-0 max-h-full">
           {/* Загаловак */}
           <DocumentHeader header={documentData.header} />

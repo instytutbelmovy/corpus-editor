@@ -1,6 +1,8 @@
+import { Roles } from './types';
+
 interface AuthUser {
   id: string;
-  role: string;
+  role: Roles;
 }
 
 const AUTH_STORAGE_KEY = 'editor_auth_user';

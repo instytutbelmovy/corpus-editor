@@ -1,5 +1,5 @@
 import type { AppProps } from 'next/app';
-import { createContext, useContext, useEffect, useState, useRef } from 'react';
+import { createContext, useContext, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import '@/app/globals.css';
 import { ApiClient } from '@/app/apiClient';
@@ -9,6 +9,7 @@ import { AuthStorage } from '@/app/auth/storage';
 import { useAuthStore } from '@/app/auth/store';
 import { useDocumentStore } from '@/app/docs/store';
 import { AuthContextType } from '@/app/auth/types';
+import { Header } from '@/app/components';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -27,14 +28,13 @@ export default function App({ Component, pageProps }: AppProps) {
 
   // Выкарыстоўваем store замест локальнага стану
   const { 
-    isAuthenticated, 
-    isLoading, 
-    user, 
-    authService, 
-    signIn: storeSignIn, 
-    signOut: storeSignOut, 
+    isAuthenticated,
+    isLoading,
+    authService,
+    signIn: storeSignIn,
+    signOut: storeSignOut,
     checkAuthStatus,
-    setAuthService 
+    setAuthService
   } = useAuthStore();
 
   const { setDocumentService } = useDocumentStore();
@@ -139,6 +139,7 @@ export default function App({ Component, pageProps }: AppProps) {
 
   return (
     <AuthContext.Provider value={authContextValue}>
+      {isAuthenticated && router.pathname !== '/sign-in' && <Header />}
       <Component {...pageProps} />
     </AuthContext.Provider>
   );

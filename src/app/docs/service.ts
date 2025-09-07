@@ -33,7 +33,7 @@ export class DocumentService {
     formData.append('n', documentData.n.toString());
     formData.append('title', documentData.title);
     if (documentData.url) formData.append('url', documentData.url);
-    if (documentData.publicationDate) formData.append('publicationDate', documentData.publicationDate.toString());
+    if (documentData.publicationDate) formData.append('publicationDate', documentData.publicationDate);
     formData.append('textType', documentData.textType);
     if (documentData.style) formData.append('style', documentData.style);
     formData.append('file', documentData.file);

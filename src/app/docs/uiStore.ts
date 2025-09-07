@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { SelectedWord } from './types';
 
 export type DisplayMode = 'full' | 'compact';
@@ -47,50 +48,58 @@ interface UIState {
   clearPendingSaves: () => void;
 }
 
-export const useUIStore = create<UIState>((set) => ({
-  // Пачатковы стан
-  selectedWord: null,
-  displayMode: 'full',
-  isEditingText: false,
-  isSavingText: false,
-  isSavingManual: false,
-  isSavingComment: false,
-  showManualInput: false,
-  saveError: null,
-  pendingSaves: new Set(),
+export const useUIStore = create<UIState>()(
+  persist(
+    (set) => ({
+      // Пачатковы стан
+      selectedWord: null,
+      displayMode: 'compact',
+      isEditingText: false,
+      isSavingText: false,
+      isSavingManual: false,
+      isSavingComment: false,
+      showManualInput: false,
+      saveError: null,
+      pendingSaves: new Set(),
 
-  // Дзеянні для выбару слоў
-  setSelectedWord: (word) => set({ selectedWord: word }),
-  clearSelectedWord: () => set({ selectedWord: null }),
+      // Дзеянні для выбару слоў
+      setSelectedWord: (word) => set({ selectedWord: word }),
+      clearSelectedWord: () => set({ selectedWord: null }),
 
-  // Дзеянні для налад
-  setDisplayMode: (mode) => set({ displayMode: mode }),
+      // Дзеянні для налад
+      setDisplayMode: (mode) => set({ displayMode: mode }),
 
-  // Дзеянні для рэдагавання
-  setIsEditingText: (editing) => set({ isEditingText: editing }),
-  setIsSavingText: (saving) => set({ isSavingText: saving }),
-  setIsSavingManual: (saving) => set({ isSavingManual: saving }),
-  setIsSavingComment: (saving) => set({ isSavingComment: saving }),
-  setShowManualInput: (show) => set({ showManualInput: show }),
+      // Дзеянні для рэдагавання
+      setIsEditingText: (editing) => set({ isEditingText: editing }),
+      setIsSavingText: (saving) => set({ isSavingText: saving }),
+      setIsSavingManual: (saving) => set({ isSavingManual: saving }),
+      setIsSavingComment: (saving) => set({ isSavingComment: saving }),
+      setShowManualInput: (show) => set({ showManualInput: show }),
 
-  // Дзеянні для памылак
-  setSaveError: (error) => set({ saveError: error }),
-  clearSaveError: () => set({ saveError: null }),
+      // Дзеянні для памылак
+      setSaveError: (error) => set({ saveError: error }),
+      clearSaveError: () => set({ saveError: null }),
 
-  // Дзеянні для чакаючых захаванняў
-  addPendingSave: (key) => {
-    set(state => ({
-      pendingSaves: new Set([...state.pendingSaves, key])
-    }));
-  },
-  
-  removePendingSave: (key) => {
-    set(state => {
-      const newSet = new Set(state.pendingSaves);
-      newSet.delete(key);
-      return { pendingSaves: newSet };
-    });
-  },
-  
-  clearPendingSaves: () => set({ pendingSaves: new Set() }),
-}));
+      // Дзеянні для чакаючых захаванняў
+      addPendingSave: (key) => {
+        set(state => ({
+          pendingSaves: new Set([...state.pendingSaves, key])
+        }));
+      },
+      
+      removePendingSave: (key) => {
+        set(state => {
+          const newSet = new Set(state.pendingSaves);
+          newSet.delete(key);
+          return { pendingSaves: newSet };
+        });
+      },
+      
+      clearPendingSaves: () => set({ pendingSaves: new Set() }),
+    }),
+    {
+      name: 'editor-ui-store',
+      partialize: (state) => ({ displayMode: state.displayMode }),
+    }
+  )
+);

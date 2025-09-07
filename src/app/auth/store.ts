@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import { AuthService } from './service';
 import { AuthStorage } from './storage';
+import { User } from './types';
 
 interface AuthState {
   // Стан аўтэнтыфікацыі
   isAuthenticated: boolean;
   isLoading: boolean;
-  user: { id: string; role: string } | null;
+  user: User | null;
   
   // Сэрвіс
   authService: AuthService | null;
@@ -17,7 +18,7 @@ interface AuthState {
   signOut: () => Promise<void>;
   checkAuthStatus: () => Promise<boolean>;
   setAuthenticated: (authenticated: boolean) => void;
-  setUser: (user: { id: string; role: string } | null) => void;
+  setUser: (user: User | null) => void;
   setLoading: (loading: boolean) => void;
 }
 
