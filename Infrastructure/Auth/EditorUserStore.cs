@@ -249,4 +249,10 @@ public class EditorUserStore : IUserStore<EditorUser>, IUserPasswordStore<Editor
         user.LockoutEnabled = enabled;
         return Task.CompletedTask;
     }
+
+    public List<EditorUser> GetAllUsers()
+    {
+        using var connection = new SqliteConnection(_connectionString);
+        return connection.Query<EditorUser>("SELECT * FROM AspNetUsers").ToList();
+    }
 }

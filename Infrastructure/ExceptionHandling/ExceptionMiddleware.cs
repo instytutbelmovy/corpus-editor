@@ -27,6 +27,11 @@ public static class ExceptionMiddleware
             LogError(e);
             context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
         }
+        catch (UnauthorizedException e)
+        {
+            LogError(e);
+            context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+        }
         catch (Exception e) when (e is FileNotFoundException or NotFoundException)
         {
             LogError(e);

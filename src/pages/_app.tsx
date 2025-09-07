@@ -1,10 +1,11 @@
 import type { AppProps } from 'next/app';
-import { createContext, useContext, useEffect, useRef } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import '@/app/globals.css';
 import { ApiClient } from '@/app/apiClient';
 import { AuthService } from '@/app/auth/service';
 import { DocumentService } from '@/app/docs/service';
+import { UserService } from '@/app/users/service';
 import { AuthStorage } from '@/app/auth/storage';
 import { useAuthStore } from '@/app/auth/store';
 import { useDocumentStore } from '@/app/docs/store';
@@ -38,6 +39,7 @@ export default function App({ Component, pageProps }: AppProps) {
   } = useAuthStore();
 
   const { setDocumentService } = useDocumentStore();
+  const [userService, setUserService] = useState<UserService | null>(null);
 
   // Абнаўляем ref пры змене router
   useEffect(() => {
@@ -60,9 +62,11 @@ export default function App({ Component, pageProps }: AppProps) {
     const apiClient = new ApiClient(handleUnauthorizedRef.current);
     const auth = new AuthService(handleUnauthorizedRef.current);
     const docs = new DocumentService(apiClient);
+    const users = new UserService(apiClient);
     
     setAuthService(auth);
     setDocumentService(docs);
+    setUserService(users);
   }, [setAuthService, setDocumentService]);
 
   // Правяраем аўтэнтыфікацыю
@@ -128,6 +132,7 @@ export default function App({ Component, pageProps }: AppProps) {
     signOut,
     authService,
     documentService: useDocumentStore.getState().documentService,
+    userService,
   };
 
   // Перанакіроўка на старонку ўваходу, калі карыстальнік не аўтэнтыфікаваны

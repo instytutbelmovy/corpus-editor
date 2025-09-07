@@ -1,0 +1,100 @@
+---
+description: Omit curly braces for single-line statement bodies in C# control structures
+globs: *.cs
+alwaysApply: true
+---
+
+# C# Braceless Bodies Rule
+
+## When to omit curly braces
+
+Omit curly braces `{}` for single-line statement bodies in the following C# control structures:
+
+- `if` statements
+- `else` statements  
+- `for` loops
+- `while` loops
+- `foreach` loops
+- `using` statements
+- `lock` statements
+- `fixed` statements
+- `checked`/`unchecked` blocks
+
+## Examples
+
+### Good (omit braces for single statements):
+```csharp
+if (condition)
+    DoSomething();
+
+for (int i = 0; i < 10; i++)
+    ProcessItem(i);
+
+while (hasItems)
+    ProcessNextItem();
+
+foreach (var item in items)
+    HandleItem(item);
+
+using (var resource = new Resource())
+    resource.DoSomething();
+```
+
+### Bad (unnecessary braces for single statements):
+```csharp
+if (condition)
+{
+    DoSomething();
+}
+
+for (int i = 0; i < 10; i++)
+{
+    ProcessItem(i);
+}
+```
+
+## When to keep braces
+
+Always keep braces when:
+- The body contains multiple statements
+- The body is empty
+- The statement spans multiple lines
+- It improves readability in complex nested structures
+
+### Examples where braces are required:
+```csharp
+if (condition)
+{
+    DoSomething();
+    DoSomethingElse();
+    LogResult();
+}
+
+if (condition)
+{
+    // Empty body - keep braces for clarity
+}
+
+if (veryLongCondition && anotherCondition && yetAnotherCondition)
+{
+    DoSomething();
+}
+```
+
+## Nested structures
+
+For nested control structures, apply the same rule to each level:
+
+```csharp
+if (outerCondition)
+    if (innerCondition)
+        DoSomething();
+    else
+        DoSomethingElse();
+```
+
+## Consistency
+
+- Always be consistent within the same file
+- Follow the same pattern for similar control structures
+- When in doubt, prefer omitting braces for single statements

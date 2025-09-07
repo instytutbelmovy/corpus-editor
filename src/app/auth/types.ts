@@ -8,7 +8,7 @@ export enum Roles {
 export function getRoleName(roleValue: number): string {
   switch (roleValue) {
     case Roles.None:
-      return 'Няма ролі';
+      return 'Нэактыўны';
     case Roles.Viewer:
       return 'Праглядчык';
     case Roles.Editor:
@@ -32,6 +32,7 @@ export interface AuthResponse {
 
 import { AuthService } from './service';
 import { DocumentService } from '@/app/docs/service';
+import { UserService } from '@/app/users/service';
 
 export interface User {
   id: string;
@@ -45,4 +46,5 @@ export interface AuthContextType {
   signOut: () => Promise<void>;
   authService: AuthService | null;
   documentService: DocumentService | null;
+  userService: UserService | null;
 }

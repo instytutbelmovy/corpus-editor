@@ -1,16 +1,52 @@
 import { useAuthStore } from '@/app/auth/store';
-import { getRoleName } from '@/app/auth/types';
+import { getRoleName, Roles } from '@/app/auth/types';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 export default function Header() {
   const { user, signOut } = useAuthStore();
+  const router = useRouter();
 
   if (!user) {
     return null;
   }
 
+  // Правяраем, ці паказваць меню навігацыі
+  const showNavigation = user.role === Roles.Admin;
+
   return (
     <header className="max-w-7xl mx-auto px-2 sm:px-2 lg:px-4">
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 flex justify-end items-center">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 flex justify-between items-center">
+        {showNavigation ? (
+          <div className="flex items-center space-x-1">
+            <Link 
+              href="/" 
+              className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                router.pathname === '/' || router.pathname.startsWith('/docs')
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50'
+              }`}
+            >
+              Дакумэнты
+            </Link>
+            <Link 
+              href="/users" 
+              className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                router.pathname.startsWith('/users')
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50'
+              }`}
+            >
+              Карыстальнікі
+            </Link>
+          </div>
+        ) : (
+          <div className="flex items-center">
+            <span className="text-lg font-semibold text-gray-900">
+              Дакумэнты
+            </span>
+          </div>
+        )}
         <div className="flex items-center space-x-3">
           <span className="text-sm text-gray-500">{getRoleName(user.role)}</span>
           <button

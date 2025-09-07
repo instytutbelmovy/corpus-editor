@@ -41,6 +41,7 @@ static void ConfigureServices(WebApplicationBuilder builder)
         options.SerializerOptions.TypeInfoResolverChain.Insert(0, EditorJsonSerializerContext.Default);
         options.SerializerOptions.TypeInfoResolverChain.Insert(1, VertiJsonSerializerContext.Default);
         options.SerializerOptions.TypeInfoResolverChain.Insert(2, AuthJsonSerializerContext.Default);
+        options.SerializerOptions.TypeInfoResolverChain.Insert(3, AdministrationJsonSerializerContext.Default);
     });
 
 
@@ -117,6 +118,7 @@ static void ConfigurePipeline(WebApplication app)
     app.MapRegistry();
     app.MapEditing();
     app.MapAuth();
+    app.MapUsers();
 
     app.Map("/api/{**path}", () => Results.NotFound());
     app.MapFallbackToFile("404.html", new StaticFileOptions { OnPrepareResponse = r => r.Context.Response.StatusCode = 404 });

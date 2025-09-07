@@ -13,7 +13,7 @@ public static class Auth
         authApi.MapGet("/who-am-i", WhoAmI);
     }
 
-    private static async Task<IResult> SignIn(
+    private static async Task<WhoAmIResponse> SignIn(
         [FromBody] SignInRequest request,
         [FromServices] UserManager<EditorUser> userManager,
         [FromServices] SignInManager<EditorUser> signInManager,
@@ -24,9 +24,7 @@ public static class Auth
         {
             var hasUsersAtAll = editorUserStore.HasUsers();
             if (hasUsersAtAll)
-            {
-                return Results.Unauthorized();
-            }
+                throw new UnauthorizedException();
 
             // Create the first user as admin
             user = new EditorUser
@@ -39,48 +37,44 @@ public static class Auth
             };
             var createResult = await userManager.CreateAsync(user, request.Password);
             if (!createResult.Succeeded)
-            {
-                return Results.Problem("Failed to create the initial admin user.");
-            }
+                throw new BadRequestException("Не ўдалося стварыць першага карыстальніка: " + string.Join(", ", createResult.Errors.Select(e => e.Description)));
         }
+
+        if (user.RoleEnum == Roles.None)
+            throw new UnauthorizedException();
 
         var result = await signInManager.PasswordSignInAsync(user, request.Password, isPersistent: true, lockoutOnFailure: true);
         if (result.Succeeded)
-        {
-            return Results.Ok(new WhoAmIResponse
+            return new WhoAmIResponse
             {
                 Id = user.Id,
                 Role = user.RoleEnum
-            });
-        }
+            };
 
         if (result.IsLockedOut)
-            return Results.Problem("Карыстальнік часова заблякаваны, паспрабуйце пасьля");
+            throw new UnauthorizedException("Карыстальнік часова заблякаваны, паспрабуйце пасьля");
 
-        return Results.Unauthorized();
+        throw new UnauthorizedException();
     }
 
-    private static async Task<IResult> SignOut([FromServices] SignInManager<EditorUser> signInManager)
+    private static async Task SignOut([FromServices] SignInManager<EditorUser> signInManager)
     {
         await signInManager.SignOutAsync();
-        return Results.Ok();
     }
 
-    private static IResult WhoAmI(
+    private static WhoAmIResponse WhoAmI(
         [FromServices] UserManager<EditorUser> userManager,
         [FromServices] IHttpContextAccessor httpContextAccessor)
     {
         var user = httpContextAccessor.HttpContext?.User;
         if (user == null || user.Identity?.IsAuthenticated != true)
-        {
-            return Results.Unauthorized();
-        }
+            throw new UnauthorizedException();
 
-        return Results.Ok(new WhoAmIResponse
+        return new WhoAmIResponse
         {
             Id = user.GetUserId()!,
             Role = user.GetRole(),
-        });
+        };
     }
 }
 
