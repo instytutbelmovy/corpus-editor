@@ -11,6 +11,8 @@ public static class Auth
         authApi.MapPost("/sign-in", SignIn);
         authApi.MapPost("/sign-out", SignOut);
         authApi.MapGet("/who-am-i", WhoAmI);
+        authApi.MapPost("/forgot-password", ForgotPassword);
+        authApi.MapPost("/reset-password", ResetPassword);
     }
 
     private static async Task<WhoAmIResponse> SignIn(
@@ -45,11 +47,7 @@ public static class Auth
 
         var result = await signInManager.PasswordSignInAsync(user, request.Password, isPersistent: true, lockoutOnFailure: true);
         if (result.Succeeded)
-            return new WhoAmIResponse
-            {
-                Id = user.Id,
-                Role = user.RoleEnum
-            };
+            return new WhoAmIResponse(user.Id, user.RoleEnum);
 
         if (result.IsLockedOut)
             throw new UnauthorizedException("Карыстальнік часова заблякаваны, паспрабуйце пасьля");
@@ -70,22 +68,52 @@ public static class Auth
         if (user == null || user.Identity?.IsAuthenticated != true)
             throw new UnauthorizedException();
 
-        return new WhoAmIResponse
+        return new WhoAmIResponse(user.GetUserId()!, user.GetRole());
+    }
+
+    private static async Task ForgotPassword(
+        [FromBody] ForgotPasswordRequest request,
+        [FromServices] UserManager<EditorUser> userManager,
+        [FromServices] EmailService emailService,
+        [FromServices] IHttpContextAccessor httpContextAccessor)
+    {
+        var user = await userManager.FindByEmailAsync(request.Email);
+        if (user == null || user.RoleEnum == Roles.None)
         {
-            Id = user.GetUserId()!,
-            Role = user.GetRole(),
-        };
+            await Task.Delay(500 + Random.Shared.Next(500));
+            return; // Не раскрываем, ці існуе карыстальнік
+        }
+
+        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        var baseUrl = $"{httpContextAccessor.HttpContext!.Request.Scheme}://{httpContextAccessor.HttpContext.Request.Host}";
+        var resetUrl = $"{baseUrl}/reset-password?email={Uri.EscapeDataString(user.Email!)}&token={Uri.EscapeDataString(token)}";
+
+        await emailService.SendAsync(new EmailMessage
+        {
+            To = user.Email!,
+            Subject = "Аднаўленьне паролю да БелКорпусу",
+            Body = $"Для аднаўлення паролю перайдзіце па спасылцы: {resetUrl}",
+        });
+    }
+
+    private static async Task ResetPassword(
+        [FromBody] ResetPasswordRequest request,
+        [FromServices] UserManager<EditorUser> userManager)
+    {
+        var user = await userManager.FindByEmailAsync(request.Email);
+        if (user == null)
+            throw new NotFoundException();
+
+        var result = await userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
+        if (!result.Succeeded)
+            throw new BadRequestException("Не ўдалося аднавіць пароль");
     }
 }
 
-public class SignInRequest
-{
-    public string Email { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-}
+public record SignInRequest(string Email, string Password);
 
-public class WhoAmIResponse
-{
-    public string Id { get; set; } = string.Empty;
-    public Roles Role { get; set; } = Roles.None;
-}
+public record WhoAmIResponse(string Id, Roles Role);
+
+public record ForgotPasswordRequest(string Email);
+
+public record ResetPasswordRequest(string Email, string Token, string NewPassword);

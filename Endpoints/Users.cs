@@ -11,6 +11,7 @@ public static class Users
         authApi.MapGet("/", GetAllUsers).Admin();
         authApi.MapPost("/", CreateUser).Admin();
         authApi.MapPut("/{id}", UpdateUser).Admin();
+        authApi.MapPost("/{id}/invite", InviteUser).Admin();
     }
 
     private static IEnumerable<EditorUserDto> GetAllUsers(
@@ -128,12 +129,34 @@ public static class Users
         if (errors.Count > 0)
             throw new BadRequestException($"Памылкі валідацыі: {string.Join(", ", errors)}");
     }
+
+    private static async Task InviteUser(
+        [FromBody] InviteUserRequest request,
+        [FromServices] UserManager<EditorUser> userManager,
+        [FromServices] EmailService emailService,
+        [FromServices] IHttpContextAccessor httpContextAccessor)
+    {
+        var user = await userManager.FindByIdAsync(request.UserId);
+        if (user == null)
+            throw new NotFoundException("Карыстальнік ня знойдзены");
+
+        if (user.RoleEnum == Roles.None)
+            throw new BadRequestException("Карыстальнік не мае ролі і не можа быць запрошаны");
+
+        var baseUrl = $"{httpContextAccessor.HttpContext!.Request.Scheme}://{httpContextAccessor.HttpContext.Request.Host}";
+        var resetUrl = $"{baseUrl}/forgot-password?email={Uri.EscapeDataString(user.Email!)}";
+
+        await emailService.SendAsync(new EmailMessage
+        {
+            To = user.Email!,
+            Subject = "Запрашэньне далучыцца да БелКорпусу",
+            Body = $"Вы былі запрошаныя далучыцца да БелКорпусу. Каб усталяваць пароль і ўвайсьці, калі ласка прайдзіце праз аднаўленьне паролю тут: {resetUrl}",
+        });
+    }
 }
 
-public record EditorUserDto(string Id, string UserName, string Email, Roles Role)
-{
-}
+public record EditorUserDto(string Id, string UserName, string Email, Roles Role);
 
-public record EditorUserCreateDto(string UserName, string Email, Roles Role)
-{
-}
+public record EditorUserCreateDto(string UserName, string Email, Roles Role);
+
+public record InviteUserRequest(string UserId);

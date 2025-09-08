@@ -49,6 +49,19 @@ export default function UsersPage() {
     router.push(`/users/${user.id}`);
   };
 
+  const handleInviteUser = async (user: EditorUserDto) => {
+    if (!userService) return;
+    
+    try {
+      await userService.inviteUser(user.id);
+      // Тут можна дадаць паведамленне аб паспяховым дасыланні
+      alert(`Запрашэньне даслана на ${user.email}`);
+    } catch (error) {
+      console.error('Памылка пры дасыланні запрашэньня:', error);
+      alert('Не ўдалося даслаць запрашэньне. Паспрабуйце яшчэ раз.');
+    }
+  };
+
   const handleCreateUser = () => {
     router.push('/users/new');
   };
@@ -93,6 +106,7 @@ export default function UsersPage() {
           <UserList
             users={users}
             onEdit={handleEditUser}
+            onInvite={handleInviteUser}
             loading={loading}
             openMenu={openMenu}
             setOpenMenu={setOpenMenu}

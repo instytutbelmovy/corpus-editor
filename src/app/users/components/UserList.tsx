@@ -4,12 +4,13 @@ import { getRoleName } from '@/app/auth/types';
 interface UserListProps {
   users: EditorUserDto[];
   onEdit: (user: EditorUserDto) => void;
+  onInvite: (user: EditorUserDto) => void;
   loading?: boolean;
   openMenu: string | null;
   setOpenMenu: (menu: string | null) => void;
 }
 
-export function UserList({ users, onEdit, loading = false, openMenu, setOpenMenu }: UserListProps) {
+export function UserList({ users, onEdit, onInvite, loading = false, openMenu, setOpenMenu }: UserListProps) {
 
   if (loading) {
     return (
@@ -83,7 +84,7 @@ export function UserList({ users, onEdit, loading = false, openMenu, setOpenMenu
                     </button>
                     
                     {openMenu === user.id && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200">
+                      <div className="absolute right-0 mt-2 min-w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200 whitespace-nowrap">
                         <div className="py-1">
                           <button
                             onClick={(event) => {
@@ -98,6 +99,19 @@ export function UserList({ users, onEdit, loading = false, openMenu, setOpenMenu
                             </svg>
                             Рэдагаваць
                           </button>
+                          {user.role !== 0 && (
+                            <button
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                onInvite(user);
+                                setOpenMenu(null);
+                              }}
+                              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
+                            >
+                              <span className="mr-3">✉</span>
+                              Даслаць запрашэньне
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}

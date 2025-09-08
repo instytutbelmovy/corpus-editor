@@ -11,8 +11,11 @@ import { useAuthStore } from '@/app/auth/store';
 import { useDocumentStore } from '@/app/docs/store';
 import { AuthContextType } from '@/app/auth/types';
 import { Header } from '@/app/components';
+import { isValidReturnUrl } from '@/utils/urlValidation';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const publicPages = ['/sign-in', '/forgot-password', '/reset-password'];
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -52,8 +55,13 @@ export default function App({ Component, pageProps }: AppProps) {
     if (currentPath.startsWith('/sign-in') || currentPath.includes('returnTo=')) {
       routerRef.current.push('/sign-in');
     } else {
-      const returnTo = `?returnTo=${encodeURIComponent(currentPath)}`;
-      routerRef.current.push(`/sign-in${returnTo}`);
+      // Правяраем лякальнасць URL перад захаваннем
+      if (isValidReturnUrl(currentPath)) {
+        const returnTo = `?returnTo=${encodeURIComponent(currentPath)}`;
+        routerRef.current.push(`/sign-in${returnTo}`);
+      } else {
+        routerRef.current.push('/sign-in');
+      }
     }
   });
 
@@ -110,7 +118,7 @@ export default function App({ Component, pageProps }: AppProps) {
     if (result.success) {
       // Перанакіроўка на returnTo або галоўную старонку
       const returnTo = router.query.returnTo as string;
-      if (returnTo) {
+      if (returnTo && isValidReturnUrl(decodeURIComponent(returnTo))) {
         router.push(decodeURIComponent(returnTo));
       } else {
         router.push('/');
@@ -137,14 +145,16 @@ export default function App({ Component, pageProps }: AppProps) {
 
   // Перанакіроўка на старонку ўваходу, калі карыстальнік не аўтэнтыфікаваны
   useEffect(() => {
-    if (!isLoading && !isAuthenticated && router.pathname !== '/sign-in' && hasCheckedAuth.current) {
+    const isPublicPage = publicPages.includes(router.pathname);
+    
+    if (!isLoading && !isAuthenticated && !isPublicPage && hasCheckedAuth.current) {
       handleUnauthorizedRef.current();
     }
   }, [isAuthenticated, isLoading, router]);
 
   return (
     <AuthContext.Provider value={authContextValue}>
-      {isAuthenticated && router.pathname !== '/sign-in' && <Header />}
+      {isAuthenticated && !publicPages.includes(router.pathname) && <Header />}
       <Component {...pageProps} />
     </AuthContext.Provider>
   );

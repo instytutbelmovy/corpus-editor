@@ -10,7 +10,7 @@ export function getRoleName(roleValue: number): string {
     case Roles.None:
       return 'Нэактыўны';
     case Roles.Viewer:
-      return 'Праглядчык';
+      return 'Глядач';
     case Roles.Editor:
       return 'Рэдактар';
     case Roles.Admin:

@@ -40,13 +40,7 @@ export default function Header() {
               Карыстальнікі
             </Link>
           </div>
-        ) : (
-          <div className="flex items-center">
-            <span className="text-lg font-semibold text-gray-900">
-              Дакумэнты
-            </span>
-          </div>
-        )}
+        ) : (<div></div>)}
         <div className="flex items-center space-x-3">
           <span className="text-sm text-gray-500">{getRoleName(user.role)}</span>
           <button

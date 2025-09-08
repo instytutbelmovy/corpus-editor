@@ -31,4 +31,11 @@ export class UserService {
     }
     return response.data!;
   }
+
+  async inviteUser(userId: string): Promise<void> {
+    const response = await this.apiClient.post(`/users/${userId}/invite`, { userId });
+    if (response.error) {
+      throw new Error(response.error);
+    }
+  }
 }

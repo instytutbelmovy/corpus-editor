@@ -58,6 +58,13 @@ static void ConfigureServices(WebApplicationBuilder builder)
     if (string.IsNullOrEmpty(awsSettings.AccessKeyId) || string.IsNullOrEmpty(awsSettings.SecretAccessKey))
         throw new InvalidOperationException("AWS credentials are not configured. Please set 'AwsSettings:AccessKeyId' and 'AwsSettings:SecretAccessKey' in the configuration.");
 
+    var emailSettings = new EmailSettings();
+    builder.Configuration.Bind(nameof(EmailSettings), emailSettings);
+    builder.Services.AddSingleton(emailSettings);
+    if (string.IsNullOrEmpty(emailSettings.Domain) || string.IsNullOrEmpty(emailSettings.ApiKey))
+        throw new InvalidOperationException("Email SMTP settings are not configured. Please set 'EmailSettings:SmtpHost' and 'EmailSettings:SmtpPort' in the configuration.");
+    builder.Services.AddHttpClient<EmailService>();
+
     GrammarDB.Initialize(settings.GrammarDbPath);
 }
 
