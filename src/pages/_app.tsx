@@ -12,6 +12,7 @@ import { useDocumentStore } from '@/app/docs/store';
 import { AuthContextType } from '@/app/auth/types';
 import { Header } from '@/app/components';
 import { isValidReturnUrl } from '@/utils/urlValidation';
+import { useRecaptchaVisibility } from '@/app/hooks/useRecaptchaVisibility';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -43,6 +44,13 @@ export default function App({ Component, pageProps }: AppProps) {
 
   const { setDocumentService } = useDocumentStore();
   const [userService, setUserService] = useState<UserService | null>(null);
+
+  // Вызначаем, ці паказваць reCAPTCHA на бягучай старонцы
+  const isPublicPage = publicPages.includes(router.pathname);
+  const shouldShowRecaptcha = isPublicPage && !isAuthenticated;
+  
+  // Кіруем візуальнасцю reCAPTCHA
+  useRecaptchaVisibility(shouldShowRecaptcha);
 
   // Абнаўляем ref пры змене router
   useEffect(() => {

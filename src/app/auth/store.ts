@@ -14,7 +14,7 @@ interface AuthState {
   
   // Дзеянні
   setAuthService: (service: AuthService) => void;
-  signIn: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
+  signIn: (email: string, password: string, recaptchaToken?: string | null) => Promise<{ success: boolean; message?: string }>;
   signOut: () => Promise<void>;
   checkAuthStatus: () => Promise<boolean>;
   setAuthenticated: (authenticated: boolean) => void;
@@ -32,13 +32,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // Дзеянні
   setAuthService: (service) => set({ authService: service }),
 
-  signIn: async (email, password) => {
+  signIn: async (email, password, recaptchaToken) => {
     const { authService } = get();
     if (!authService) {
       return { success: false, message: 'Сэрвіс не ініцыялізаваны' };
     }
 
-    const result = await authService.signIn(email, password);
+    const result = await authService.signIn(email, password, recaptchaToken);
     if (result.success) {
       const user = AuthStorage.get();
       set({ 

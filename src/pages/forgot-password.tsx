@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { useRecaptcha } from '@/app/hooks/useRecaptcha';
 
 export default function ForgotPassword() {
   const router = useRouter();
@@ -8,6 +9,7 @@ export default function ForgotPassword() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { executeRecaptcha, isReady } = useRecaptcha();
 
   useEffect(() => {
     if (router.isReady && router.query.email) {
@@ -21,12 +23,23 @@ export default function ForgotPassword() {
     setError(null);
 
     try {
+      // Выконваем reCAPTCHA
+      let recaptchaToken: string | null = null;
+      if (isReady) {
+        recaptchaToken = await executeRecaptcha('forgot_password');
+        if (!recaptchaToken) {
+          setError('Памылка праверкі reCAPTCHA');
+          setIsLoading(false);
+          return;
+        }
+      }
+
       const response = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, recaptchaToken }),
       });
 
       if (response.ok) {

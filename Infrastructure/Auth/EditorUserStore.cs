@@ -253,6 +253,6 @@ public class EditorUserStore : IUserStore<EditorUser>, IUserPasswordStore<Editor
     public List<EditorUser> GetAllUsers()
     {
         using var connection = new SqliteConnection(_connectionString);
-        return connection.Query<EditorUser>("SELECT * FROM AspNetUsers").ToList();
+        return connection.Query<EditorUser>("SELECT * FROM AspNetUsers").AsList();
     }
 }

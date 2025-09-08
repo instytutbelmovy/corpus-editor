@@ -7,6 +7,8 @@ namespace Editor;
 [JsonSerializable(typeof(WhoAmIResponse))]
 [JsonSerializable(typeof(ForgotPasswordRequest))]
 [JsonSerializable(typeof(ResetPasswordRequest))]
+[JsonSerializable(typeof(ReCaptchaResponse))]
+[JsonSerializable(typeof(FrontendConfigResponse))]
 internal partial class AuthJsonSerializerContext : JsonSerializerContext
 {
 }

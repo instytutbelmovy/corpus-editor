@@ -53,17 +53,22 @@ static void ConfigureServices(WebApplicationBuilder builder)
     builder.Configuration.Bind(nameof(Settings), settings);
 
     var awsSettings = new AwsSettings();
-    builder.Configuration.Bind(nameof(AwsSettings), awsSettings);
+    builder.Configuration.Bind("Aws", awsSettings);
     builder.Services.AddSingleton(awsSettings);
     if (string.IsNullOrEmpty(awsSettings.AccessKeyId) || string.IsNullOrEmpty(awsSettings.SecretAccessKey))
         throw new InvalidOperationException("AWS credentials are not configured. Please set 'AwsSettings:AccessKeyId' and 'AwsSettings:SecretAccessKey' in the configuration.");
 
     var emailSettings = new EmailSettings();
-    builder.Configuration.Bind(nameof(EmailSettings), emailSettings);
+    builder.Configuration.Bind("Email", emailSettings);
     builder.Services.AddSingleton(emailSettings);
     if (string.IsNullOrEmpty(emailSettings.Domain) || string.IsNullOrEmpty(emailSettings.ApiKey))
         throw new InvalidOperationException("Email SMTP settings are not configured. Please set 'EmailSettings:SmtpHost' and 'EmailSettings:SmtpPort' in the configuration.");
     builder.Services.AddHttpClient<EmailService>();
+
+    var reCaptchaSettings = new ReCaptchaSettings();
+    builder.Configuration.Bind("ReCaptcha", reCaptchaSettings);
+    builder.Services.AddSingleton(reCaptchaSettings);
+    builder.Services.AddHttpClient<ReCaptchaService>();
 
     GrammarDB.Initialize(settings.GrammarDbPath);
 }

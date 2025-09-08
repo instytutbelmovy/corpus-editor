@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import { useRecaptcha } from '@/app/hooks/useRecaptcha';
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('');
@@ -11,6 +12,7 @@ export default function ResetPassword() {
   const [email, setEmail] = useState('');
   const [token, setToken] = useState('');
   const router = useRouter();
+  const { executeRecaptcha, isReady } = useRecaptcha();
 
   useEffect(() => {
     const { email: queryEmail, token: queryToken } = router.query;
@@ -38,6 +40,17 @@ export default function ResetPassword() {
     }
 
     try {
+      // Выконваем reCAPTCHA
+      let recaptchaToken: string | null = null;
+      if (isReady) {
+        recaptchaToken = await executeRecaptcha('reset_password');
+        if (!recaptchaToken) {
+          setError('Памылка праверкі reCAPTCHA');
+          setIsLoading(false);
+          return;
+        }
+      }
+
       const response = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: {
@@ -46,7 +59,8 @@ export default function ResetPassword() {
         body: JSON.stringify({ 
           email, 
           token, 
-          newPassword: password 
+          newPassword: password,
+          recaptchaToken
         }),
       });
 

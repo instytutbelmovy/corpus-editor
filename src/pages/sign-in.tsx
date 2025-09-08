@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useAuthStore } from '@/app/auth/store';
 import { isValidReturnUrl } from '@/utils/urlValidation';
+import { useRecaptcha } from '@/app/hooks/useRecaptcha';
 
 export default function SignIn() {
   const { authService, signIn: storeSignIn, checkAuthStatus } = useAuthStore();
@@ -11,6 +12,7 @@ export default function SignIn() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { executeRecaptcha, isReady } = useRecaptcha();
 
   useEffect(() => {
     // Праверка, ці ўжо ўвайшоў карыстальнік
@@ -51,7 +53,18 @@ export default function SignIn() {
     }
 
     try {
-      const result = await storeSignIn(email, password);
+      // Выконваем reCAPTCHA
+      let recaptchaToken: string | null = null;
+      if (isReady) {
+        recaptchaToken = await executeRecaptcha('signin');
+        if (!recaptchaToken) {
+          setError('Памылка праверкі reCAPTCHA');
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      const result = await storeSignIn(email, password, recaptchaToken);
       
       if (result.success) {
         const returnTo = router.query.returnTo as string;

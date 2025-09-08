@@ -19,8 +19,12 @@ export class AuthService {
     this.apiClient = new ApiClient(onUnauthorized);
   }
 
-  async signIn(email: string, password: string): Promise<AuthResponse> {
-    const response = await this.apiClient.post<WhoAmIResponse>('/auth/sign-in', { email, password });
+  async signIn(email: string, password: string, recaptchaToken?: string | null): Promise<AuthResponse> {
+    const response = await this.apiClient.post<WhoAmIResponse>('/auth/sign-in', { 
+      email, 
+      password, 
+      recaptchaToken 
+    });
 
     if (response.data) {
       // Захоўваем інфармацыю пра карыстальніка ў localStorage

@@ -13,14 +13,19 @@ public static class Auth
         authApi.MapGet("/who-am-i", WhoAmI);
         authApi.MapPost("/forgot-password", ForgotPassword);
         authApi.MapPost("/reset-password", ResetPassword);
+        authApi.MapGet("/config", GetConfig);
     }
 
     private static async Task<WhoAmIResponse> SignIn(
         [FromBody] SignInRequest request,
         [FromServices] UserManager<EditorUser> userManager,
         [FromServices] SignInManager<EditorUser> signInManager,
-        [FromServices] EditorUserStore editorUserStore)
+        [FromServices] EditorUserStore editorUserStore,
+        [FromServices] ReCaptchaService reCaptchaService,
+        [FromServices] IHttpContextAccessor httpContextAccessor)
     {
+        await CheckReCaptcha(reCaptchaService, httpContextAccessor, request.ReCaptchaToken);
+
         var user = await userManager.FindByEmailAsync(request.Email);
         if (user == null)
         {
@@ -75,8 +80,11 @@ public static class Auth
         [FromBody] ForgotPasswordRequest request,
         [FromServices] UserManager<EditorUser> userManager,
         [FromServices] EmailService emailService,
-        [FromServices] IHttpContextAccessor httpContextAccessor)
+        [FromServices] IHttpContextAccessor httpContextAccessor,
+        [FromServices] ReCaptchaService reCaptchaService)
     {
+        await CheckReCaptcha(reCaptchaService, httpContextAccessor, request.ReCaptchaToken);
+
         var user = await userManager.FindByEmailAsync(request.Email);
         if (user == null || user.RoleEnum == Roles.None)
         {
@@ -98,8 +106,12 @@ public static class Auth
 
     private static async Task ResetPassword(
         [FromBody] ResetPasswordRequest request,
-        [FromServices] UserManager<EditorUser> userManager)
+        [FromServices] UserManager<EditorUser> userManager,
+        [FromServices] ReCaptchaService reCaptchaService,
+        [FromServices] IHttpContextAccessor httpContextAccessor)
     {
+        await CheckReCaptcha(reCaptchaService, httpContextAccessor, request.ReCaptchaToken);
+
         var user = await userManager.FindByEmailAsync(request.Email);
         if (user == null)
             throw new NotFoundException();
@@ -108,12 +120,29 @@ public static class Auth
         if (!result.Succeeded)
             throw new BadRequestException("Не ўдалося аднавіць пароль");
     }
+
+    private static FrontendConfigResponse GetConfig([FromServices] ReCaptchaSettings reCaptchaSettings)
+    {
+        return new FrontendConfigResponse(reCaptchaSettings.SiteKey);
+    }
+
+    private static async Task CheckReCaptcha(ReCaptchaService reCaptchaService, IHttpContextAccessor httpContextAccessor, string? requestReCaptchaToken)
+    {
+        if (requestReCaptchaToken == null)
+            throw new BadRequestException("reCAPTCHA токен адсутнічае");
+        var remoteIp = httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString();
+        var isValidRecaptcha = await reCaptchaService.VerifyTokenAsync(requestReCaptchaToken, remoteIp);
+        if (!isValidRecaptcha)
+            throw new BadRequestException("reCAPTCHA праверка не прайшла");
+    }
 }
 
-public record SignInRequest(string Email, string Password);
+public record SignInRequest(string Email, string Password, string? ReCaptchaToken = null);
 
 public record WhoAmIResponse(string Id, Roles Role);
 
-public record ForgotPasswordRequest(string Email);
+public record ForgotPasswordRequest(string Email, string? ReCaptchaToken = null);
 
-public record ResetPasswordRequest(string Email, string Token, string NewPassword);
+public record ResetPasswordRequest(string Email, string Token, string NewPassword, string? ReCaptchaToken = null);
+
+public record FrontendConfigResponse(string RecaptchaSiteKey);
