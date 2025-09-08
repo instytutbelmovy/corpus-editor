@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.Json;
 
 namespace Editor;
 
@@ -25,13 +26,14 @@ public class EmailService
         _logger.LogInformation("Sending \"{Subject}\" to \"{To}\"", message.Subject, message.To);
 
         var url = $"https://api.eu.mailgun.net/v3/{_emailSettings.Domain}/messages";
-        
+
         var formData = new List<KeyValuePair<string, string>>
         {
             new("from", _emailSettings.From),
             new("to", message.To),
             new("subject", message.Subject),
-            new("text", message.Body)
+            new("template", message.Template),
+            new("h:X-Mailgun-Variables", JsonSerializer.Serialize(message.TemplateArguments, AuthJsonSerializerContext.Default.DictionaryStringString)),
         };
 
         var content = new FormUrlEncodedContent(formData);
@@ -57,7 +59,8 @@ public class EmailMessage
 {
     public string To { get; set; } = null!;
     public string Subject { get; set; } = null!;
-    public string Body { get; set; } = null!;
+    public string Template { get; set; } = null!;
+    public Dictionary<string, string> TemplateArguments { get; set; } = null!;
 }
 
 public class EmailSettings

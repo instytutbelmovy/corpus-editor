@@ -9,6 +9,7 @@ namespace Editor;
 [JsonSerializable(typeof(ResetPasswordRequest))]
 [JsonSerializable(typeof(ReCaptchaResponse))]
 [JsonSerializable(typeof(FrontendConfigResponse))]
+[JsonSerializable(typeof(Dictionary<string, string>))]
 internal partial class AuthJsonSerializerContext : JsonSerializerContext
 {
 }

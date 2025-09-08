@@ -146,11 +146,19 @@ public static class Users
         var baseUrl = $"{httpContextAccessor.HttpContext!.Request.Scheme}://{httpContextAccessor.HttpContext.Request.Host}";
         var resetUrl = $"{baseUrl}/forgot-password?email={Uri.EscapeDataString(user.Email!)}";
 
+        var currentUser = await userManager.FindByIdAsync(httpContextAccessor.HttpContext?.User.GetUserId());
+
         await emailService.SendAsync(new EmailMessage
         {
             To = user.Email!,
             Subject = "Запрашэньне далучыцца да БелКорпусу",
-            Body = $"Вы былі запрошаныя далучыцца да БелКорпусу. Каб усталяваць пароль і ўвайсьці, калі ласка прайдзіце праз аднаўленьне паролю тут: {resetUrl}",
+            Template = "Invite",
+            TemplateArguments = new()
+            {
+                { "inviteeName", user.UserName },
+                { "inviterName", currentUser.UserName },
+                { "resetUrl", resetUrl },
+            },
         });
     }
 }

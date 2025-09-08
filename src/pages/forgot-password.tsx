@@ -79,7 +79,7 @@ export default function ForgotPassword() {
                 </div>
                 <div className="ml-3">
                   <h3 className="text-sm font-medium text-green-800">
-                    Інструкцыі па аднаўленню паролю адпраўлены на {email}
+                    Інструкцыі аднаўленьня паролю адпраўленыя на {email}
                   </h3>
                 </div>
               </div>

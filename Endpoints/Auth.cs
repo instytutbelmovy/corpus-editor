@@ -100,7 +100,8 @@ public static class Auth
         {
             To = user.Email!,
             Subject = "Аднаўленьне паролю да БелКорпусу",
-            Body = $"Для аднаўлення паролю перайдзіце па спасылцы: {resetUrl}",
+            Template = "Password Reset",
+            TemplateArguments = new () { { "resetUrl", resetUrl } },
         });
     }
 
