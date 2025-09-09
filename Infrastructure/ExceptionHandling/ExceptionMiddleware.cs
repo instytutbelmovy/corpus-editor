@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 
 namespace Editor;
 
@@ -19,23 +20,31 @@ public static class ExceptionMiddleware
         }
         catch (ConflictException e)
         {
-            LogError(e);
-            context.Response.StatusCode = (int)HttpStatusCode.Conflict;
+            var statusCode = (int)HttpStatusCode.Conflict;
+            LogInfo(e, statusCode);
+            context.Response.StatusCode = statusCode;
         }
         catch (BadRequestException e)
         {
-            LogError(e);
-            context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+            var statusCode = (int)HttpStatusCode.BadRequest;
+            LogInfo(e, statusCode);
+            if (!context.Response.HasStarted)
+            {
+                context.Response.StatusCode = statusCode;
+                await JsonSerializer.SerializeAsync(context.Response.BodyWriter, new ErrorResponse(statusCode, e.Message), InfrastructureJsonSerializerContext.Default.ErrorResponse);
+            }
         }
         catch (UnauthorizedException e)
         {
-            LogError(e);
-            context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+            var statusCode = (int)HttpStatusCode.Unauthorized;
+            LogInfo(e, statusCode);
+            context.Response.StatusCode = statusCode;
         }
         catch (Exception e) when (e is FileNotFoundException or NotFoundException)
         {
-            LogError(e);
-            context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+            var statusCode = (int)HttpStatusCode.NotFound;
+            LogInfo(e, statusCode);
+            context.Response.StatusCode = statusCode;
         }
         catch (Exception e)
         {
@@ -48,4 +57,14 @@ public static class ExceptionMiddleware
     {
         _logger.LogError(e, "Unhandled exception");
     }
+
+    private static void LogInfo(Exception e, int? statusCode = null)
+    {
+        if (statusCode.HasValue)
+            _logger.LogInformation("{StatusCode}: {message}", statusCode, e.Message);
+        else
+            _logger.LogInformation(e.Message);
+    }
 }
+
+public record ErrorResponse(int Code, string Message);

@@ -119,7 +119,15 @@ public static class Auth
 
         var result = await userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
         if (!result.Succeeded)
-            throw new BadRequestException("Не ўдалося аднавіць пароль");
+        {
+            var message = result.Errors.FirstOrDefault()?.Code switch
+            {
+                "InvalidToken" => "Няправільны ці пратэрмінаваны токен",
+                "PasswordTooShort" => "Пароль занадта кароткі",
+                _ => "Не ўдалося аднавіць пароль",
+            };
+            throw new BadRequestException(message);
+        }
     }
 
     private static FrontendConfigResponse GetConfig([FromServices] ReCaptchaSettings reCaptchaSettings)

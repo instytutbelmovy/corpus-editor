@@ -45,7 +45,21 @@ export default function ForgotPassword() {
       if (response.ok) {
         setIsSuccess(true);
       } else {
-        setError('Памылка адпраўкі email');
+        try {
+          const errorData = await response.json();
+          // Праверка розных фарматаў паведамленняў пра памылкі
+          if (errorData.message) {
+            setError(errorData.message);
+          } else if (errorData.error) {
+            setError(errorData.error);
+          } else if (errorData.detail) {
+            setError(errorData.detail);
+          } else {
+            setError('Памылка адпраўкі email');
+          }
+        } catch {
+          setError('Памылка адпраўкі email');
+        }
       }
     } catch {
       setError('Памылка злучэння з серверам');
@@ -63,7 +77,7 @@ export default function ForgotPassword() {
               Email адпраўлены
             </h2>
             <p className="mt-2 text-sm text-gray-600">
-              Праверце сваю пошту для аднаўлення паролю
+              Праверце сваю пошту для аднаўленьня паролю
             </p>
           </div>
         </div>
@@ -104,10 +118,10 @@ export default function ForgotPassword() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="text-center">
           <h2 className="text-3xl font-bold text-gray-900">
-            Аднаўленне паролю
+            Аднаўленьне паролю
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Увядзіце email для аднаўлення паролю
+            Увядзіце email для аднаўленьня паролю
           </p>
         </div>
       </div>

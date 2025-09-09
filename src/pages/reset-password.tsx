@@ -33,8 +33,8 @@ export default function ResetPassword() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Пароль павінен быць не менш за 6 сімвалаў');
+    if (password.length < 10) {
+      setError('Пароль павінен быць ня менш за 10 сымбаляў');
       setIsLoading(false);
       return;
     }
@@ -67,8 +67,21 @@ export default function ResetPassword() {
       if (response.ok) {
         setIsSuccess(true);
       } else {
-        const errorData = await response.json();
-        setError(errorData.message || 'Памылка аднаўленьня паролю');
+        try {
+          const errorData = await response.json();
+          // Праверка розных фарматаў паведамленняў пра памылкі
+          if (errorData.message) {
+            setError(errorData.message);
+          } else if (errorData.error) {
+            setError(errorData.error);
+          } else if (errorData.detail) {
+            setError(errorData.detail);
+          } else {
+            setError('Памылка аднаўленьня паролю');
+          }
+        } catch {
+          setError('Памылка аднаўленьня паролю');
+        }
       }
     } catch {
       setError('Памылка злучэння з серверам');

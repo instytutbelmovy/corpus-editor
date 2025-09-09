@@ -44,7 +44,16 @@ export class ApiClient {
       } else {
         try {
           const errorData = await response.json();
-          error = errorData.message || `HTTP ${response.status}`;
+          // Праверка розных фарматаў паведамленняў пра памылкі
+          if (errorData.message) {
+            error = errorData.message;
+          } else if (errorData.error) {
+            error = errorData.error;
+          } else if (errorData.detail) {
+            error = errorData.detail;
+          } else {
+            error = `HTTP ${response.status}`;
+          }
         } catch {
           error = `HTTP ${response.status}`;
         }

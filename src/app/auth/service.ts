@@ -43,9 +43,17 @@ export class AuthService {
       return { success: false, message: 'Карыстальнік часова заблякаваны, паспрабуйце пазьней' };
     }
 
+    // Калі ёсць памылка з сервера, выкарыстоўваем яе
+    if (response.error) {
+      return { 
+        success: false, 
+        message: response.error 
+      };
+    }
+
     return { 
       success: false, 
-      message: response.error || 'Памылка ўваходу ў сістэму' 
+      message: 'Памылка ўваходу ў сістэму' 
     };
   }
 
