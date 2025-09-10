@@ -1,3 +1,3 @@
 export { LoadingScreen } from './LoadingScreen';
 export { ErrorScreen } from './ErrorScreen';
-export { default as DocumentForm } from './DocumentForm';
+export { default as Header } from './Header';

@@ -2,7 +2,7 @@ import {
   Paragraph as ParagraphType,
   SelectedWord,
   LinguisticItem as LinguisticItemType,
-} from '@/types/document';
+} from '../types';
 import { Sentence } from './Sentence';
 
 interface ParagraphProps {

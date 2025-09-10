@@ -7,6 +7,6 @@ public static class M0001_Initial
 {
     public static void Apply(SqliteConnection connection)
     {
-        connection.Execute("PRAGMA journal_mode = 'wal'");
+        connection.Execute("PRAGMA journal_mode = 'truncate'");
     }
 }

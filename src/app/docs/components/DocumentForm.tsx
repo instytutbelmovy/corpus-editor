@@ -6,7 +6,7 @@ import {
   FormErrors,
   textTypeOptions, 
   styleOptions 
-} from '@/types/documentForm';
+} from '../formTypes';
 
 interface DocumentFormProps<T extends NewDocumentFormData | MetadataFormData> {
   initialData: T;
@@ -22,7 +22,7 @@ interface DocumentFormProps<T extends NewDocumentFormData | MetadataFormData> {
   subtitle?: string;
 }
 
-export default function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
+export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
   initialData,
   onSubmit,
   onCancel,
@@ -93,7 +93,7 @@ export default function DocumentForm<T extends NewDocumentFormData | MetadataFor
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-4xl mx-auto px-2 sm:px-2 lg:px-4 pt-4 pb-8">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           {/* Загаловак */}
           <div className="px-6 py-4 border-b border-gray-200">
@@ -157,16 +157,16 @@ export default function DocumentForm<T extends NewDocumentFormData | MetadataFor
                   Год публікацыі
                 </label>
                 <input
-                  type="number"
+                  type="text"
                   id="publicationDate"
                   value={formData.publicationDate || ''}
-                  onChange={(e) => handleInputChange('publicationDate', parseInt(e.target.value) || undefined)}
+                  onChange={(e) => handleInputChange('publicationDate', e.target.value || undefined)}
                   className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                     errors.publicationDate ? 'border-red-300' : 'border-gray-300'
                   }`}
                   placeholder="2024"
-                  min="1900"
-                  max={new Date().getFullYear()}
+                  pattern="[0-9]{4}"
+                  title="Увядзіце год у фармаце YYYY"
                 />
                 {errors.publicationDate && (
                   <p className="mt-1 text-sm text-red-600">{errors.publicationDate}</p>

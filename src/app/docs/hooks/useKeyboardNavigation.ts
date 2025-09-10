@@ -1,14 +1,13 @@
 import { useEffect } from 'react';
-import { SelectedWord } from '@/types/document';
+import { useUIStore } from '../uiStore';
 
-export function useKeyboardNavigation(
-  selectedWord: SelectedWord | null,
-  onClose: () => void
-) {
+export function useKeyboardNavigation() {
+  const { selectedWord, clearSelectedWord } = useUIStore();
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && selectedWord) {
-        onClose();
+        clearSelectedWord();
       }
     };
 
@@ -16,5 +15,5 @@ export function useKeyboardNavigation(
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [selectedWord, onClose]);
+  }, [selectedWord, clearSelectedWord]);
 }

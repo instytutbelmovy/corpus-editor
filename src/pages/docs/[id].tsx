@@ -1,13 +1,10 @@
 import { useRouter } from 'next/router';
 import { useCallback } from 'react';
-import {
-  LinguisticItem as LinguisticItemType,
-  ParadigmFormId,
-  LinguisticTag,
-} from '@/types/document';
+import { LinguisticItem as LinguisticItemType } from '@/app/docs/types';
 import {
   useDocument,
-  useSelectedWord,
+  useWordSelection,
+  useWordEditing,
   useKeyboardNavigation,
   useInfiniteScroll,
 } from '@/app/docs/hooks';
@@ -17,10 +14,13 @@ import {
   EditingPanel,
 } from '@/app/docs/components';
 import { LoadingScreen, ErrorScreen } from '@/app/components';
+import { useAuth } from '../_app';
+import { WordEditingService } from '@/app/docs/wordEditingService';
 
 export default function DocumentPage() {
   const router = useRouter();
   const documentId = router.query.id as string;
+  const { documentService } = useAuth();
 
   // Хукі для работы з дакумэнтам
   const {
@@ -29,33 +29,34 @@ export default function DocumentPage() {
     error,
     loadingMore,
     hasMore,
-    lastParagraphId,
     fetchDocument,
-    updateDocument,
   } = useDocument(documentId);
 
+  // Хукі для выбару і рэдагавання слоў
   const {
     selectedWord,
-    setSelectedWord,
+    selectWord,
+    clearSelectedWord,
     saveError,
-    setSaveError,
+    clearSaveError,
     pendingSaves,
+  } = useWordSelection();
+
+  // Ініцыялізуем WordEditingService
+  const wordEditingService = new WordEditingService(documentService!);
+  const {
     handleSaveParadigm,
     handleUpdateWordText,
     handleSaveManualCategories,
     handleSaveComment,
-  } = useSelectedWord(documentId, documentData);
+  } = useWordEditing(documentId, wordEditingService);
 
   // Хук для клавіятурнай навігацыі
-  useKeyboardNavigation(selectedWord, () => setSelectedWord(null));
+  useKeyboardNavigation();
 
   // Хук для бясконцай пракруткі
   const observerRef = useInfiniteScroll({
-    hasMore,
-    loadingMore,
-    loading,
-    lastParagraphId,
-    onLoadMore: skipUpToId => fetchDocument(skipUpToId, false),
+    onLoadMore: skipUpToId => fetchDocument(documentId, skipUpToId, false),
   });
 
   // Функцыя для выбару слова для рэдагавання
@@ -70,61 +71,13 @@ export default function DocumentPage() {
             sentenceItem => sentenceItem.linguisticItem === item
           );
           if (wordIndex !== -1) {
-            setSelectedWord({
-              paragraphId: paragraph.id,
-              paragraphStamp: paragraph.concurrencyStamp,
-              sentenceId: sentence.id,
-              sentenceStamp: sentence.concurrencyStamp,
-              wordIndex: wordIndex,
-              item: item,
-              options: sentence.sentenceItems[wordIndex].options,
-            });
+            selectWord(item, paragraph.id, sentence.id, wordIndex);
             return;
           }
         }
       }
     },
-    [documentData, setSelectedWord]
-  );
-
-  // Функцыя для захавання парадыгмы
-  const handleSaveParadigmWrapper = useCallback(
-    async (paradigmFormId: ParadigmFormId) => {
-      if (!documentData) return;
-
-      await handleSaveParadigm(paradigmFormId, updateDocument);
-    },
-    [documentData, handleSaveParadigm, updateDocument]
-  );
-
-  // Функцыя для абнаўлення тэксту слова
-  const handleUpdateWordTextWrapper = useCallback(
-    async (text: string) => {
-      if (!documentData) return;
-
-      await handleUpdateWordText(text, updateDocument);
-    },
-    [documentData, handleUpdateWordText, updateDocument]
-  );
-
-  // Функцыя для захавання ручна ўведзеных катэгорый
-  const handleSaveManualCategoriesWrapper = useCallback(
-    async (lemma: string, linguisticTag: LinguisticTag) => {
-      if (!documentData) return;
-
-      await handleSaveManualCategories(lemma, linguisticTag, updateDocument);
-    },
-    [documentData, handleSaveManualCategories, updateDocument]
-  );
-
-  // Функцыя для захавання каментара
-  const handleSaveCommentWrapper = useCallback(
-    async (comment: string) => {
-      if (!documentData) return;
-
-      await handleSaveComment(comment, updateDocument);
-    },
-    [documentData, handleSaveComment, updateDocument]
+    [documentData, selectWord]
   );
 
   // Станы загрузкі і памылак
@@ -142,7 +95,7 @@ export default function DocumentPage() {
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col">
-      <div className="max-w-6xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8 flex-1 flex flex-col max-h-full">
+      <div className="max-w-7xl mx-auto px-2 sm:px-2 lg:px-4 pt-4 pb-8 flex-1 flex flex-col max-h-full">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex-1 flex flex-col min-h-0 max-h-full">
           {/* Загаловак */}
           <DocumentHeader header={documentData.header} />
@@ -166,12 +119,12 @@ export default function DocumentPage() {
             <EditingPanel
               selectedWord={selectedWord}
               saveError={saveError}
-              onClose={() => setSelectedWord(null)}
-              onSaveParadigm={handleSaveParadigmWrapper}
-              onClearError={() => setSaveError(null)}
-              onUpdateWordText={handleUpdateWordTextWrapper}
-              onSaveManualCategories={handleSaveManualCategoriesWrapper}
-              onSaveComment={handleSaveCommentWrapper}
+              onClose={clearSelectedWord}
+              onSaveParadigm={handleSaveParadigm}
+              onClearError={clearSaveError}
+              onUpdateWordText={handleUpdateWordText}
+              onSaveManualCategories={handleSaveManualCategories}
+              onSaveComment={handleSaveComment}
             />
           </div>
         </div>

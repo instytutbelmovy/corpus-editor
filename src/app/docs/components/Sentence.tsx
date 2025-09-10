@@ -2,7 +2,7 @@ import {
   Sentence as SentenceType,
   LinguisticItem as LinguisticItemType,
   SelectedWord,
-} from '@/types/document';
+} from '../types';
 import { LinguisticItem } from './LinguisticItem';
 
 interface SentenceProps {

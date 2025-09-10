@@ -14,7 +14,7 @@ public static class VertiIO
 
     public static bool TryReadHeader(string line, out CorpusDocumentHeader header)
     {
-        header = default;
+        header = default!;
         if (!line.StartsWith("<doc"))
             return false;
 

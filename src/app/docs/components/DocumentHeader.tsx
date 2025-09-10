@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { DocumentHeader as DocumentHeaderType } from '@/types/document';
+import { DocumentHeader as DocumentHeaderType } from '../types';
 
 interface DocumentHeaderProps {
   header: DocumentHeaderType;

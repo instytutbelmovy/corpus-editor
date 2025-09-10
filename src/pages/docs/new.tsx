@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
-import { documentService } from '@/services/documentService';
-import { DocumentForm } from '@/app/components';
-import { NewDocumentFormData, FormErrors } from '@/types/documentForm';
+import { useAuth } from '../_app';
+import { DocumentForm } from '@/app/docs/components';
+import { NewDocumentFormData, FormErrors } from '@/app/docs/formTypes';
 
 export default function NewDocument() {
+  const { documentService } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -20,6 +21,11 @@ export default function NewDocument() {
   };
 
   const handleSubmit = async (data: NewDocumentFormData) => {
+    if (!documentService) {
+      setErrors({ submit: 'Сэрвіс не ініцыялізаваны' });
+      return;
+    }
+
     setLoading(true);
 
     try {

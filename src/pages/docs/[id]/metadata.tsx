@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { documentService } from '@/services/documentService';
-import { DocumentForm } from '@/app/components';
-import { MetadataFormData, FormErrors } from '@/types/documentForm';
+import { useAuth } from '../../_app';
+import { DocumentForm } from '@/app/docs/components';
+import { MetadataFormData, FormErrors } from '@/app/docs/formTypes';
 
 export default function EditMetadata() {
+  const { documentService } = useAuth();
   const router = useRouter();
   const { id } = router.query;
   const [loading, setLoading] = useState(true);
@@ -20,30 +21,41 @@ export default function EditMetadata() {
   });
 
   useEffect(() => {
+    const fetchDocumentData = async () => {
+      if (!documentService) {
+        setErrors({ fetch: 'Сэрвіс не ініцыялізаваны' });
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const data = await documentService.fetchDocumentMetadata(Number(id));
+        setDocumentInfo({ n: data.n, percentCompletion: data.percentCompletion });
+        setInitialData({
+          title: data.title || '',
+          url: data.url || '',
+          publicationDate: data.publicationDate || '',
+          textType: (data.type as 'вусны' | 'пісьмовы') || 'пісьмовы',
+          style: data.style as 'публіцыстычны' | 'мастацкі' | 'афіцыйна-справавы' | 'навуковы' | 'гутарковы' | undefined
+        });
+      } catch (error) {
+        setErrors({ fetch: error instanceof Error ? error.message : 'Невядомая памылка' });
+      } finally {
+        setLoading(false);
+      }
+    };
+
     if (id) {
       fetchDocumentData();
     }
-  }, [id]);
-
-  const fetchDocumentData = async () => {
-    try {
-      const data = await documentService.fetchDocumentMetadata(Number(id));
-      setDocumentInfo({ n: data.n, percentCompletion: data.percentCompletion });
-      setInitialData({
-        title: data.title || '',
-        url: data.url || '',
-        publicationDate: data.publicationDate || '',
-        textType: (data.type as 'вусны' | 'пісьмовы') || 'пісьмовы',
-        style: data.style as 'публіцыстычны' | 'мастацкі' | 'афіцыйна-справавы' | 'навуковы' | 'гутарковы' | undefined
-      });
-    } catch (error) {
-      setErrors({ fetch: error instanceof Error ? error.message : 'Невядомая памылка' });
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [id, documentService]);
 
   const handleSubmit = async (data: MetadataFormData) => {
+    if (!documentService) {
+      setErrors({ submit: 'Сэрвіс не ініцыялізаваны' });
+      return;
+    }
+
     setSaving(true);
 
     try {

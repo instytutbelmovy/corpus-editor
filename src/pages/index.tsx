@@ -1,30 +1,21 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { documentService } from '@/services';
 import { LoadingScreen, ErrorScreen } from '@/app/components';
-import { DocumentHeader } from '@/types/document';
+import { useDocumentStore } from '@/app/docs/store';
+import { useUIStore } from '@/app/docs/uiStore';
 
 export default function Home() {
-  const [documents, setDocuments] = useState<DocumentHeader[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const { documentsList, loading, error, fetchDocuments, documentService } = useDocumentStore();
+  const { displayMode, setDisplayMode } = useUIStore();
   const [openMenu, setOpenMenu] = useState<number | null>(null);
+  
+  const isExpanded = displayMode === 'full';
 
   useEffect(() => {
-    const fetchDocuments = async () => {
-      try {
-        const data = await documentService.fetchDocuments();
-        setDocuments(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Невядомая памылка');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDocuments();
-  }, []);
+    if (documentService) {
+      fetchDocuments();
+    }
+  }, [fetchDocuments, documentService]);
 
   useEffect(() => {
     const handleClickOutside = () => {
@@ -53,6 +44,10 @@ export default function Home() {
     setOpenMenu(null);
   };
 
+  const handleToggleExpanded = () => {
+    setDisplayMode(isExpanded ? 'compact' : 'full');
+  };
+
   if (loading) {
     return <LoadingScreen message="Загрузка дакумэнтаў..." />;
   }
@@ -63,7 +58,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-2 sm:px-2 lg:px-4 pt-4 pb-8">
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           {/* Загаловак */}
           <div className="px-6 py-4 border-b border-gray-200">
@@ -72,15 +67,12 @@ export default function Home() {
                 <h1 className="text-2xl font-bold text-gray-900">
                   Лінгвістычны рэдактар
                 </h1>
-                <p className="mt-1 text-sm text-gray-500">
-                  Выберыце дакумэнт для рэдагавання
-                </p>
               </div>
               <div className="flex items-center space-x-3">
                 <div className="inline-flex items-center space-x-3">
                   <span className="text-sm font-medium text-gray-700">Дэталі</span>
                   <button
-                    onClick={() => setIsExpanded(!isExpanded)}
+                    onClick={handleToggleExpanded}
                     className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                     style={{
                       backgroundColor: isExpanded ? '#3B82F6' : '#D1D5DB'
@@ -141,7 +133,7 @@ export default function Home() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {documents.map(doc => (
+                {documentsList.map(doc => (
                   <tr
                     key={doc.n}
                     className="hover:bg-gray-50 transition-colors duration-150"

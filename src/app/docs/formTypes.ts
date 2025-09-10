@@ -28,4 +28,4 @@ export const styleOptions = [
   { value: 'афіцыйна-справавы', label: 'Афіцыйна-справавы' },
   { value: 'навуковы', label: 'Навуковы' },
   { value: 'гутарковы', label: 'Гутарковы' }
-] as const; 
+] as const;

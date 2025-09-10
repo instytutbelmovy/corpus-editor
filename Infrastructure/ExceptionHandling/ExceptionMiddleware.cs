@@ -1,16 +1,13 @@
 using System.Net;
-using Editor;
+using System.Text.Json;
+
+namespace Editor;
 
 public static class ExceptionMiddleware
 {
-    private static IWebHostEnvironment _environment = null!;
-    private static ILogger _logger;
+    private static ILogger _logger = null!;
 
-    public static void Initialize(IWebHostEnvironment environment, ILogger logger)
-    {
-        _environment = environment;
-        _logger = logger;
-    }
+    public static void InitializeLogging(ILogger logger) => _logger = logger;
 
     public static async Task HandleException(HttpContext context, Func<Task> next)
     {
@@ -18,23 +15,53 @@ public static class ExceptionMiddleware
         {
             await next();
         }
-        catch (ConflictException)
+        catch (ConflictException e)
         {
-            context.Response.StatusCode = (int)HttpStatusCode.Conflict;
+            var statusCode = (int)HttpStatusCode.Conflict;
+            LogInfo(e, statusCode);
+            context.Response.StatusCode = statusCode;
         }
-        catch (BadRequestException)
+        catch (BadRequestException e)
         {
-            context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+            var statusCode = (int)HttpStatusCode.BadRequest;
+            LogInfo(e, statusCode);
+            if (!context.Response.HasStarted)
+            {
+                context.Response.StatusCode = statusCode;
+                await JsonSerializer.SerializeAsync(context.Response.BodyWriter, new ErrorResponse(statusCode, e.Message), InfrastructureJsonSerializerContext.Default.ErrorResponse);
+            }
+        }
+        catch (UnauthorizedException e)
+        {
+            var statusCode = (int)HttpStatusCode.Unauthorized;
+            LogInfo(e, statusCode);
+            context.Response.StatusCode = statusCode;
         }
         catch (Exception e) when (e is FileNotFoundException or NotFoundException)
         {
-            context.Response.StatusCode = (int)HttpStatusCode.NotFound;
+            var statusCode = (int)HttpStatusCode.NotFound;
+            LogInfo(e, statusCode);
+            context.Response.StatusCode = statusCode;
+        }
+        catch (Exception e)
+        {
+            LogError(e);
+            throw;
         }
     }
 
     private static void LogError(Exception e)
     {
-        if (_environment.IsDevelopment())
-            _logger.LogError(e, "Unhandled exception");
+        _logger.LogError(e, "Unhandled exception");
+    }
+
+    private static void LogInfo(Exception e, int? statusCode = null)
+    {
+        if (statusCode.HasValue)
+            _logger.LogInformation("{StatusCode}: {message}", statusCode, e.Message);
+        else
+            _logger.LogInformation(e.Message);
     }
 }
+
+public record ErrorResponse(int Code, string Message);

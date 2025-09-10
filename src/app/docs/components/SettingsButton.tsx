@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { DisplayMode } from '../hooks/useDisplaySettings';
+import { DisplayMode } from '../uiStore';
 
 interface SettingsButtonProps {
   displayMode: DisplayMode;
