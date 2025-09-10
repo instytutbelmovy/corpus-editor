@@ -1,12 +1,12 @@
 using Dapper;
 using Editor;
 using Editor.Migrations;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.Data.Sqlite;
 using System.Globalization;
 using System.Net;
 using System.Text;
-using Microsoft.AspNetCore.Identity;
 
 [module: DapperAot]
 
@@ -33,8 +33,18 @@ static void ConfigureServices(WebApplicationBuilder builder)
 {
     builder.WebHost.UseStaticWebAssets();
 
-    var dbConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")!;
-    InitDatabase(dbConnectionString);
+    var settings = new Settings();
+    builder.Configuration.Bind(nameof(Settings), settings);
+    builder.Services.AddSingleton(settings);
+
+    var awsSettings = new AwsSettings();
+    builder.Configuration.Bind("Aws", awsSettings);
+    if (string.IsNullOrEmpty(awsSettings.AccessKeyId) || string.IsNullOrEmpty(awsSettings.SecretAccessKey))
+        throw new InvalidOperationException("AWS credentials are not configured. Please set 'AwsSettings:AccessKeyId' and 'AwsSettings:SecretAccessKey' in the configuration.");
+    builder.Services.AddSingleton(awsSettings);
+
+    builder.Services.AddSingleton(typeof(IDbSynchronizer), settings.SyncEditorDbWithAws ? typeof(DbSynchronizer) : typeof(NullDbSynchronizer));
+
 
     builder.Services.ConfigureHttpJsonOptions(options =>
     {
@@ -45,19 +55,10 @@ static void ConfigureServices(WebApplicationBuilder builder)
         options.SerializerOptions.TypeInfoResolverChain.Insert(4, AdministrationJsonSerializerContext.Default);
     });
 
-
+    var dbConnectionString = $"Data Source={settings.EditorDbPath}";
     var editorUserStore = new EditorUserStore(dbConnectionString);
     builder.Services.AddSingleton(editorUserStore);
     builder.Services.AddSingleton<IUserStore<EditorUser>>(editorUserStore);
-
-    var settings = new Settings();
-    builder.Configuration.Bind(nameof(Settings), settings);
-
-    var awsSettings = new AwsSettings();
-    builder.Configuration.Bind("Aws", awsSettings);
-    builder.Services.AddSingleton(awsSettings);
-    if (string.IsNullOrEmpty(awsSettings.AccessKeyId) || string.IsNullOrEmpty(awsSettings.SecretAccessKey))
-        throw new InvalidOperationException("AWS credentials are not configured. Please set 'AwsSettings:AccessKeyId' and 'AwsSettings:SecretAccessKey' in the configuration.");
 
     var emailSettings = new EmailSettings();
     builder.Configuration.Bind("Email", emailSettings);
@@ -72,6 +73,10 @@ static void ConfigureServices(WebApplicationBuilder builder)
     builder.Services.AddHttpClient<ReCaptchaService>();
 
     GrammarDB.Initialize(settings.GrammarDbPath);
+
+    if (settings.SyncEditorDbWithAws)
+        builder.Services.AddHostedService<EditorDbPushingService>(serviceProvider => 
+            new EditorDbPushingService(settings.EditorDbPath, serviceProvider.GetRequiredService<IDbSynchronizer>(), serviceProvider.GetLoggerFor(nameof(EditorDbPushingService))));
 }
 
 static void ConfigureIdentity(WebApplicationBuilder builder)
@@ -111,12 +116,17 @@ static void ConfigureIdentity(WebApplicationBuilder builder)
     builder.Services.AddScoped<SignInManager<EditorUser>>();
     builder.Services.AddSingleton<IUserClaimsPrincipalFactory<EditorUser>, EditorClaimsPrincipalFactory>();
     builder.Services.AddHttpContextAccessor();
-    return;
 }
 
 static void ConfigurePipeline(WebApplication app)
 {
-    ExceptionMiddleware.Initialize(app.Services.GetLoggerFor(nameof(ExceptionMiddleware)));
+    var dbSynchronizer = app.Services.GetRequiredService<IDbSynchronizer>();
+    var editorDbPath = app.Services.GetRequiredService<Settings>().EditorDbPath;
+    dbSynchronizer.Fetch(editorDbPath).Wait();
+    var dbConnectionString = $"Data Source={editorDbPath}";
+    InitDatabase(dbConnectionString);
+
+    app.Services.InitLoggerFor(nameof(ExceptionMiddleware), ExceptionMiddleware.InitializeLogging);
     app.Services.InitLoggerFor(nameof(VertiIO), VertiIO.InitializeLogging);
     app.Services.InitLoggerFor(nameof(GrammarDB), GrammarDB.InitializeLogging);
     app.Services.InitLoggerFor(nameof(AwsFilesCache), AwsFilesCache.InitializeLogging);

@@ -7,10 +7,7 @@ public static class ExceptionMiddleware
 {
     private static ILogger _logger = null!;
 
-    public static void Initialize(ILogger logger)
-    {
-        _logger = logger;
-    }
+    public static void InitializeLogging(ILogger logger) => _logger = logger;
 
     public static async Task HandleException(HttpContext context, Func<Task> next)
     {

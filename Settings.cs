@@ -2,6 +2,8 @@
 
 public class Settings
 {
+    public string EditorDbPath { get; set; } = null!;
+    public bool SyncEditorDbWithAws { get; set; }
     public string GrammarDbPath { get; set; } = null!;
 }
 

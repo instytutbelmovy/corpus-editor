@@ -30,7 +30,7 @@ public static class AwsFilesCache
             throw new InvalidOperationException("AwsFilesCache is already initialized");
 
         _awsSettings = awsSettings;
-        _s3Client = new AmazonS3Client(_awsSettings.AccessKeyId, _awsSettings.SecretAccessKey, RegionEndpoint.GetBySystemName(awsSettings.Region));
+        _s3Client = new AmazonS3Client(awsSettings.AccessKeyId, awsSettings.SecretAccessKey, RegionEndpoint.GetBySystemName(awsSettings.Region));
 
         _logger?.LogInformation("Initializing AWS Files Cache with bucket: {BucketName}", awsSettings.BucketName);
         Task.Factory.StartNew(async () =>
