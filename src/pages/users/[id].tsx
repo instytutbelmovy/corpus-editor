@@ -94,10 +94,10 @@ export default function EditUserPage() {
       onCancel={handleCancel}
       isSubmitting={isSubmitting}
       errors={formErrors}
-      submitButtonText="Захаваць змены"
-      loadingButtonText="Захаванне..."
+      submitButtonText="Захаваць зьмены"
+      loadingButtonText="Захаваньне..."
       title="Рэдагаваць карыстальніка"
-      subtitle={`Рэдагаванне карыстальніка ${user.userName}`}
+      subtitle={`Рэдагаваньне карыстальніка ${user.userName}`}
     />
   );
 }

@@ -13,6 +13,8 @@ import { AuthContextType } from '@/app/auth/types';
 import { Header } from '@/app/components';
 import { isValidReturnUrl } from '@/utils/urlValidation';
 import { useRecaptchaVisibility } from '@/app/hooks/useRecaptchaVisibility';
+import { configService } from '@/app/services/configService';
+import * as Sentry from "@sentry/react";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -83,6 +85,13 @@ export default function App({ Component, pageProps }: AppProps) {
     setAuthService(auth);
     setDocumentService(docs);
     setUserService(users);
+    initSentry();
+
+    async function initSentry() {
+      const config = await configService.getConfig(apiClient);
+
+      initializeSentry(config.sentryDsn, config.environment, config.version);
+    };
   }, [setAuthService, setDocumentService]);
 
   // Правяраем аўтэнтыфікацыю
@@ -167,3 +176,12 @@ export default function App({ Component, pageProps }: AppProps) {
     </AuthContext.Provider>
   );
 }
+
+function initializeSentry(dsn: string, environment: string, version: string): void {
+  Sentry.init({
+    dsn: dsn,
+    sendDefaultPii: false,
+    environment: environment,
+    release: version
+  });
+};

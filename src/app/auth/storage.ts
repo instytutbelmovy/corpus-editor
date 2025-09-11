@@ -5,7 +5,7 @@ interface AuthUser {
   role: Roles;
 }
 
-const AUTH_STORAGE_KEY = 'editor_auth_user';
+const AUTH_STORAGE_KEY = 'editor-auth-user';
 
 export class AuthStorage {
   static get(): AuthUser | null {

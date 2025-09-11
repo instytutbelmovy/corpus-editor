@@ -13,6 +13,7 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "@sentry/react": "^10.11.0",
     "@tailwindcss/typography": "^0.5.16",
     "next": "15.3.3",
     "react": "^19.0.0",

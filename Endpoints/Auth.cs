@@ -130,9 +130,11 @@ public static class Auth
         }
     }
 
-    private static FrontendConfigResponse GetConfig([FromServices] ReCaptchaSettings reCaptchaSettings)
+    private static FrontendConfigResponse GetConfig(
+        [FromServices] ReCaptchaSettings reCaptchaSettings,
+        [FromServices] SentrySettings sentrySettings)
     {
-        return new FrontendConfigResponse(reCaptchaSettings.SiteKey);
+        return new FrontendConfigResponse(reCaptchaSettings.SiteKey, sentrySettings.FeDsn, sentrySettings.Version, sentrySettings.Environment);
     }
 
     private static async Task CheckReCaptcha(ReCaptchaService reCaptchaService, IHttpContextAccessor httpContextAccessor, string? requestReCaptchaToken)
@@ -154,4 +156,4 @@ public record ForgotPasswordRequest(string Email, string? ReCaptchaToken = null)
 
 public record ResetPasswordRequest(string Email, string Token, string NewPassword, string? ReCaptchaToken = null);
 
-public record FrontendConfigResponse(string RecaptchaSiteKey);
+public record FrontendConfigResponse(string RecaptchaSiteKey, string SentryDsn, string Version, string Environment);

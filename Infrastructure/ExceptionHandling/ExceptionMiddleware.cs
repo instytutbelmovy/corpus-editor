@@ -19,7 +19,8 @@ public static class ExceptionMiddleware
         {
             var statusCode = (int)HttpStatusCode.Conflict;
             LogInfo(e, statusCode);
-            context.Response.StatusCode = statusCode;
+            if (!context.Response.HasStarted)
+                context.Response.StatusCode = statusCode;
         }
         catch (BadRequestException e)
         {
@@ -35,13 +36,15 @@ public static class ExceptionMiddleware
         {
             var statusCode = (int)HttpStatusCode.Unauthorized;
             LogInfo(e, statusCode);
-            context.Response.StatusCode = statusCode;
+            if (!context.Response.HasStarted)
+                context.Response.StatusCode = statusCode;
         }
         catch (Exception e) when (e is FileNotFoundException or NotFoundException)
         {
             var statusCode = (int)HttpStatusCode.NotFound;
             LogInfo(e, statusCode);
-            context.Response.StatusCode = statusCode;
+            if (!context.Response.HasStarted)
+                context.Response.StatusCode = statusCode;
         }
         catch (Exception e)
         {

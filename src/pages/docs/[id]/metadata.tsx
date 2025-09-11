@@ -116,8 +116,8 @@ export default function EditMetadata() {
       errors={errors}
       showFileUpload={false}
       showDocumentId={false}
-      submitButtonText="Захаваць змены"
-      loadingButtonText="Захаванне..."
+      submitButtonText="Захаваць зьмены"
+      loadingButtonText="Захаваньне..."
       title="Рэдагаваць метаданыя"
       subtitle={`Дакумент #${documentInfo?.n} • Прагрэс: ${documentInfo?.percentCompletion}%`}
     />

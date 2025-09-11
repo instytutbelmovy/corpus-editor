@@ -50,7 +50,7 @@ export default function NewUserPage() {
       isSubmitting={isSubmitting}
       errors={formErrors}
       submitButtonText="Стварыць карыстальніка"
-      loadingButtonText="Стварэнне..."
+      loadingButtonText="Стварэньне..."
       title="Стварыць новага карыстальніка"
       subtitle="Запоўніце інфармацыю пра новага карыстальніка"
     />
