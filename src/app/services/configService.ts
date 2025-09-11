@@ -102,7 +102,7 @@ class ConfigService {
       console.error('Памылка загрузкі канфігу:', error);
       // Fallback да значэньняў па змаўчанні, канфігурацыя з проду. Таму што так я імаверней пачну разьбірацца што пайло ня так
       return {
-        recaptchaSiteKey: '6Ldcq8ErAAAAAI6JX9kEY8H_AyqHUxgUFBlm4fcH',
+        recaptchaSiteKey: '6LccmsUrAAAAABoGBBMbOdJWENmowzmY66pEQaME',
         sentryDsn: 'https://659ec7317863b18f497a2ec253dad619@o4509997938638848.ingest.de.sentry.io/4509998009876560',
         environment: 'production',
         version: '0.0.42'
