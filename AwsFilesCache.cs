@@ -184,7 +184,7 @@ public static class AwsFilesCache
             {
                 BucketName = _awsSettings.BucketName,
                 Prefix = "",
-                MaxKeys = 1000
+                MaxKeys = 1000,
             };
 
             var listResponse = await _s3Client.ListObjectsV2Async(listRequest);
@@ -196,7 +196,7 @@ public static class AwsFilesCache
                     var getRequest = new GetObjectRequest
                     {
                         BucketName = _awsSettings.BucketName,
-                        Key = s3Object.Key
+                        Key = s3Object.Key,
                     };
 
                     using var response = await _s3Client.GetObjectAsync(getRequest);
@@ -215,13 +215,13 @@ public static class AwsFilesCache
                 catch (Exception ex)
                 {
                     // Log error but continue with other files
-                    Console.WriteLine($"Error reading file {s3Object.Key}: {ex.Message}");
+                    _logger?.LogError(ex, $"Error reading file {s3Object.Key}");
                 }
             }
         }
         catch (Exception ex)
         {
-            throw new InvalidOperationException($"Error listing objects from S3: {ex.Message}", ex);
+            _logger?.LogCritical(ex, "Error listing objects from S3");
         }
 
         return documents;
