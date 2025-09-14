@@ -31,10 +31,10 @@ return;
 
 static void ConfigureServices(WebApplicationBuilder builder)
 {
-    var sentrySettings = builder.BindAndRegister<SentrySettings>(s =>
-    {
-        s.Environment = builder.Environment.IsProduction() ? "production" : "development";
-    });
+    var sentrySettings = new SentrySettings();
+    builder.Configuration.Bind("Sentry", sentrySettings);
+    sentrySettings.Environment = builder.Environment.IsProduction() ? "production" : "development";
+    builder.Services.AddSingleton(sentrySettings);
     builder.WebHost.UseSentry(o =>
     {
         o.Dsn = sentrySettings.Dsn;
@@ -44,9 +44,13 @@ static void ConfigureServices(WebApplicationBuilder builder)
 
     builder.WebHost.UseStaticWebAssets();
 
-    var settings = builder.BindAndRegister<Settings>();
+    var settings = new Settings();
+    builder.Configuration.Bind("Settings", settings);
+    builder.Services.AddSingleton(settings);
 
-    var awsSettings = builder.BindAndRegister<AwsSettings>();
+    var awsSettings = new AwsSettings();
+    builder.Configuration.Bind("Aws", awsSettings);
+    builder.Services.AddSingleton(awsSettings);
     if (string.IsNullOrEmpty(awsSettings.AccessKeyId) || string.IsNullOrEmpty(awsSettings.SecretAccessKey))
         throw new InvalidOperationException("AWS credentials are not configured. Please set 'AwsSettings:AccessKeyId' and 'AwsSettings:SecretAccessKey' in the configuration.");
 
@@ -66,12 +70,16 @@ static void ConfigureServices(WebApplicationBuilder builder)
     builder.Services.AddSingleton(editorUserStore);
     builder.Services.AddSingleton<IUserStore<EditorUser>>(editorUserStore);
 
-    var emailSettings = builder.BindAndRegister<EmailSettings>();
+    var emailSettings = new EmailSettings();
+    builder.Configuration.Bind("Email", emailSettings);
+    builder.Services.AddSingleton(emailSettings);
     if (string.IsNullOrEmpty(emailSettings.Domain) || string.IsNullOrEmpty(emailSettings.ApiKey))
         throw new InvalidOperationException("Email SMTP settings are not configured. Please set 'EmailSettings:SmtpHost' and 'EmailSettings:SmtpPort' in the configuration.");
     builder.Services.AddHttpClient<EmailService>();
 
-    builder.BindAndRegister<ReCaptchaSettings>();
+    var reCaptchaSettings = new ReCaptchaSettings();
+    builder.Configuration.Bind("ReCaptcha", reCaptchaSettings);
+    builder.Services.AddSingleton(reCaptchaSettings);
     builder.Services.AddHttpClient<ReCaptchaService>();
 
     GrammarDB.Initialize(settings.GrammarDbPath);

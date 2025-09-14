@@ -146,7 +146,7 @@ public static class Users
         var baseUrl = $"{httpContextAccessor.HttpContext!.Request.Scheme}://{httpContextAccessor.HttpContext.Request.Host}";
         var resetUrl = $"{baseUrl}/forgot-password?email={Uri.EscapeDataString(user.Email!)}";
 
-        var currentUser = await userManager.FindByIdAsync(httpContextAccessor.HttpContext?.User.GetUserId());
+        var currentUser = await userManager.FindByIdAsync(httpContextAccessor.HttpContext.User.GetUserId()!);
 
         await emailService.SendAsync(new EmailMessage
         {
@@ -155,8 +155,8 @@ public static class Users
             Template = "Invite",
             TemplateArguments = new()
             {
-                { "inviteeName", user.UserName },
-                { "inviterName", currentUser.UserName },
+                { "inviteeName", user.UserName! },
+                { "inviterName", currentUser!.UserName! },
                 { "resetUrl", resetUrl },
             },
         });

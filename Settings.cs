@@ -20,18 +20,3 @@ public class SentrySettings
     public string Environment { get; set; } = string.Empty;
     public string Version { get; set; } = string.Empty;
 }
-
-public static class SettingsExtensions
-{
-    public static T BindAndRegister<T>(this WebApplicationBuilder settings, Action<T>? optionalAssignment = null) where T: class, new()
-    {
-        var instance = new T();
-        var name = typeof(T).Name;
-        if (name.EndsWith("Settings") && name != "Settings")
-            name = name[..^"Settings".Length];
-        settings.Configuration.Bind(name, instance);
-        optionalAssignment?.Invoke(instance);
-        settings.Services.AddSingleton(instance);
-        return instance;
-    }
-}

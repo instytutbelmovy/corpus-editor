@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . ./
 
 WORKDIR /app/src
-RUN apk add nodejs npm clang build-base zlib-dev
+RUN apk add nodejs npm
 RUN npm ci
 RUN npm run build
 

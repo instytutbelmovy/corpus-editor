@@ -110,7 +110,7 @@ public class EditorDbPushingService : IHostedService
         var fullPath = Path.GetFullPath(localDbPath);
         var directory = Path.GetDirectoryName(fullPath);
         var fileName = Path.GetFileName(fullPath);
-        _watcher = new FileSystemWatcher(directory, fileName);
+        _watcher = new FileSystemWatcher(directory ?? ".", fileName);
 
         _watcher.Changed += OnChanged;
     }
