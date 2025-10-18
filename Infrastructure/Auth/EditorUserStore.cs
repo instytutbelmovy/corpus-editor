@@ -4,7 +4,7 @@ using Microsoft.Data.Sqlite;
 
 namespace Editor;
 
-public class EditorUserStore : IUserStore<EditorUser>, IUserPasswordStore<EditorUser>, IUserEmailStore<EditorUser>, IUserLockoutStore<EditorUser>
+public class EditorUserStore : IUserStore<EditorUser>, IUserPasswordStore<EditorUser>, IUserEmailStore<EditorUser>, IUserLockoutStore<EditorUser>, IUserSecurityStampStore<EditorUser>
 {
     private readonly string _connectionString;
     private readonly IdentityErrorDescriber ErrorDescriber = new();
@@ -18,7 +18,6 @@ public class EditorUserStore : IUserStore<EditorUser>, IUserPasswordStore<Editor
     {
         user.Id = Guid.NewGuid().ToString();
         user.ConcurrencyStamp = Guid.NewGuid().ToString();
-        user.SecurityStamp = Guid.NewGuid().ToString();
 
         using var connection = new SqliteConnection(_connectionString);
 
@@ -248,6 +247,23 @@ public class EditorUserStore : IUserStore<EditorUser>, IUserPasswordStore<Editor
     {
         user.LockoutEnabled = enabled;
         return Task.CompletedTask;
+    }
+
+    public Task SetSecurityStampAsync(EditorUser user, string stamp, CancellationToken cancellationToken)
+    {
+        if (user == null)
+            throw new ArgumentNullException(nameof(user));
+        if (stamp == null)
+            throw new ArgumentNullException(nameof(stamp));
+        user.SecurityStamp = stamp;
+        return Task.CompletedTask;
+    }
+
+    public Task<string?> GetSecurityStampAsync(EditorUser user, CancellationToken cancellationToken)
+    {
+        if (user == null)
+            throw new ArgumentNullException(nameof(user));
+        return Task.FromResult(user.SecurityStamp);
     }
 
     public List<EditorUser> GetAllUsers()
