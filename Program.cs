@@ -82,7 +82,7 @@ static void ConfigureServices(WebApplicationBuilder builder)
     builder.Services.AddSingleton(reCaptchaSettings);
     builder.Services.AddHttpClient<ReCaptchaService>();
 
-    GrammarDB.Initialize(settings.GrammarDbPath);
+    builder.Services.AddSingleton(new GrammarDb(settings.GrammarDbPath));
 
     if (settings.SyncEditorDbWithAws)
         builder.Services.AddHostedService<EditorDbPushingService>(serviceProvider => 
@@ -138,7 +138,6 @@ static void ConfigurePipeline(WebApplication app)
 
     app.Services.InitLoggerFor(nameof(ExceptionMiddleware), ExceptionMiddleware.InitializeLogging);
     app.Services.InitLoggerFor(nameof(VertiIO), VertiIO.InitializeLogging);
-    app.Services.InitLoggerFor(nameof(GrammarDB), GrammarDB.InitializeLogging);
     app.Services.InitLoggerFor(nameof(AwsFilesCache), AwsFilesCache.InitializeLogging);
     AwsFilesCache.Initialize(app.Services.GetRequiredService<AwsSettings>());
 

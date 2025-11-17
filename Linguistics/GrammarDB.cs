@@ -11,20 +11,11 @@ public record GrammarInfo(
     string? Meaning
 );
 
-public static partial class GrammarDB
+public partial class GrammarDb(string dbPath)
 {
-    private static ILogger? _logger;
-    private static string? _connectionString;
+    private readonly string? _connectionString = $"Data Source={dbPath}";
 
-    public static void InitializeLogging(ILogger logger) => _logger = logger;
-
-    public static void Initialize(string dbPath)
-    {
-        _connectionString = $"Data Source={dbPath}";
-        _logger?.LogInformation("GrammarDB initialized with database: {dbPath}", dbPath);
-    }
-
-    public static List<GrammarInfo> LookupWord(string word)
+    public List<GrammarInfo> LookupWord(string word)
     {
         var normalizedWord = Normalizer.GrammarDbAggressiveNormalize(word);
         var results = new List<GrammarInfo>();
@@ -87,7 +78,7 @@ public static partial class GrammarDB
         return results;
     }
 
-    public static (string, LinguisticTag) GetLemmaAndLinguisticTag(ParadigmFormId paradigmFormId)
+    public (string, LinguisticTag) GetLemmaAndLinguisticTag(ParadigmFormId paradigmFormId)
     {
         using var connection = new SqliteConnection(_connectionString);
         connection.Open();
@@ -110,7 +101,7 @@ public static partial class GrammarDB
         throw new NotFoundException("Paradigm Form Id not found");
     }
 
-    public static (ParadigmFormId?, string?, LinguisticTag?) InferGrammarInfo(string word)
+    public (ParadigmFormId?, string?, LinguisticTag?) InferGrammarInfo(string word)
     {
         var grammarInfoList = LookupWord(word);
 
