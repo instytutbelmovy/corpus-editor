@@ -22,6 +22,7 @@ interface DocumentState {
   // Дзеянні
   setDocumentService: (service: DocumentService) => void;
   fetchDocument: (documentId: string, skipUpToId?: number, isInitial?: boolean) => Promise<void>;
+  reloadDocument: (documentId: string) => Promise<void>;
   fetchDocuments: () => Promise<void>;
   updateDocument: (updater: (prev: DocumentData | null) => DocumentData | null) => void;
   clearDocument: () => void;
@@ -88,6 +89,31 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         loadingMore: false 
       });
     }
+  },
+
+  reloadDocument: async (documentId) => {
+    const { documentService, documentData, lastParagraphId } = get();
+    if (!documentService || !documentData || lastParagraphId === 0) {
+      return;
+    }
+
+    // Знаходзім максімальны ID параграфа
+    const maxParagraphId = Math.max(
+      ...documentData.paragraphs.map(p => p.id),
+      lastParagraphId
+    );
+
+    const data = await documentService.fetchDocument(documentId, 0, maxParagraphId);
+
+    const reloadedParagraphs = data.paragraphs
+
+    set(state => ({
+      documentData: state.documentData ? {
+        ...state.documentData,
+        header: state.documentData.header,
+        paragraphs: reloadedParagraphs,
+      } : null,
+    }));
   },
 
   fetchDocuments: async () => {

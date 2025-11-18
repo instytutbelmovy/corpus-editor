@@ -1,30 +1,24 @@
-﻿using System.Globalization;
+﻿using System.Collections.Concurrent;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Microsoft.Data.Sqlite;
 
 namespace Editor;
 
 public record GrammarInfo(
-    ParadigmFormId ParadigmFormId,
+    ParadigmFormId? ParadigmFormId,
     LinguisticTag LinguisticTag,
     string Lemma,
     string? Meaning
 );
 
-public static partial class GrammarDB
+public partial class GrammarDb(string dbPath)
 {
-    private static ILogger? _logger;
-    private static string? _connectionString;
+    private readonly string? _connectionString = $"Data Source={dbPath}";
 
-    public static void InitializeLogging(ILogger logger) => _logger = logger;
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<GrammarInfo, byte>> _customWords = new();
 
-    public static void Initialize(string dbPath)
-    {
-        _connectionString = $"Data Source={dbPath}";
-        _logger?.LogInformation("GrammarDB initialized with database: {dbPath}", dbPath);
-    }
-
-    public static List<GrammarInfo> LookupWord(string word)
+    public List<GrammarInfo> LookupWord(string word, bool pickCustomWords = true)
     {
         var normalizedWord = Normalizer.GrammarDbAggressiveNormalize(word);
         var results = new List<GrammarInfo>();
@@ -84,10 +78,13 @@ public static partial class GrammarDB
             }
         }
 
+        if (_customWords.TryGetValue(normalizedWord, out var customWordResults))
+            results.AddRange(customWordResults.Select(x => x.Key));
+
         return results;
     }
 
-    public static (string, LinguisticTag) GetLemmaAndLinguisticTag(ParadigmFormId paradigmFormId)
+    public (string, LinguisticTag) GetLemmaAndLinguisticTag(ParadigmFormId paradigmFormId)
     {
         using var connection = new SqliteConnection(_connectionString);
         connection.Open();
@@ -110,7 +107,7 @@ public static partial class GrammarDB
         throw new NotFoundException("Paradigm Form Id not found");
     }
 
-    public static (ParadigmFormId?, string?, LinguisticTag?) InferGrammarInfo(string word)
+    public (ParadigmFormId?, string?, LinguisticTag?) InferGrammarInfo(string word)
     {
         var grammarInfoList = LookupWord(word);
 
@@ -145,6 +142,13 @@ public static partial class GrammarDB
 
         // Калі знайшліся зусім розныя варыянты - вяртаем пустыя значэнні
         return (intersectionParadigmFormId, intersectionLemma, intersectionLinguisticTag);
+    }
+
+    public void AddCustomWord(string word, GrammarInfo grammarInfo)
+    {
+        var normalizedWord = Normalizer.GrammarDbAggressiveNormalize(word);
+        var set = _customWords.GetOrAdd(normalizedWord, _ => []);
+        set.TryAdd(grammarInfo, 0);
     }
 
     [GeneratedRegex(@"\d+[a-z]?\|\w?")]

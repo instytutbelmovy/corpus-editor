@@ -1,5 +1,4 @@
 ﻿using Editor.Converters;
-using Microsoft.AspNetCore.Authorization;
 
 namespace Editor;
 
@@ -17,7 +16,7 @@ public static class Registry
         return AwsFilesCache.GetAllDocumentHeaders();
     }
 
-    private static async Task<IResult> UploadFile(HttpRequest request)
+    private static async Task<IResult> UploadFile(HttpRequest request, GrammarDb grammarDb)
     {
         if (!request.HasFormContentType)
             return Results.BadRequest("Expected multipart/form-data");
@@ -49,7 +48,7 @@ public static class Registry
         {
             Sentences = p.Sentences.Select(s => s with
             {
-                SentenceItems = s.SentenceItems.Select(FillObviousGrammar).ToList(),
+                SentenceItems = s.SentenceItems.Select(x => FillObviousGrammar(x, grammarDb)).ToList(),
             }).ToList(),
         }).ToList();
 
@@ -65,12 +64,12 @@ public static class Registry
         return Results.Ok();
 
 
-        static LinguisticItem FillObviousGrammar(LinguisticItem item)
+        static LinguisticItem FillObviousGrammar(LinguisticItem item, GrammarDb grammarDb)
         {
             if (item.Type != SentenceItemType.Word)
                 return item;
 
-            var (paradigmFormId, lemma, linguisticTag) = GrammarDB.InferGrammarInfo(item.Text);
+            var (paradigmFormId, lemma, linguisticTag) = grammarDb.InferGrammarInfo(item.Text);
             return item with
             {
                 ParadigmFormId = paradigmFormId,

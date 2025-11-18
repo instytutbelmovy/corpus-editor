@@ -47,9 +47,10 @@ export class DocumentService {
 
   async fetchDocument(
     documentId: string,
-    skipUpToId: number = 0
+    skipUpToId: number = 0,
+    take: number = 20
   ): Promise<DocumentData> {
-    const url = `/registry-files/${documentId}?skipUpToId=${skipUpToId}&take=20`;
+    const url = `/registry-files/${documentId}?skipUpToId=${skipUpToId}&take=${take}`;
 
     const response = await this.apiClient.get<DocumentData>(url);
     if (response.error) {

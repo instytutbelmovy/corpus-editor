@@ -128,6 +128,7 @@ export class WordEditingService {
           // Знаходзім выбраны GrammarInfo
           const selectedOption = selectedWord.options.find(
             opt =>
+              opt.paradigmFormId !== null &&
               opt.paradigmFormId.paradigmId === paradigmFormId.paradigmId &&
               opt.paradigmFormId.variantId === paradigmFormId.variantId &&
               opt.paradigmFormId.formTag === paradigmFormId.formTag
@@ -346,6 +347,12 @@ export class WordEditingService {
       });
 
       removePendingSave(wordKey);
+
+      // Перазагружаем дакумэнт у фоне, каб абнавіць кастомныя словы
+      const { reloadDocument } = useDocumentStore.getState();
+      reloadDocument(documentId).catch(err => {
+        console.error('Памылка перазагрузкі дакумэнта:', err);
+      });
 
       // Пераходзім да наступнага слова
       const { documentData } = useDocumentStore.getState();
