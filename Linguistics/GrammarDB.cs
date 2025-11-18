@@ -1,11 +1,12 @@
-﻿using System.Globalization;
+﻿using System.Collections.Concurrent;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Microsoft.Data.Sqlite;
 
 namespace Editor;
 
 public record GrammarInfo(
-    ParadigmFormId ParadigmFormId,
+    ParadigmFormId? ParadigmFormId,
     LinguisticTag LinguisticTag,
     string Lemma,
     string? Meaning
@@ -15,7 +16,9 @@ public partial class GrammarDb(string dbPath)
 {
     private readonly string? _connectionString = $"Data Source={dbPath}";
 
-    public List<GrammarInfo> LookupWord(string word)
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<GrammarInfo, byte>> _customWords = new();
+
+    public List<GrammarInfo> LookupWord(string word, bool pickCustomWords = true)
     {
         var normalizedWord = Normalizer.GrammarDbAggressiveNormalize(word);
         var results = new List<GrammarInfo>();
@@ -74,6 +77,9 @@ public partial class GrammarDb(string dbPath)
                 results.Add(grammarInfo);
             }
         }
+
+        if (_customWords.TryGetValue(normalizedWord, out var customWordResults))
+            results.AddRange(customWordResults.Select(x => x.Key));
 
         return results;
     }
@@ -136,6 +142,13 @@ public partial class GrammarDb(string dbPath)
 
         // Калі знайшліся зусім розныя варыянты - вяртаем пустыя значэнні
         return (intersectionParadigmFormId, intersectionLemma, intersectionLinguisticTag);
+    }
+
+    public void AddCustomWord(string word, GrammarInfo grammarInfo)
+    {
+        var normalizedWord = Normalizer.GrammarDbAggressiveNormalize(word);
+        var set = _customWords.GetOrAdd(normalizedWord, _ => []);
+        set.TryAdd(grammarInfo, 0);
     }
 
     [GeneratedRegex(@"\d+[a-z]?\|\w?")]

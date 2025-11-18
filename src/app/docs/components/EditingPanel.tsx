@@ -546,6 +546,7 @@ export function EditingPanel({
                 <ParadigmOptions
                   options={selectedWord.options}
                   selectedParadigmFormId={selectedWord.item.paradigmFormId}
+                  selectedItem={selectedWord.item}
                   displayMode={displayMode}
                   onSelect={onSaveParadigm}
                   onManualInput={
@@ -554,6 +555,7 @@ export function EditingPanel({
                       : undefined
                   }
                   onBeforeSelect={saveCommentImmediately}
+                  onSaveManualCategories={onSaveManualCategories}
                 />
               )}
             </div>

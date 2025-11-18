@@ -26,7 +26,7 @@ export interface LinguisticItem {
 }
 
 export interface GrammarInfo {
-  paradigmFormId: ParadigmFormId;
+  paradigmFormId: ParadigmFormId | null;
   linguisticTag: LinguisticTag;
   lemma: string;
   meaning: string | null;

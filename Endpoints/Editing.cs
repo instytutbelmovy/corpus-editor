@@ -50,6 +50,11 @@ public static class Editing
     public static async Task<CorpusDocumentView> GetDocument(int n, GrammarDb grammarDb, int skipUpToId = 0, int take = 20)
     {
         var corpusDocument = await AwsFilesCache.GetFile(n);
+        foreach (var paragraph in corpusDocument.Paragraphs)
+            foreach (var sentence in paragraph.Sentences)
+                foreach (var sentenceItem in sentence.SentenceItems)
+                    if (sentenceItem is { LinguisticTag: not null, ParadigmFormId: null })
+                        grammarDb.AddCustomWord(sentenceItem.Text, new GrammarInfo(null, sentenceItem.LinguisticTag, sentenceItem.Lemma, null));
         return new CorpusDocumentView(
             corpusDocument.Header,
             corpusDocument.Paragraphs
@@ -61,7 +66,7 @@ public static class Editing
                         .Select(s => new SentenceView(s)
                         {
                             SentenceItems = s.SentenceItems
-                                .Select(si => new LinguisticItemView(si, si.Type == SentenceItemType.Word ? grammarDb.LookupWord(si.Text).Select(x => x with { Lemma = Normalizer.NormalizeTypographicStress(x.Lemma) }) : [])),
+                                .Select(si => new LinguisticItemView(si, si.Type == SentenceItemType.Word ? grammarDb.LookupWord(si.Text, pickCustomWords: true).Select(x => x with { Lemma = Normalizer.NormalizeTypographicStress(x.Lemma) }) : [])),
                         }),
                 }));
     }
@@ -75,7 +80,7 @@ public static class Editing
         {
             var stream = await AwsFilesCache.GetRawFile(n);
             var fileName = $"{n}.verti";
-            
+
             return Results.File(stream, "text/plain", fileName);
         }
         catch (FileNotFoundException)
@@ -139,7 +144,7 @@ public static class Editing
                 : si.Metadata with { ResolvedOn = null },
         });
 
-        return grammarDb.LookupWord(text);
+        return grammarDb.LookupWord(text, pickCustomWords: true);
     }
 
     public static async Task PutComment(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] string comment)
