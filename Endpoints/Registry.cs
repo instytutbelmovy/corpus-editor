@@ -11,12 +11,12 @@ public static class Registry
         todosApi.MapPost("/", UploadFile).Editor();
     }
 
-    public static ValueTask<ICollection<CorpusDocumentHeader>> GetAllFiles()
+    public static ValueTask<ICollection<CorpusDocumentHeader>> GetAllFiles(AwsFilesCache awsFilesCache)
     {
-        return AwsFilesCache.GetAllDocumentHeaders();
+        return awsFilesCache.GetAllDocumentHeaders();
     }
 
-    private static async Task<IResult> UploadFile(HttpRequest request, GrammarDb grammarDb)
+    private static async Task<IResult> UploadFile(HttpRequest request, GrammarDb grammarDb, AwsFilesCache awsFilesCache)
     {
         if (!request.HasFormContentType)
             return Results.BadRequest("Expected multipart/form-data");
@@ -59,7 +59,7 @@ public static class Registry
         };
         var corpusDocument = new CorpusDocument(header, paragraphs.ToList());
 
-        await AwsFilesCache.AddFile(corpusDocument);
+        await awsFilesCache.AddFile(corpusDocument);
 
         return Results.Ok();
 

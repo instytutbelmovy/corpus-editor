@@ -47,9 +47,9 @@ public static class Editing
         todosApi.MapPut("/{id}/metadata", PutMetadata).Editor();
     }
 
-    public static async Task<CorpusDocumentView> GetDocument(int n, GrammarDb grammarDb, int skipUpToId = 0, int take = 20)
+    public static async Task<CorpusDocumentView> GetDocument(int n, GrammarDb grammarDb, AwsFilesCache awsFilesCache, int skipUpToId = 0, int take = 20)
     {
-        var corpusDocument = await AwsFilesCache.GetFile(n);
+        var corpusDocument = await awsFilesCache.GetFile(n);
         foreach (var paragraph in corpusDocument.Paragraphs)
             foreach (var sentence in paragraph.Sentences)
                 foreach (var sentenceItem in sentence.SentenceItems)
@@ -71,14 +71,14 @@ public static class Editing
                 }));
     }
 
-    public static async Task<IResult> DownloadDocument(int n)
+    public static async Task<IResult> DownloadDocument(int n, AwsFilesCache awsFilesCache)
     {
         if (n < 0)
             throw new BadRequestException();
 
         try
         {
-            var stream = await AwsFilesCache.GetRawFile(n);
+            var stream = await awsFilesCache.GetRawFile(n);
             var fileName = $"{n}.verti";
 
             return Results.File(stream, "text/plain", fileName);
@@ -89,13 +89,13 @@ public static class Editing
         }
     }
 
-    public static async Task PutParadigmFormId(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] ParadigmFormId paradigmFormId, GrammarDb grammarDb)
+    public static async Task PutParadigmFormId(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] ParadigmFormId paradigmFormId, GrammarDb grammarDb, AwsFilesCache awsFilesCache)
     {
         if (n < 0 || paragraphId < 0 || sentenceId < 0)
             throw new BadRequestException();
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        await EditDocument(n, paragraphId, paragraphStamp, sentenceId, sentenceStamp, wordIndex, sentenceItem =>
+        await EditDocument(n, paragraphId, paragraphStamp, sentenceId, sentenceStamp, wordIndex, awsFilesCache, sentenceItem =>
         {
             var (lemma, linguisticTag) = grammarDb.GetLemmaAndLinguisticTag(paradigmFormId);
             return sentenceItem with
@@ -110,13 +110,13 @@ public static class Editing
         });
     }
 
-    public static async Task PutLemmaTags(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] LemmaTag lemmaTag)
+    public static async Task PutLemmaTags(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] LemmaTag lemmaTag, AwsFilesCache awsFilesCache)
     {
         if (n < 0 || paragraphId < 0 || sentenceId < 0)
             throw new BadRequestException();
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        await EditDocument(n, paragraphId, paragraphStamp, sentenceId, sentenceStamp, wordIndex, si => si with
+        await EditDocument(n, paragraphId, paragraphStamp, sentenceId, sentenceStamp, wordIndex, awsFilesCache, si => si with
         {
             ParadigmFormId = null,
             Lemma = lemmaTag.Lemma,
@@ -128,12 +128,12 @@ public static class Editing
         });
     }
 
-    public static async Task<IEnumerable<GrammarInfo>> PutText(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] string text, GrammarDb grammarDb)
+    public static async Task<IEnumerable<GrammarInfo>> PutText(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] string text, GrammarDb grammarDb, AwsFilesCache awsFilesCache)
     {
         if (n < 0 || paragraphId < 0 || sentenceId < 0 || string.IsNullOrEmpty(text))
             throw new BadRequestException();
 
-        await EditDocument(n, paragraphId, paragraphStamp, sentenceId, sentenceStamp, wordIndex, si => si with
+        await EditDocument(n, paragraphId, paragraphStamp, sentenceId, sentenceStamp, wordIndex, awsFilesCache, si => si with
         {
             ParadigmFormId = null,
             Text = text,
@@ -147,25 +147,25 @@ public static class Editing
         return grammarDb.LookupWord(text, pickCustomWords: true);
     }
 
-    public static async Task PutComment(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] string comment)
+    public static async Task PutComment(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] string comment, AwsFilesCache awsFilesCache)
     {
         if (n < 0 || paragraphId < 0 || sentenceId < 0)
             throw new BadRequestException();
 
-        await EditDocument(n, paragraphId, paragraphStamp, sentenceId, sentenceStamp, wordIndex, si => si with
+        await EditDocument(n, paragraphId, paragraphStamp, sentenceId, sentenceStamp, wordIndex, awsFilesCache, si => si with
         {
             Comment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim(),
         });
     }
 
-    public static ValueTask<CorpusDocumentHeader> GetMetadata(int id)
+    public static ValueTask<CorpusDocumentHeader> GetMetadata(int id, AwsFilesCache awsFilesCache)
     {
-        return AwsFilesCache.GetDocumentHeader(id);
+        return awsFilesCache.GetDocumentHeader(id);
     }
 
-    public static async Task PutMetadata(int id, UpdateMetadataRequest request)
+    public static async Task PutMetadata(int id, UpdateMetadataRequest request, AwsFilesCache awsFilesCache)
     {
-        var document = await AwsFilesCache.GetFile(id);
+        var document = await awsFilesCache.GetFile(id);
         lock (document)
         {
             var header = document.Header;
@@ -179,13 +179,13 @@ public static class Editing
             };
         }
 
-        AwsFilesCache.UpdateHeaderCache(id);
-        await AwsFilesCache.FlushFile(id);
+        awsFilesCache.UpdateHeaderCache(id);
+        await awsFilesCache.FlushFile(id);
     }
 
-    private static async Task EditDocument(int documentId, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, Func<LinguisticItem, LinguisticItem> transform)
+    private static async Task EditDocument(int documentId, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, AwsFilesCache awsFilesCache, Func<LinguisticItem, LinguisticItem> transform)
     {
-        var document = await AwsFilesCache.GetFile(documentId);
+        var document = await awsFilesCache.GetFile(documentId);
         lock (document)
         {
             var paragraphIndex = document.Paragraphs.BinarySearch(paragraphId, (pId, p) => pId - p.Id);
@@ -209,6 +209,6 @@ public static class Editing
             sentence.SentenceItems[wordIndex] = transformedItem;
         }
 
-        await AwsFilesCache.FlushFile(documentId);
+        await awsFilesCache.FlushFile(documentId);
     }
 }

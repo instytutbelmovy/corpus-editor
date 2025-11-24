@@ -6,9 +6,7 @@ using Microsoft.AspNetCore.Rewrite;
 using Microsoft.Data.Sqlite;
 using System.Globalization;
 using System.Net;
-using System.Reflection;
 using System.Text;
-using FluentValidation;
 
 [module: DapperAot]
 
@@ -85,6 +83,7 @@ static void ConfigureServices(WebApplicationBuilder builder)
 
     builder.Services.AddValidatorsFromAssemblyContaining<SignInRequest>();
 
+    builder.Services.AddSingleton<AwsFilesCache>();
     builder.Services.AddSingleton(new GrammarDb(settings.GrammarDbPath));
 
     if (settings.SyncEditorDbWithAws)
@@ -141,8 +140,7 @@ static void ConfigurePipeline(WebApplication app)
 
     app.Services.InitLoggerFor(nameof(ExceptionMiddleware), ExceptionMiddleware.InitializeLogging);
     app.Services.InitLoggerFor(nameof(VertiIO), VertiIO.InitializeLogging);
-    app.Services.InitLoggerFor(nameof(AwsFilesCache), AwsFilesCache.InitializeLogging);
-    AwsFilesCache.Initialize(app.Services.GetRequiredService<AwsSettings>());
+    app.Services.GetRequiredService<AwsFilesCache>().Initialize();
 
     app.UseRewriter(new RewriteOptions()
         .Add(context => SpaUrlRewrites.DoRewrite(context, app.Services)));

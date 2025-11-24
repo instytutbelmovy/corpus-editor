@@ -13,26 +13,29 @@ public class AwsSettings
     public string BucketName { get; set; } = null!;
 }
 
-public static class AwsFilesCache
+public class AwsFilesCache
 {
-    private static AwsSettings _awsSettings = null!;
-    private static IAmazonS3 _s3Client = null!;
-    private static ConcurrentDictionary<int, CorpusDocumentHeader> _documentHeaders = null!;
-    private static readonly ConcurrentDictionary<int, Document> Documents = new();
-    private static readonly TaskCompletionSource Initialized = new();
-    private static ILogger? _logger;
+    private AwsSettings _awsSettings;
+    private IAmazonS3 _s3Client = null!;
+    private ConcurrentDictionary<int, CorpusDocumentHeader> _documentHeaders = null!;
+    private readonly ConcurrentDictionary<int, Document> Documents = new();
+    private readonly TaskCompletionSource Initialized = new();
+    private ILogger? _logger;
 
-    public static void InitializeLogging(ILogger logger) => _logger = logger;
-
-    public static void Initialize(AwsSettings awsSettings)
+    public AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache> logger)
     {
-        if (_awsSettings != null)
-            throw new InvalidOperationException("AwsFilesCache is already initialized");
-
         _awsSettings = awsSettings;
-        _s3Client = new AmazonS3Client(awsSettings.AccessKeyId, awsSettings.SecretAccessKey, RegionEndpoint.GetBySystemName(awsSettings.Region));
+        _logger = logger;
+    }
 
-        _logger?.LogInformation("Initializing AWS Files Cache with bucket: {BucketName}", awsSettings.BucketName);
+    public void Initialize()
+    {
+        if (_s3Client != null)
+            throw new InvalidOperationException($"{nameof(AwsFilesCache)} is already initialized");
+
+        _s3Client = new AmazonS3Client(_awsSettings.AccessKeyId, _awsSettings.SecretAccessKey, RegionEndpoint.GetBySystemName(_awsSettings.Region));
+
+        _logger?.LogInformation("Initializing AWS Files Cache with bucket: {BucketName}", _awsSettings.BucketName);
         Task.Factory.StartNew(async () =>
         {
             var documentHeaders = await GetDocumentHeadersFromS3();
@@ -59,14 +62,14 @@ public static class AwsFilesCache
         });
     }
 
-    public static async Task<CorpusDocument> GetFile(int n)
+    public async Task<CorpusDocument> GetFile(int n)
     {
         await Initialized.Task;
 
         return (await GetFileInternal(n)).CorpusDocument;
     }
 
-    public static async Task<Stream> GetRawFile(int n)
+    public async Task<Stream> GetRawFile(int n)
     {
         await Initialized.Task;
 
@@ -92,7 +95,7 @@ public static class AwsFilesCache
         }
     }
 
-    public static async Task FlushFile(int n)
+    public async Task FlushFile(int n)
     {
         await Initialized.Task;
 
@@ -114,13 +117,13 @@ public static class AwsFilesCache
         _documentHeaders[n].PercentCompletion = document.CorpusDocument.ComputeCompletion();
     }
 
-    public static async ValueTask<ICollection<CorpusDocumentHeader>> GetAllDocumentHeaders()
+    public async ValueTask<ICollection<CorpusDocumentHeader>> GetAllDocumentHeaders()
     {
         await Initialized.Task;
         return _documentHeaders.Values;
     }
 
-    public static async ValueTask<CorpusDocumentHeader> GetDocumentHeader(int n)
+    public async ValueTask<CorpusDocumentHeader> GetDocumentHeader(int n)
     {
         await Initialized.Task;
 
@@ -129,12 +132,12 @@ public static class AwsFilesCache
             : throw new NotFoundException();
     }
 
-    public static void UpdateHeaderCache(int id)
+    public void UpdateHeaderCache(int id)
     {
         _documentHeaders[id] = Documents[id].CorpusDocument.Header;
     }
 
-    public static async Task AddFile(CorpusDocument corpusDocument)
+    public async Task AddFile(CorpusDocument corpusDocument)
     {
         await Initialized.Task;
         if (_documentHeaders.ContainsKey(corpusDocument.Header.N))
@@ -153,7 +156,7 @@ public static class AwsFilesCache
         _documentHeaders[corpusDocument.Header.N] = corpusDocument.Header;
     }
 
-    private static async Task<Document> GetFileInternal(int n)
+    private async Task<Document> GetFileInternal(int n)
     {
         if (Documents.TryGetValue(n, out var document))
         {
@@ -174,7 +177,7 @@ public static class AwsFilesCache
         return document;
     }
 
-    private static async Task<List<CorpusDocumentHeader>> GetDocumentHeadersFromS3()
+    private async Task<List<CorpusDocumentHeader>> GetDocumentHeadersFromS3()
     {
         var documents = new List<CorpusDocumentHeader>();
 
@@ -227,7 +230,7 @@ public static class AwsFilesCache
         return documents;
     }
 
-    private static async Task<CorpusDocument> ReadDocumentFromS3(string objectKey)
+    private async Task<CorpusDocument> ReadDocumentFromS3(string objectKey)
     {
         try
         {
@@ -268,7 +271,7 @@ public static class AwsFilesCache
         }
     }
 
-    private static async Task WriteDocumentToS3(string objectKey, CorpusDocument document)
+    private async Task WriteDocumentToS3(string objectKey, CorpusDocument document)
     {
         try
         {
@@ -302,7 +305,7 @@ public static class AwsFilesCache
         }
     }
 
-    private static async Task UpdateDocumentHeaderInS3(string objectKey, CorpusDocumentHeader header)
+    private async Task UpdateDocumentHeaderInS3(string objectKey, CorpusDocumentHeader header)
     {
         try
         {
