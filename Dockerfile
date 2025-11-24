@@ -1,7 +1,7 @@
 # Multi-stage build для Editor праекту
 
 # Stage 1: Зборка
-FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 
 WORKDIR /app
 COPY . ./
@@ -17,7 +17,7 @@ RUN dotnet publish Editor.csproj -c Release -r linux-musl-x64 -o out --no-restor
 
 
 # Stage 2: Фінальны вобраз
-FROM mcr.microsoft.com/dotnet/aspnet:9.0-alpine AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS final
 
 RUN apk add --no-cache icu-libs
 

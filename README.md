@@ -6,7 +6,7 @@
 
 # Як гэта запускаць
 Пакуль што складаней пачаць працаваць з праэктам чым было б варта, але з часам стане лепей.
-Спатрэбяцца dotnet sdk 9 і nodejs 22.
+Спатрэбяцца dotnet sdk 10 і nodejs 22.
 1. Трэба сканвэртаваць файлы граматычнае базы.
    Узяць іх можна тут https://github.com/Belarus/GrammarDB/tree/master/data
    `GrammarDbConverter> dotnet run -- ..\data\ ..\files\grammar.db`
