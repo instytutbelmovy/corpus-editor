@@ -25,6 +25,7 @@
     <PackageReference Include="AWSSDK.S3" Version="4.0.6.10" />
     <PackageReference Include="Dapper" Version="2.1.66" />
     <PackageReference Include="Dapper.AOT" Version="1.0.48" />
+    <PackageReference Include="FluentValidation" Version="12.0.0" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.8" />
     <PackageReference Include="DocumentFormat.OpenXml" Version="3.3.0" />
     <PackageReference Include="HtmlAgilityPack" Version="1.12.2" />

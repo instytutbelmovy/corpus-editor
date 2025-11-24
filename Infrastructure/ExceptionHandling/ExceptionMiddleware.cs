@@ -22,16 +22,6 @@ public static class ExceptionMiddleware
             if (!context.Response.HasStarted)
                 context.Response.StatusCode = statusCode;
         }
-        catch (BadRequestException e)
-        {
-            var statusCode = (int)HttpStatusCode.BadRequest;
-            LogInfo(e, statusCode);
-            if (!context.Response.HasStarted)
-            {
-                context.Response.StatusCode = statusCode;
-                await JsonSerializer.SerializeAsync(context.Response.BodyWriter, new ErrorResponse(statusCode, e.Message), InfrastructureJsonSerializerContext.Default.ErrorResponse);
-            }
-        }
         catch (UnauthorizedException e)
         {
             var statusCode = (int)HttpStatusCode.Unauthorized;
@@ -45,6 +35,16 @@ public static class ExceptionMiddleware
             LogInfo(e, statusCode);
             if (!context.Response.HasStarted)
                 context.Response.StatusCode = statusCode;
+        }
+        catch (Exception e) when (e is BadRequestException or BusinessException or BadHttpRequestException)
+        {
+            var statusCode = (int)HttpStatusCode.BadRequest;
+            LogInfo(e, statusCode);
+            if (!context.Response.HasStarted)
+            {
+                context.Response.StatusCode = statusCode;
+                await JsonSerializer.SerializeAsync(context.Response.BodyWriter, new ErrorResponse(statusCode, e.Message), InfrastructureJsonSerializerContext.Default.ErrorResponse);
+            }
         }
         catch (Exception e)
         {

@@ -6,7 +6,9 @@ using Microsoft.AspNetCore.Rewrite;
 using Microsoft.Data.Sqlite;
 using System.Globalization;
 using System.Net;
+using System.Reflection;
 using System.Text;
+using FluentValidation;
 
 [module: DapperAot]
 
@@ -22,7 +24,6 @@ ConfigureIdentity(builder);
 
 var app = builder.Build();
 ConfigurePipeline(app);
-
 
 await app.RunAsync();
 
@@ -82,10 +83,12 @@ static void ConfigureServices(WebApplicationBuilder builder)
     builder.Services.AddSingleton(reCaptchaSettings);
     builder.Services.AddHttpClient<ReCaptchaService>();
 
+    builder.Services.AddValidatorsFromAssemblyContaining<SignInRequest>();
+
     builder.Services.AddSingleton(new GrammarDb(settings.GrammarDbPath));
 
     if (settings.SyncEditorDbWithAws)
-        builder.Services.AddHostedService<EditorDbPushingService>(serviceProvider => 
+        builder.Services.AddHostedService<EditorDbPushingService>(serviceProvider =>
             new EditorDbPushingService(settings.EditorDbPath, serviceProvider.GetRequiredService<IDbSynchronizer>(), serviceProvider.GetLoggerFor(nameof(EditorDbPushingService))));
 }
 
@@ -116,11 +119,11 @@ static void ConfigureIdentity(WebApplicationBuilder builder)
         .AddDefaultTokenProviders();
     builder.Services.AddAuthorization(options =>
     {
-        options.AddPolicy(PolicyExtensions.ViewerPolicy, policy => 
+        options.AddPolicy(PolicyExtensions.ViewerPolicy, policy =>
             policy.RequireAssertion(context => context.User.GetRole() >= Roles.Viewer));
-        options.AddPolicy(PolicyExtensions.EditorPolicy, policy => 
+        options.AddPolicy(PolicyExtensions.EditorPolicy, policy =>
             policy.RequireAssertion(context => context.User.GetRole() >= Roles.Editor));
-        options.AddPolicy(PolicyExtensions.AdminPolicy, policy => 
+        options.AddPolicy(PolicyExtensions.AdminPolicy, policy =>
             policy.RequireAssertion(context => context.User.GetRole() >= Roles.Admin));
     });
     builder.Services.AddScoped<SignInManager<EditorUser>>();
@@ -154,6 +157,9 @@ static void ConfigurePipeline(WebApplication app)
 
     app.Map("/api/{**path}", () => Results.NotFound());
     app.MapFallbackToFile("404.html", new StaticFileOptions { OnPrepareResponse = r => r.Context.Response.StatusCode = 404 });
+
+    app.Services.GetRequiredService<IHostApplicationLifetime>()
+        .ApplicationStarted.Register(() => app.Services.CheckValidators());
 }
 
 static void InitDatabase(string connectionString)

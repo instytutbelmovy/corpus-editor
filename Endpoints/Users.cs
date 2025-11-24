@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,13 +10,13 @@ public static class Users
     {
         var authApi = builder.MapGroup("/api/users");
         authApi.MapGet("/", GetAllUsers).Admin();
-        authApi.MapPost("/", CreateUser).Admin();
-        authApi.MapPut("/{id}", UpdateUser).Admin();
-        authApi.MapPost("/{id}/invite", InviteUser).Admin();
+        authApi.MapPost("/", CreateUser).Validate<EditorUserCreateDto>().Admin();
+        authApi.MapPut("/{id}", UpdateUser).Validate<EditorUserCreateDto>().Admin();
+        authApi.MapPost("/{id}/invite", InviteUser).Validate<InviteUserRequest>().Admin();
     }
 
     private static IEnumerable<EditorUserDto> GetAllUsers(
-        [FromServices] EditorUserStore editorUserStore)
+        EditorUserStore editorUserStore)
     {
         var users = editorUserStore.GetAllUsers();
         return users.Select(user => new EditorUserDto(
@@ -28,7 +29,7 @@ public static class Users
 
     private static async Task<EditorUserDto> CreateUser(
         [FromBody] EditorUserCreateDto request,
-        [FromServices] UserManager<EditorUser> userManager)
+        UserManager<EditorUser> userManager)
     {
         ValidateUserRequest(request);
 
@@ -65,7 +66,7 @@ public static class Users
     private static async Task<EditorUserDto> UpdateUser(
         [FromRoute] string id,
         [FromBody] EditorUserCreateDto request,
-        [FromServices] UserManager<EditorUser> userManager)
+        UserManager<EditorUser> userManager)
     {
         ValidateUserRequest(request);
 
@@ -132,9 +133,9 @@ public static class Users
 
     private static async Task InviteUser(
         [FromBody] InviteUserRequest request,
-        [FromServices] UserManager<EditorUser> userManager,
-        [FromServices] EmailService emailService,
-        [FromServices] IHttpContextAccessor httpContextAccessor)
+        UserManager<EditorUser> userManager,
+        EmailService emailService,
+        IHttpContextAccessor httpContextAccessor)
     {
         var user = await userManager.FindByIdAsync(request.UserId);
         if (user == null)
@@ -168,3 +169,21 @@ public record EditorUserDto(string Id, string UserName, string Email, Roles Role
 public record EditorUserCreateDto(string UserName, string Email, Roles Role);
 
 public record InviteUserRequest(string UserId);
+
+public class EditorUserCreateDtoValidator : AbstractValidator<EditorUserCreateDto>
+{
+    public EditorUserCreateDtoValidator()
+    {
+        RuleFor(x => x.UserName).NotEmpty();
+        RuleFor(x => x.Email).NotEmpty().EmailAddress();
+        RuleFor(x => x.Role).IsInEnum();
+    }
+}
+
+public class InviteUserRequestValidator : AbstractValidator<InviteUserRequest>
+{
+    public InviteUserRequestValidator()
+    {
+        RuleFor(x => x.UserId).NotEmpty();
+    }
+}

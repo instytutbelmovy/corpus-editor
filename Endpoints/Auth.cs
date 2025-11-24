@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,21 +9,21 @@ public static class Auth
     public static void MapAuth(this IEndpointRouteBuilder builder)
     {
         var authApi = builder.MapGroup("/api/auth");
-        authApi.MapPost("/sign-in", SignIn);
+        authApi.MapPost("/sign-in", SignIn).Validate<SignInRequest>();
         authApi.MapPost("/sign-out", SignOut);
         authApi.MapGet("/who-am-i", WhoAmI);
-        authApi.MapPost("/forgot-password", ForgotPassword);
-        authApi.MapPost("/reset-password", ResetPassword);
+        authApi.MapPost("/forgot-password", ForgotPassword).Validate<ForgotPasswordRequest>();
+        authApi.MapPost("/reset-password", ResetPassword).Validate<ResetPasswordRequest>();
         authApi.MapGet("/config", GetConfig);
     }
 
     private static async Task<WhoAmIResponse> SignIn(
         [FromBody] SignInRequest request,
-        [FromServices] UserManager<EditorUser> userManager,
-        [FromServices] SignInManager<EditorUser> signInManager,
-        [FromServices] EditorUserStore editorUserStore,
-        [FromServices] ReCaptchaService reCaptchaService,
-        [FromServices] IHttpContextAccessor httpContextAccessor)
+        UserManager<EditorUser> userManager,
+        SignInManager<EditorUser> signInManager,
+        EditorUserStore editorUserStore,
+        ReCaptchaService reCaptchaService,
+        IHttpContextAccessor httpContextAccessor)
     {
         await CheckReCaptcha(reCaptchaService, httpContextAccessor, request.ReCaptchaToken);
 
@@ -60,14 +61,14 @@ public static class Auth
         throw new UnauthorizedException();
     }
 
-    private static async Task SignOut([FromServices] SignInManager<EditorUser> signInManager)
+    private static async Task SignOut(SignInManager<EditorUser> signInManager)
     {
         await signInManager.SignOutAsync();
     }
 
     private static WhoAmIResponse WhoAmI(
-        [FromServices] UserManager<EditorUser> userManager,
-        [FromServices] IHttpContextAccessor httpContextAccessor)
+        UserManager<EditorUser> userManager,
+        IHttpContextAccessor httpContextAccessor)
     {
         var user = httpContextAccessor.HttpContext?.User;
         if (user == null || user.Identity?.IsAuthenticated != true)
@@ -78,10 +79,10 @@ public static class Auth
 
     private static async Task ForgotPassword(
         [FromBody] ForgotPasswordRequest request,
-        [FromServices] UserManager<EditorUser> userManager,
-        [FromServices] EmailService emailService,
-        [FromServices] IHttpContextAccessor httpContextAccessor,
-        [FromServices] ReCaptchaService reCaptchaService)
+        UserManager<EditorUser> userManager,
+        EmailService emailService,
+        IHttpContextAccessor httpContextAccessor,
+        ReCaptchaService reCaptchaService)
     {
         await CheckReCaptcha(reCaptchaService, httpContextAccessor, request.ReCaptchaToken);
 
@@ -107,9 +108,9 @@ public static class Auth
 
     private static async Task ResetPassword(
         [FromBody] ResetPasswordRequest request,
-        [FromServices] UserManager<EditorUser> userManager,
-        [FromServices] ReCaptchaService reCaptchaService,
-        [FromServices] IHttpContextAccessor httpContextAccessor)
+        UserManager<EditorUser> userManager,
+        ReCaptchaService reCaptchaService,
+        IHttpContextAccessor httpContextAccessor)
     {
         await CheckReCaptcha(reCaptchaService, httpContextAccessor, request.ReCaptchaToken);
 
@@ -131,8 +132,8 @@ public static class Auth
     }
 
     private static FrontendConfigResponse GetConfig(
-        [FromServices] ReCaptchaSettings reCaptchaSettings,
-        [FromServices] SentrySettings sentrySettings)
+        ReCaptchaSettings reCaptchaSettings,
+        SentrySettings sentrySettings)
     {
         return new FrontendConfigResponse(reCaptchaSettings.SiteKey, sentrySettings.FeDsn, sentrySettings.Version, sentrySettings.Environment);
     }
@@ -157,3 +158,30 @@ public record ForgotPasswordRequest(string Email, string? ReCaptchaToken = null)
 public record ResetPasswordRequest(string Email, string Token, string NewPassword, string? ReCaptchaToken = null);
 
 public record FrontendConfigResponse(string RecaptchaSiteKey, string SentryDsn, string Version, string Environment);
+
+public class SignInRequestValidator : AbstractValidator<SignInRequest>
+{
+    public SignInRequestValidator()
+    {
+        RuleFor(x => x.Email).NotEmpty();
+        RuleFor(x => x.Password).NotEmpty();
+    }
+}
+
+public class ForgotPasswordRequestValidator : AbstractValidator<ForgotPasswordRequest>
+{
+    public ForgotPasswordRequestValidator()
+    {
+        RuleFor(x => x.Email).NotEmpty();
+    }
+}
+
+public class ResetPasswordRequestValidator : AbstractValidator<ResetPasswordRequest>
+{
+    public ResetPasswordRequestValidator()
+    {
+        RuleFor(x => x.Email).NotEmpty();
+        RuleFor(x => x.Token).NotEmpty();
+        RuleFor(x => x.NewPassword).NotEmpty();
+    }
+}
