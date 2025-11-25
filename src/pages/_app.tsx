@@ -2,9 +2,6 @@ import type { AppProps } from 'next/app';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import '@/app/globals.css';
-import { ApiClient } from '@/app/apiClient';
-import { AuthService } from '@/app/auth/service';
-import { DocumentService } from '@/app/docs/service';
 import { UserService } from '@/app/users/service';
 import { AuthStorage } from '@/app/auth/storage';
 import { useAuthStore } from '@/app/auth/store';
@@ -14,6 +11,7 @@ import { Header } from '@/app/components';
 import { isValidReturnUrl } from '@/utils/urlValidation';
 import { useRecaptchaVisibility } from '@/app/hooks/useRecaptchaVisibility';
 import { configService } from '@/app/services/configService';
+import { serviceLocator } from '@/app/services/serviceLocator';
 import * as Sentry from "@sentry/react";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,7 +32,7 @@ export default function App({ Component, pageProps }: AppProps) {
   const hasCheckedAuth = useRef(false);
 
   // Выкарыстоўваем store замест локальнага стану
-  const { 
+  const {
     isAuthenticated,
     isLoading,
     authService,
@@ -50,7 +48,7 @@ export default function App({ Component, pageProps }: AppProps) {
   // Вызначаем, ці паказваць reCAPTCHA на бягучай старонцы
   const isPublicPage = publicPages.includes(router.pathname);
   const shouldShowRecaptcha = isPublicPage && !isAuthenticated;
-  
+
   // Кіруем візуальнасцю reCAPTCHA
   useRecaptchaVisibility(shouldShowRecaptcha);
 
@@ -77,18 +75,16 @@ export default function App({ Component, pageProps }: AppProps) {
 
   // Ініцыялізуем сервісы толькі адзін раз
   useEffect(() => {
-    const apiClient = new ApiClient(handleUnauthorizedRef.current);
-    const auth = new AuthService(handleUnauthorizedRef.current);
-    const docs = new DocumentService(apiClient);
-    const users = new UserService(apiClient);
-    
-    setAuthService(auth);
-    setDocumentService(docs);
-    setUserService(users);
+    serviceLocator.initialize(handleUnauthorizedRef.current);
+
+    setAuthService(serviceLocator.authService);
+    setDocumentService(serviceLocator.documentService);
+    setUserService(serviceLocator.userService);
+
     initSentry();
 
     async function initSentry() {
-      const config = await configService.getConfig(apiClient);
+      const config = await configService.getConfig(serviceLocator.apiClient);
 
       initializeSentry(config.sentryDsn, config.environment, config.version);
     };
@@ -107,7 +103,7 @@ export default function App({ Component, pageProps }: AppProps) {
           // Аптымістычна ўсталёўваем як аўтэнтыфікаванага
           useAuthStore.getState().setAuthenticated(true);
           useAuthStore.getState().setLoading(false);
-          
+
           // Потым правяраем на сервере ў фоне
           const serverAuth = await checkAuthStatus();
           if (!serverAuth) {
@@ -163,7 +159,7 @@ export default function App({ Component, pageProps }: AppProps) {
   // Перанакіроўка на старонку ўваходу, калі карыстальнік не аўтэнтыфікаваны
   useEffect(() => {
     const isPublicPage = publicPages.includes(router.pathname);
-    
+
     if (!isLoading && !isAuthenticated && !isPublicPage && hasCheckedAuth.current) {
       handleUnauthorizedRef.current();
     }
