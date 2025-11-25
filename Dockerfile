@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . ./
 
 WORKDIR /app/src
-RUN apk add nodejs npm
+RUN apk add nodejs npm git
 RUN npm ci
 RUN npm run build
 
