@@ -58,12 +58,18 @@ public static class VertiIO
             throw new FileNotFoundException($"File {filePath} not found");
         }
 
-        CorpusDocument document = null!;
-        List<Paragraph> paragraphs = null!;
+        using var reader = new StreamReader(filePath);
+        
+        return await ReadDocument(reader);
+    }
+
+    public static async Task<CorpusDocument> ReadDocument(StreamReader reader)
+    {
+        List<Paragraph> paragraphs = new ();
+        CorpusDocument document = new CorpusDocument(default, paragraphs);
         Paragraph currentParagraph = null!;
         Sentence currentSentence = null!;
 
-        using var reader = new StreamReader(filePath);
         string? line;
         while ((line = await reader.ReadLineAsync()) != null)
         {
@@ -71,10 +77,9 @@ public static class VertiIO
 
             if (line.StartsWith("<doc"))
             {
-                document = new CorpusDocument(
-                    ReadCorpusDocumentHeader(line),
-                    paragraphs = new()
-                );
+                document = document with {
+                    Header = ReadCorpusDocumentHeader(line),
+                };
             }
             else if (line.StartsWith("<p"))
             {
@@ -162,75 +167,83 @@ public static class VertiIO
     {
         try
         {
-            await using var writer = new StreamWriter(filePath, false, System.Text.Encoding.UTF8);
-
-            // Запіс метададзеных
-            await writer.WriteLineAsync(CreateDocumentHeaderXml(document.Header));
-
-            // Запіс параграфаў
-            foreach (var paragraph in document.Paragraphs)
-            {
-                var pAttrs = new List<string>();
-                if (paragraph.Id != 0)
-                    pAttrs.Add($"id=\"{paragraph.Id}\"");
-                if (paragraph.ConcurrencyStamp != Guid.Empty)
-                    pAttrs.Add($"concurrency_stamp=\"{paragraph.ConcurrencyStamp}\"");
-
-                await writer.WriteAsync($"<p{(pAttrs.Count == 0 ? "" : " ")}{string.Join(" ", pAttrs)}>\n");
-
-                foreach (var sentence in paragraph.Sentences)
-                {
-                    var sAttrs = new List<string>();
-                    if (sentence.Id != 0)
-                        sAttrs.Add($"id=\"{sentence.Id}\"");
-                    if (sentence.ConcurrencyStamp != Guid.Empty)
-                        sAttrs.Add($"concurrency_stamp=\"{sentence.ConcurrencyStamp}\"");
-
-                    await writer.WriteAsync($"<s{(sAttrs.Count == 0 ? "" : " ")}{string.Join(" ", sAttrs)}>\n");
-
-                    foreach (var item in sentence.SentenceItems)
-                    {
-                        if (item.Type == SentenceItemType.Word)
-                        {
-                            await writer.WriteAsync(item.Text);
-                            var metadataJson = item.Metadata != null
-                                ? JsonSerializer.Serialize(item.Metadata, VertiJsonSerializerContext.Default.LinguisticItemMetadata)
-                                : "";
-                            var commentJson = !string.IsNullOrWhiteSpace(item.Comment)
-                                ? JsonSerializer.Serialize(item.Comment, VertiJsonSerializerContext.Default.String)
-                                : "";
-
-                            await writer.WriteAsync($"\t{item.ParadigmFormId}\t{item.Lemma}\t{item.LinguisticTag}\t{commentJson}\t{metadataJson}");
-                            await writer.WriteLineAsync();
-                            if (item.GlueNext)
-                                await writer.WriteLineAsync(GlueTag);
-                        }
-                        else if (item.Type == SentenceItemType.Punctuation)
-                        {
-                            await writer.WriteLineAsync($"{item.Text}\t{Punct}");
-                        }
-                        else if (item.Type == SentenceItemType.LineBreak)
-                        {
-                            await writer.WriteLineAsync(LineBreakTag);
-                        }
-                        else
-                        {
-                            throw new ArgumentException($"Невядомы тып элемента: {item.Type}");
-                        }
-                    }
-                    await writer.WriteLineAsync("</s>");
-                }
-                await writer.WriteLineAsync("</p>");
-            }
-
-            if (document.Header.Title != null)
-                await writer.WriteLineAsync("</doc>");
+            await using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
+            await WriteDocument(fileStream, document);
         }
         catch (Exception ex)
         {
             _logger?.LogError(ex, "Error writing file {File}", filePath);
             throw;
         }
+    }
+
+    public static async Task WriteDocument(Stream stream, CorpusDocument document)
+    {
+        await using var writer = new StreamWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true);
+
+        // Запіс метададзеных
+        await writer.WriteLineAsync(CreateDocumentHeaderXml(document.Header));
+
+        // Запіс параграфаў
+        foreach (var paragraph in document.Paragraphs)
+        {
+            var pAttrs = new List<string>();
+            if (paragraph.Id != 0)
+                pAttrs.Add($"id=\"{paragraph.Id}\"");
+            if (paragraph.ConcurrencyStamp != Guid.Empty)
+                pAttrs.Add($"concurrency_stamp=\"{paragraph.ConcurrencyStamp}\"");
+
+            await writer.WriteAsync($"<p{(pAttrs.Count == 0 ? "" : " ")}{string.Join(" ", pAttrs)}>\n");
+
+            foreach (var sentence in paragraph.Sentences)
+            {
+                var sAttrs = new List<string>();
+                if (sentence.Id != 0)
+                    sAttrs.Add($"id=\"{sentence.Id}\"");
+                if (sentence.ConcurrencyStamp != Guid.Empty)
+                    sAttrs.Add($"concurrency_stamp=\"{sentence.ConcurrencyStamp}\"");
+
+                await writer.WriteAsync($"<s{(sAttrs.Count == 0 ? "" : " ")}{string.Join(" ", sAttrs)}>\n");
+
+                foreach (var item in sentence.SentenceItems)
+                {
+                    if (item.Type == SentenceItemType.Word)
+                    {
+                        await writer.WriteAsync(item.Text);
+                        var metadataJson = item.Metadata != null
+                            ? JsonSerializer.Serialize(item.Metadata, VertiJsonSerializerContext.Default.LinguisticItemMetadata)
+                            : "";
+                        var commentJson = !string.IsNullOrWhiteSpace(item.Comment)
+                            ? JsonSerializer.Serialize(item.Comment, VertiJsonSerializerContext.Default.String)
+                            : "";
+
+                        await writer.WriteAsync($"\t{item.ParadigmFormId}\t{item.Lemma}\t{item.LinguisticTag}\t{commentJson}\t{metadataJson}");
+                        await writer.WriteLineAsync();
+                        if (item.GlueNext)
+                            await writer.WriteLineAsync(GlueTag);
+                    }
+                    else if (item.Type == SentenceItemType.Punctuation)
+                    {
+                        await writer.WriteLineAsync($"{item.Text}\t{Punct}");
+                    }
+                    else if (item.Type == SentenceItemType.LineBreak)
+                    {
+                        await writer.WriteLineAsync(LineBreakTag);
+                    }
+                    else
+                    {
+                        throw new ArgumentException($"Невядомы тып элемента: {item.Type}");
+                    }
+                }
+                await writer.WriteLineAsync("</s>");
+            }
+            await writer.WriteLineAsync("</p>");
+        }
+
+        if (document.Header.Title != null)
+            await writer.WriteLineAsync("</doc>");
+        
+        await writer.FlushAsync();
     }
 
     public static async Task UpdateDocumentHeader(string filePath, CorpusDocumentHeader header)

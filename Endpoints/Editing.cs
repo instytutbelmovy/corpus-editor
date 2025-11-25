@@ -49,7 +49,7 @@ public static class Editing
 
     public static async Task<CorpusDocumentView> GetDocument(int n, GrammarDb grammarDb, AwsFilesCache awsFilesCache, int skipUpToId = 0, int take = 20)
     {
-        var corpusDocument = await awsFilesCache.GetFile(n);
+        var corpusDocument = await awsFilesCache.GetFileForRead(n);
         foreach (var paragraph in corpusDocument.Paragraphs)
             foreach (var sentence in paragraph.Sentences)
                 foreach (var sentenceItem in sentence.SentenceItems)
@@ -165,8 +165,8 @@ public static class Editing
 
     public static async Task PutMetadata(int id, UpdateMetadataRequest request, AwsFilesCache awsFilesCache)
     {
-        var document = await awsFilesCache.GetFile(id);
-        lock (document)
+        var (documentLock, document) = await awsFilesCache.GetFileForWrite(id);
+        using (documentLock)
         {
             var header = document.Header;
             document.Header = header with
@@ -177,16 +177,15 @@ public static class Editing
                 Type = request.Type,
                 Style = request.Style,
             };
+            awsFilesCache.UpdateHeaderCache(id, document.Header);
+            await awsFilesCache.FlushFile(id);
         }
-
-        awsFilesCache.UpdateHeaderCache(id);
-        await awsFilesCache.FlushFile(id);
     }
 
     private static async Task EditDocument(int documentId, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, AwsFilesCache awsFilesCache, Func<LinguisticItem, LinguisticItem> transform)
     {
-        var document = await awsFilesCache.GetFile(documentId);
-        lock (document)
+        var (documentLock, document) = await awsFilesCache.GetFileForWrite(documentId);
+        using (documentLock)
         {
             var paragraphIndex = document.Paragraphs.BinarySearch(paragraphId, (pId, p) => pId - p.Id);
             if (paragraphIndex < 0)
@@ -207,8 +206,7 @@ public static class Editing
             var sentenceItem = sentence.SentenceItems[wordIndex];
             var transformedItem = transform(sentenceItem);
             sentence.SentenceItems[wordIndex] = transformedItem;
+            await awsFilesCache.FlushFile(documentId);
         }
-
-        await awsFilesCache.FlushFile(documentId);
     }
 }

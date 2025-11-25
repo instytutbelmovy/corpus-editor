@@ -1,7 +1,9 @@
 using System.Collections.Concurrent;
 using Amazon;
 using Amazon.S3;
+using System.IO.Pipelines;
 using Amazon.S3.Model;
+using Amazon.S3.Transfer;
 
 namespace Editor;
 
@@ -13,20 +15,15 @@ public class AwsSettings
     public string BucketName { get; set; } = null!;
 }
 
-public class AwsFilesCache
+public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logger)
 {
-    private AwsSettings _awsSettings;
+    private readonly AwsSettings _awsSettings = awsSettings;
     private IAmazonS3 _s3Client = null!;
     private ConcurrentDictionary<int, CorpusDocumentHeader> _documentHeaders = null!;
-    private readonly ConcurrentDictionary<int, Document> Documents = new();
-    private readonly TaskCompletionSource Initialized = new();
-    private ILogger? _logger;
-
-    public AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache> logger)
-    {
-        _awsSettings = awsSettings;
-        _logger = logger;
-    }
+    private readonly ConcurrentDictionary<int, SemaphoreSlim> _documentsLocks = new();
+    private readonly ConcurrentDictionary<int, Document> _documents = new();
+    private readonly TaskCompletionSource _initialized = new();
+    private readonly ILogger? _logger = logger;
 
     public void Initialize()
     {
@@ -39,39 +36,70 @@ public class AwsFilesCache
         Task.Factory.StartNew(async () =>
         {
             var documentHeaders = await GetDocumentHeadersFromS3();
-            var result = new List<CorpusDocumentHeader>();
-            foreach (var header in documentHeaders)
-            {
-                if (header.PercentCompletion != null)
-                {
-                    result.Add(header);
-                    continue;
-                }
-
-                var document = await GetFileInternal(header.N);
-                var updatedHeader = header with { PercentCompletion = document.CorpusDocument.ComputeCompletion() };
-
-                var objectKey = $"{document.CorpusDocument.Header.N}.verti";
-                await UpdateDocumentHeaderInS3(objectKey, updatedHeader);
-                result.Add(updatedHeader);
-            }
-
-            _documentHeaders = new ConcurrentDictionary<int, CorpusDocumentHeader>(result.ToDictionary(x => x.N));
-            Initialized.SetResult();
+            _documentHeaders = new ConcurrentDictionary<int, CorpusDocumentHeader>(documentHeaders.ToDictionary(x => x.N));
+            _initialized.SetResult();
             _logger?.LogInformation("Initialized AWS Files Cache");
         });
     }
 
-    public async Task<CorpusDocument> GetFile(int n)
+    public async Task<CorpusDocument> GetFileForRead(int n)
     {
-        await Initialized.Task;
+        await _initialized.Task;
 
-        return (await GetFileInternal(n)).CorpusDocument;
+        var documentLock = GetDocumentLock(n);
+        await documentLock.WaitAsync();
+        try
+        {
+            if (!_documents.TryGetValue(n, out var document))
+            {
+                var objectKey = $"{n}.verti";
+                var corpusDocument = await ReadDocumentFromS3(objectKey);
+                var rewriteCorpusDocument = CorpusDocument.CheckIdsAndConcurrencyStamps(corpusDocument);
+                if (rewriteCorpusDocument != null)
+                {
+                    await WriteDocumentToS3(objectKey, rewriteCorpusDocument);
+                    corpusDocument = rewriteCorpusDocument;
+                }
+
+                document = _documents.GetOrAdd(n, _ => new Document { CorpusDocument = corpusDocument, LastAccessedOn = DateTime.UtcNow });
+            }
+
+            document.LastAccessedOn = DateTime.UtcNow;
+            return document.CorpusDocument;
+        }
+        finally
+        {
+            documentLock.Release();
+        }
+    }
+
+    public async Task<(IDisposable documentLock, CorpusDocument document)> GetFileForWrite(int n)
+    {
+        await _initialized.Task;
+
+        var documentLock = GetDocumentLock(n);
+        await documentLock.WaitAsync();
+        if (!_documents.TryGetValue(n, out var document))
+        {
+            var objectKey = $"{n}.verti";
+            var corpusDocument = await ReadDocumentFromS3(objectKey);
+            var rewriteCorpusDocument = CorpusDocument.CheckIdsAndConcurrencyStamps(corpusDocument);
+            if (rewriteCorpusDocument != null)
+            {
+                await WriteDocumentToS3(objectKey, rewriteCorpusDocument);
+                corpusDocument = rewriteCorpusDocument;
+            }
+
+            document = _documents.GetOrAdd(n, _ => new Document { CorpusDocument = corpusDocument, LastAccessedOn = DateTime.UtcNow });
+        }
+
+        document.LastAccessedOn = DateTime.UtcNow;
+        return (new DocumentLockWrapper(documentLock), document.CorpusDocument);
     }
 
     public async Task<Stream> GetRawFile(int n)
     {
-        await Initialized.Task;
+        await _initialized.Task;
 
         var objectKey = $"{n}.verti";
         try
@@ -95,91 +123,73 @@ public class AwsFilesCache
         }
     }
 
+    /// <summary> Only to be called within a write lock obtained from GetFileForWrite. </summary>
     public async Task FlushFile(int n)
     {
-        await Initialized.Task;
-
-        if (!Documents.TryGetValue(n, out var document))
+        if (!_documents.TryGetValue(n, out var document))
             throw new InvalidOperationException($"File {n} is not present in the cache");
 
-        document.LastAccessedOn = DateTime.UtcNow;
-        await document.WriteLock.WaitAsync();
-        try
-        {
-            var objectKey = $"{document.CorpusDocument.Header.N}.verti";
-            await WriteDocumentToS3(objectKey, document.CorpusDocument);
-        }
-        finally
-        {
-            document.WriteLock.Release();
-        }
+        var objectKey = $"{document.CorpusDocument.Header.N}.verti";
+        await WriteDocumentToS3(objectKey, document.CorpusDocument);
 
         _documentHeaders[n].PercentCompletion = document.CorpusDocument.ComputeCompletion();
     }
 
     public async ValueTask<ICollection<CorpusDocumentHeader>> GetAllDocumentHeaders()
     {
-        await Initialized.Task;
+        await _initialized.Task;
         return _documentHeaders.Values;
     }
 
     public async ValueTask<CorpusDocumentHeader> GetDocumentHeader(int n)
     {
-        await Initialized.Task;
+        await _initialized.Task;
 
         return _documentHeaders.TryGetValue(n, out var header)
             ? header
             : throw new NotFoundException();
     }
 
-    public void UpdateHeaderCache(int id)
+    public void UpdateHeaderCache(int id, CorpusDocumentHeader header)
     {
-        _documentHeaders[id] = Documents[id].CorpusDocument.Header;
+        _documentHeaders[id] = header;
     }
 
     public async Task AddFile(CorpusDocument corpusDocument)
     {
-        await Initialized.Task;
-        if (_documentHeaders.ContainsKey(corpusDocument.Header.N))
-            throw new InvalidOperationException($"File with ID {corpusDocument.Header.N} already exists in the cache");
-
-        var objectKey = $"{corpusDocument.Header.N}.verti";
-        await WriteDocumentToS3(objectKey, corpusDocument);
-
-        var document = new Document
+        await _initialized.Task;
+        var documentLock = GetDocumentLock(corpusDocument.Header.N);
+        await documentLock.WaitAsync();
+        try
         {
-            CorpusDocument = corpusDocument,
-            LastAccessedOn = DateTime.UtcNow,
-            WriteLock = new SemaphoreSlim(1, 1),
-        };
-        Documents[corpusDocument.Header.N] = document;
-        _documentHeaders[corpusDocument.Header.N] = corpusDocument.Header;
+            if (_documentHeaders.ContainsKey(corpusDocument.Header.N))
+                throw new InvalidOperationException($"File with ID {corpusDocument.Header.N} already exists in the cache");
+
+            var objectKey = $"{corpusDocument.Header.N}.verti";
+            await WriteDocumentToS3(objectKey, corpusDocument);
+
+            var document = new Document
+            {
+                CorpusDocument = corpusDocument,
+                LastAccessedOn = DateTime.UtcNow,
+            };
+            _documents[corpusDocument.Header.N] = document;
+            _documentHeaders[corpusDocument.Header.N] = corpusDocument.Header;
+        }
+        finally
+        {
+            documentLock.Release();
+        }
     }
 
-    private async Task<Document> GetFileInternal(int n)
+    private SemaphoreSlim GetDocumentLock(int n)
     {
-        if (Documents.TryGetValue(n, out var document))
-        {
-            document.LastAccessedOn = DateTime.UtcNow;
-            return document;
-        }
-
-        var objectKey = $"{n}.verti";
-        var corpusDocument = await ReadDocumentFromS3(objectKey);
-        var rewriteCorpusDocument = CorpusDocument.CheckIdsAndConcurrencyStamps(corpusDocument);
-        if (rewriteCorpusDocument != null)
-        {
-            await WriteDocumentToS3(objectKey, rewriteCorpusDocument);
-            corpusDocument = rewriteCorpusDocument;
-        }
-        document = Documents.GetOrAdd(n, _ => new Document { CorpusDocument = corpusDocument, LastAccessedOn = DateTime.UtcNow, WriteLock = new SemaphoreSlim(1, 1) });
-        document.LastAccessedOn = DateTime.UtcNow;
-        return document;
+        return _documentsLocks.GetOrAdd(n, _ => new SemaphoreSlim(1, 1));
     }
 
     private async Task<List<CorpusDocumentHeader>> GetDocumentHeadersFromS3()
     {
-        var documents = new List<CorpusDocumentHeader>();
+        var headers = new List<CorpusDocumentHeader>();
 
         try
         {
@@ -190,44 +200,62 @@ public class AwsFilesCache
                 MaxKeys = 1000,
             };
 
-            var listResponse = await _s3Client.ListObjectsV2Async(listRequest);
-
-            foreach (var s3Object in listResponse.S3Objects.Where(obj => obj.Key.EndsWith(".verti")))
+            ListObjectsV2Response listResponse;
+            do
             {
-                try
+                listResponse = await _s3Client.ListObjectsV2Async(listRequest);
+
+                foreach (var s3Object in listResponse.S3Objects.Where(obj => obj.Key.EndsWith(".verti")))
                 {
-                    var getRequest = new GetObjectRequest
+                    try
                     {
-                        BucketName = _awsSettings.BucketName,
-                        Key = s3Object.Key,
-                    };
-
-                    using var response = await _s3Client.GetObjectAsync(getRequest);
-                    using var reader = new StreamReader(response.ResponseStream);
-
-                    string? line;
-                    while ((line = await reader.ReadLineAsync()) != null)
-                    {
-                        if (VertiIO.TryReadHeader(line, out var doc))
+                        var getRequest = new GetObjectRequest
                         {
-                            documents.Add(doc);
-                            break;
+                            BucketName = _awsSettings.BucketName,
+                            Key = s3Object.Key,
+                        };
+
+                        using var response = await _s3Client.GetObjectAsync(getRequest);
+                        using var reader = new StreamReader(response.ResponseStream);
+
+                        string? line;
+                        while ((line = await reader.ReadLineAsync()) != null)
+                        {
+                            if (line.StartsWith("<!--")) continue;
+
+                            if (VertiIO.TryReadHeader(line, out var header))
+                            {
+                                if (header.PercentCompletion == null)
+                                {
+                                    // ffs, now need to get full document, compute completion, and update on s3
+                                    var document = await VertiIO.ReadDocument(reader);
+                                    header.PercentCompletion = document.ComputeCompletion();
+                                    document = document with { Header = header, };
+                                    var objectKey = $"{header.N}.verti";
+                                    await WriteDocumentToS3(objectKey, document);
+                                }
+                                headers.Add(header);
+                                break;
+                            }
                         }
                     }
+                    catch (Exception ex)
+                    {
+                        // Log error but continue with other files
+                        _logger?.LogError(ex, $"Error reading file {s3Object.Key}");
+                    }
                 }
-                catch (Exception ex)
-                {
-                    // Log error but continue with other files
-                    _logger?.LogError(ex, $"Error reading file {s3Object.Key}");
-                }
-            }
+
+                listRequest.ContinuationToken = listResponse.NextContinuationToken;
+            } while (listResponse.IsTruncated == true);
+
         }
         catch (Exception ex)
         {
             _logger?.LogCritical(ex, "Error listing objects from S3");
         }
 
-        return documents;
+        return headers;
     }
 
     private async Task<CorpusDocument> ReadDocumentFromS3(string objectKey)
@@ -241,25 +269,10 @@ public class AwsFilesCache
             };
 
             using var response = await _s3Client.GetObjectAsync(getRequest);
-            using var stream = response.ResponseStream;
+            await using var stream = response.ResponseStream;
+            using var reader = new StreamReader(stream);
 
-            // Create a temporary file to use with existing VertiIO.ReadDocument
-            var tempFilePath = Path.GetTempFileName();
-            await using (var fileStream = File.Create(tempFilePath))
-            {
-                await stream.CopyToAsync(fileStream);
-            }
-
-            try
-            {
-                return await VertiIO.ReadDocument(tempFilePath);
-            }
-            finally
-            {
-                // Clean up temporary file
-                if (File.Exists(tempFilePath))
-                    File.Delete(tempFilePath);
-            }
+            return await VertiIO.ReadDocument(reader);
         }
         catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -275,29 +288,25 @@ public class AwsFilesCache
     {
         try
         {
-            // Create a temporary file to use with existing VertiIO.WriteDocument
-            var tempFilePath = Path.GetTempFileName();
-            await VertiIO.WriteDocument(tempFilePath, document);
-
-            try
+            var pipe = new Pipe();
+            var uploadTask = Task.Run(async () =>
             {
-                using var fileStream = File.OpenRead(tempFilePath);
-                var putRequest = new PutObjectRequest
+                try
                 {
-                    BucketName = _awsSettings.BucketName,
-                    Key = objectKey,
-                    InputStream = fileStream,
-                    ContentType = "text/plain",
-                };
+                    await using var stream = pipe.Writer.AsStream(leaveOpen: true);
+                    await VertiIO.WriteDocument(stream, document);
+                    await pipe.Writer.CompleteAsync();
+                }
+                catch (Exception ex)
+                {
+                    await pipe.Writer.CompleteAsync(ex);
+                }
+            });
 
-                await _s3Client.PutObjectAsync(putRequest);
-            }
-            finally
-            {
-                // Clean up temporary file
-                if (File.Exists(tempFilePath))
-                    File.Delete(tempFilePath);
-            }
+            var transferUtility = new TransferUtility(_s3Client);
+            await transferUtility.UploadAsync(pipe.Reader.AsStream(), _awsSettings.BucketName, objectKey);
+
+            await uploadTask;
         }
         catch (Exception ex)
         {
@@ -305,19 +314,18 @@ public class AwsFilesCache
         }
     }
 
-    private async Task UpdateDocumentHeaderInS3(string objectKey, CorpusDocumentHeader header)
+    public void PurgeFilesOlderThan(TimeSpan age)
     {
-        try
-        {
-            var document = await ReadDocumentFromS3(objectKey);
+        if (!_initialized.Task.IsCompleted) return;
 
-            document.Header = header;
-
-            await WriteDocumentToS3(objectKey, document);
-        }
-        catch (Exception ex)
+        var horizon = DateTime.UtcNow - age;
+        foreach (var (id, documentsLock) in _documentsLocks)
         {
-            throw new InvalidOperationException($"Error updating document header in S3: {ex.Message}", ex);
+            if (documentsLock.Wait(0))
+            {
+                if (_documents.TryGetValue(id, out var document) && document.LastAccessedOn < horizon)
+                    _documents.TryRemove(id, out _);
+            }
         }
     }
 
@@ -325,6 +333,16 @@ public class AwsFilesCache
     {
         public required CorpusDocument CorpusDocument { get; init; }
         public required DateTime LastAccessedOn { get; set; }
-        public required SemaphoreSlim WriteLock { get; init; }
+    }
+
+    private class DocumentLockWrapper(SemaphoreSlim semaphore) : IDisposable
+    {
+        private SemaphoreSlim? _semaphore = semaphore;
+
+        public void Dispose()
+        {
+            _semaphore?.Release();
+            _semaphore = null;
+        }
     }
 }
