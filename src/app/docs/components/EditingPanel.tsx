@@ -69,7 +69,7 @@ export function EditingPanel({
     setEditText('');
   }, [selectedWord]);
 
-  // Захоўваем каментар неадкладна (пры пераходзе на наступнае слова)
+  // Захоўваем камэнтар неадкладна (пры пераходзе на наступнае слова)
   const saveCommentImmediately = useCallback(async () => {
     if (
       onSaveComment &&
@@ -85,14 +85,14 @@ export function EditingPanel({
         await onSaveComment(comment);
         lastSavedCommentRef.current = comment;
       } catch (error) {
-        console.error('Памылка захавання каментара:', error);
+        console.error('Памылка захавання камэнтара:', error);
       } finally {
         setIsSavingComment(false);
       }
     }
   }, [onSaveComment, selectedWord, comment]);
 
-  // Ініцыялізуем каментар пры змене выбраннага слова
+  // Ініцыялізуем камэнтар пры змене выбраннага слова
   useEffect(() => {
     if (selectedWord) {
       const newComment = selectedWord.item.comment || '';
@@ -143,7 +143,7 @@ export function EditingPanel({
 
     setIsSavingManual(true);
     try {
-      await saveCommentImmediately(); // Захоўваем каментар перад пераходам
+      await saveCommentImmediately(); // Захоўваем камэнтар перад пераходам
       await onSaveManualCategories(lemma, linguisticTag);
       setShowManualInput(false);
       // Пасля захавання мы вяртаемся да выбару прапанаваных опцый
@@ -164,7 +164,7 @@ export function EditingPanel({
     // Кнопка "Вярнуцца да ручнага ўводу" будзе даступная
   };
 
-  // Захоўваем каментар з дэбаўнсінгам
+  // Захоўваем камэнтар з дэбаўнсінгам
   const handleCommentChange = (newComment: string) => {
     setComment(newComment);
 
@@ -185,7 +185,7 @@ export function EditingPanel({
           await onSaveComment(newComment);
           lastSavedCommentRef.current = newComment;
         } catch (error) {
-          console.error('Памылка захавання каментара:', error);
+          console.error('Памылка захавання камэнтара:', error);
         } finally {
           setIsSavingComment(false);
         }
@@ -561,11 +561,11 @@ export function EditingPanel({
             </div>
           </div>
 
-          {/* Каментар */}
+          {/* Камэнтар */}
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <label className="text-sm font-medium text-gray-700">
-                Каментар
+                Камэнтар
               </label>
               {isSavingComment && (
                 <div className="text-xs text-gray-500 flex items-center">
@@ -577,7 +577,7 @@ export function EditingPanel({
             <textarea
               value={comment}
               onChange={e => handleCommentChange(e.target.value)}
-              placeholder="Дадайце каментар да гэтага слова..."
+              placeholder="Дадайце камэнтар да гэтага слова..."
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               rows={3}
               style={{ minHeight: '80px' }}

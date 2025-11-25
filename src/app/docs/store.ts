@@ -3,27 +3,28 @@ import { DocumentData, DocumentHeader } from './types';
 import { DocumentService } from './service';
 
 interface DocumentState {
-  // Данныя дакумента
+  // Данныя дакумэнта
   documentData: DocumentData | null;
   documentsList: DocumentHeader[];
-  
+
   // Стан загрузкі
   loading: boolean;
   loadingMore: boolean;
   error: string | null;
-  
+
   // Пагінацыя
   hasMore: boolean;
   lastParagraphId: number;
-  
+
   // Сэрвіс
   documentService: DocumentService | null;
-  
+
   // Дзеянні
   setDocumentService: (service: DocumentService) => void;
   fetchDocument: (documentId: string, skipUpToId?: number, isInitial?: boolean) => Promise<void>;
   reloadDocument: (documentId: string) => Promise<void>;
   fetchDocuments: () => Promise<void>;
+  refreshDocumentHeader: (documentId: number) => Promise<void>;
   updateDocument: (updater: (prev: DocumentData | null) => DocumentData | null) => void;
   clearDocument: () => void;
   setError: (error: string | null) => void;
@@ -62,8 +63,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       if (isInitial) {
         set({
           documentData: data,
-          lastParagraphId: data.paragraphs.length > 0 
-            ? data.paragraphs[data.paragraphs.length - 1].id 
+          lastParagraphId: data.paragraphs.length > 0
+            ? data.paragraphs[data.paragraphs.length - 1].id
             : 0,
           hasMore: data.paragraphs.length === 20,
           loading: false,
@@ -74,8 +75,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
             ...state.documentData,
             paragraphs: [...state.documentData.paragraphs, ...data.paragraphs],
           } : data,
-          lastParagraphId: data.paragraphs.length > 0 
-            ? data.paragraphs[data.paragraphs.length - 1].id 
+          lastParagraphId: data.paragraphs.length > 0
+            ? data.paragraphs[data.paragraphs.length - 1].id
             : 0,
           hasMore: data.paragraphs.length === 20,
           loadingMore: false,
@@ -83,10 +84,10 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Невядомая памылка';
-      set({ 
-        error: errorMessage, 
-        loading: false, 
-        loadingMore: false 
+      set({
+        error: errorMessage,
+        loading: false,
+        loadingMore: false
       });
     }
   },
@@ -130,6 +131,25 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Невядомая памылка';
       set({ error: errorMessage, loading: false });
+    }
+  },
+
+  refreshDocumentHeader: async (documentId: number) => {
+    const { documentService } = get();
+    if (!documentService) {
+      return;
+    }
+
+    try {
+      const updatedHeader = await documentService.refreshDocument(documentId);
+      set(state => ({
+        documentsList: state.documentsList.map(doc =>
+          doc.n === documentId ? updatedHeader : doc
+        )
+      }));
+    } catch (err) {
+      console.error('Failed to refresh document:', err);
+      // Optionally handle error in UI
     }
   },
 

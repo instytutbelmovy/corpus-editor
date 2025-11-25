@@ -21,7 +21,7 @@ public sealed class EpubReader : IDocumentReader
         var htmlDoc = new HtmlDocument();
         htmlDoc.LoadHtml(htmlContent);
 
-        // Збіраем усе элементы
+        // Збіраем усе элемэнты
         var elements = htmlDoc.DocumentNode.SelectNodes("//p | //h1 | //h2 | //h3 | //h4 | //h5 | //h6 | //div");
 
         if (elements == null)
@@ -37,7 +37,7 @@ public sealed class EpubReader : IDocumentReader
                 // Збіраем усе радкі паэзіі ў адзін параграф
                 var poetryLines = new List<string>();
 
-                // Праходзім па ўсіх наступных элементах, пакуль не сустрэнем не-паэзію
+                // Праходзім па ўсіх наступных элемэнтах, пакуль не сустрэнем не-паэзію
                 while (i < elements.Count && IsPoetryBlock(elements[i]))
                 {
                     // Збіраем усе параграфы ўнутры блока паэзіі

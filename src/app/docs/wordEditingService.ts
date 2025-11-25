@@ -124,7 +124,7 @@ export class WordEditingService {
           if (sentence.id !== selectedWord.sentenceId) continue;
           const item = sentence.sentenceItems[selectedWord.wordIndex];
           item.linguisticItem.paradigmFormId = paradigmFormId;
-          
+
           // Знаходзім выбраны GrammarInfo
           const selectedOption = selectedWord.options.find(
             opt =>
@@ -265,9 +265,9 @@ export class WordEditingService {
           linguisticTag: null,
           metadata: selectedWord.item.metadata
             ? {
-                ...selectedWord.item.metadata,
-                resolvedOn: null,
-              }
+              ...selectedWord.item.metadata,
+              resolvedOn: null,
+            }
             : null,
         },
         options: newOptions,
@@ -388,7 +388,7 @@ export class WordEditingService {
     }
   }
 
-  // Захаванне каментара
+  // Захаванне камэнтара
   async saveComment(
     documentId: string,
     selectedWord: SelectedWord,
@@ -397,7 +397,7 @@ export class WordEditingService {
     const { updateDocument } = useDocumentStore.getState();
     const { setSelectedWord } = useUIStore.getState();
 
-    // Правяраем, ці змяніўся каментар
+    // Правяраем, ці змяніўся камэнтар
     if (selectedWord.item.comment === comment) {
       return;
     }
@@ -428,7 +428,7 @@ export class WordEditingService {
         return newData;
       });
 
-      // Абнаўляем выбранае слова з новым каментарам
+      // Абнаўляем выбранае слова з новым камэнтарам
       setSelectedWord({
         ...selectedWord,
         item: {
@@ -437,8 +437,8 @@ export class WordEditingService {
         },
       });
     } catch (err) {
-      console.error('Памылка захавання каментара:', err);
-      // Для каментараў не паказваем памылку карыстальніку, толькі логуем
+      console.error('Памылка захавання камэнтара:', err);
+      // Для камэнтараў не паказваем памылку карыстальніку, толькі логуем
     }
   }
 }

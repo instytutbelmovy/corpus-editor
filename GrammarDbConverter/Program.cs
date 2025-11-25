@@ -132,7 +132,7 @@ public class GrammarDbConverter
 
         if (root == null)
         {
-            _logger.LogWarning("Файл {file} не змяшчае каранёвага элемента", xmlFilePath);
+            _logger.LogWarning("Файл {file} не змяшчае каранёвага элемэнта", xmlFilePath);
             return (paradigms, forms);
         }
 
@@ -223,7 +223,7 @@ public class GrammarDbConverter
             using var command = new SqliteCommand(insertSql, connection);
             command.Transaction = transaction;
 
-            // Дадаем параметры
+            // Дадаем парамэтры
             command.Parameters.Add("@ParadigmId", SqliteType.Integer);
             command.Parameters.Add("@VariantId", SqliteType.Text);
             command.Parameters.Add("@Lemma", SqliteType.Text);
@@ -258,7 +258,7 @@ public class GrammarDbConverter
 
         using var command = new SqliteCommand(insertSql, connection);
 
-        // Дадаем параметры
+        // Дадаем парамэтры
         command.Parameters.Add("@ParadigmId", SqliteType.Integer);
         command.Parameters.Add("@VariantId", SqliteType.Text);
         command.Parameters.Add("@Lemma", SqliteType.Text);
@@ -329,7 +329,7 @@ public class GrammarDbConverter
             using var command = new SqliteCommand(insertSql, connection);
             command.Transaction = transaction;
 
-            // Дадаем параметры
+            // Дадаем парамэтры
             command.Parameters.Add("@NormalizedForm", SqliteType.Text);
             command.Parameters.Add("@Paradigms", SqliteType.Text);
 
@@ -358,7 +358,7 @@ public class GrammarDbConverter
 
         using var command = new SqliteCommand(insertSql, connection);
 
-        // Дадаем параметры
+        // Дадаем парамэтры
         command.Parameters.Add("@NormalizedForm", SqliteType.Text);
         command.Parameters.Add("@Paradigms", SqliteType.Text);
 

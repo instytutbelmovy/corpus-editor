@@ -6,10 +6,10 @@ import { ParadigmFormId, LinguisticTag } from '../types';
 
 export function useWordEditing(documentId: string, wordEditingService: WordEditingService) {
   const { selectedWord } = useWordSelection();
-  const { 
-    setIsSavingText, 
-    setIsSavingManual, 
-    setIsSavingComment 
+  const {
+    setIsSavingText,
+    setIsSavingManual,
+    setIsSavingComment
   } = useUIStore();
 
   const handleSaveParadigm = useCallback(async (paradigmFormId: ParadigmFormId) => {
@@ -57,7 +57,7 @@ export function useWordEditing(documentId: string, wordEditingService: WordEditi
     try {
       await wordEditingService.saveComment(documentId, selectedWord, comment);
     } catch (error) {
-      console.error('Памылка захавання каментара:', error);
+      console.error('Памылка захавання камэнтара:', error);
     } finally {
       setIsSavingComment(false);
     }

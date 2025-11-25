@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { DocumentHeader } from '@/app/docs/types';
+import { Roles } from '@/app/auth/types';
 
 interface DocumentsTableProps {
   documents: DocumentHeader[];
   isExpanded: boolean;
+  onRefresh?: (documentId: number) => void;
+  userRole?: Roles;
 }
 
-export const DocumentsTable = ({ documents, isExpanded }: DocumentsTableProps) => {
+export const DocumentsTable = ({ documents, isExpanded, onRefresh, userRole }: DocumentsTableProps) => {
   const [openMenu, setOpenMenu] = useState<number | null>(null);
 
   useEffect(() => {
@@ -152,7 +155,7 @@ export const DocumentsTable = ({ documents, isExpanded }: DocumentsTableProps) =
                             <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
-                            Метаданыя
+                            Мэтаданыя
                           </Link>
                           <button
                             onClick={(event) => {
@@ -166,6 +169,20 @@ export const DocumentsTable = ({ documents, isExpanded }: DocumentsTableProps) =
                             </svg>
                             Сьцягнуць
                           </button>
+                          {userRole === Roles.Admin && (
+                            <button
+                              onClick={(event) => {
+                                handleMenuActionClick(event);
+                                onRefresh?.(doc.n);
+                              }}
+                              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
+                            >
+                              <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                              Абнавіць
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}

@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { 
-  BaseDocumentFormData, 
-  NewDocumentFormData, 
+import {
+  BaseDocumentFormData,
+  NewDocumentFormData,
   MetadataFormData,
   FormErrors,
-  textTypeOptions, 
-  styleOptions 
+  textTypeOptions,
+  styleOptions
 } from '../formTypes';
 
 interface DocumentFormProps<T extends NewDocumentFormData | MetadataFormData> {
@@ -59,11 +59,11 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
     const newErrors: FormErrors = {};
 
     if (showDocumentId && 'n' in formData && (!formData.n || formData.n <= 0)) {
-      newErrors.n = 'Нумар дакумента павінен быць дадатным лікам';
+      newErrors.n = 'Нумар дакумэнта павінен быць дадатным лікам';
     }
 
     if (!formData.title.trim()) {
-      newErrors.title = 'Назва дакумента абавязковая';
+      newErrors.title = 'Назва дакумэнта абавязковая';
     }
 
     if (showFileUpload && 'file' in formData) {
@@ -83,7 +83,7 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -127,23 +127,22 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
               </div>
             )}
 
-            {/* Нумар дакумента і год публікацыі */}
+            {/* Нумар дакумэнта і год публікацыі */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Нумар дакумента */}
+              {/* Нумар дакумэнта */}
               {showDocumentId && (
                 <div>
                   <label htmlFor="n" className="block text-sm font-medium text-gray-700 mb-2">
-                    Нумар дакумента *
+                    Нумар дакумэнта *
                   </label>
                   <input
                     type="number"
                     id="n"
                     value={'n' in formData ? formData.n || '' : ''}
                     onChange={(e) => handleInputChange('n' as keyof BaseDocumentFormData, parseInt(e.target.value) || 0)}
-                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                      errors.n ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                    placeholder="Увядзіце нумар дакумента"
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.n ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                    placeholder="Увядзіце нумар дакумэнта"
                   />
                   {errors.n && (
                     <p className="mt-1 text-sm text-red-600">{errors.n}</p>
@@ -161,9 +160,8 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
                   id="publicationDate"
                   value={formData.publicationDate || ''}
                   onChange={(e) => handleInputChange('publicationDate', e.target.value || undefined)}
-                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.publicationDate ? 'border-red-300' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.publicationDate ? 'border-red-300' : 'border-gray-300'
+                    }`}
                   placeholder="2024"
                   pattern="[0-9]{4}"
                   title="Увядзіце год у фармаце YYYY"
@@ -184,10 +182,9 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
                 id="title"
                 value={formData.title}
                 onChange={(e) => handleInputChange('title', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.title ? 'border-red-300' : 'border-gray-300'
-                }`}
-                placeholder="Увядзіце назву дакумента"
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.title ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                placeholder="Увядзіце назву дакумэнта"
               />
               {errors.title && (
                 <p className="mt-1 text-sm text-red-600">{errors.title}</p>
@@ -254,7 +251,7 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
             {showFileUpload && (
               <div>
                 <label htmlFor="file" className="block text-sm font-medium text-gray-700 mb-2">
-                  Файл дакумента *
+                  Файл дакумэнта *
                 </label>
                 <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
                   <div className="space-y-1 text-center">

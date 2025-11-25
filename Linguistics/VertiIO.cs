@@ -232,7 +232,7 @@ public static class VertiIO
                     }
                     else
                     {
-                        throw new ArgumentException($"Невядомы тып элемента: {item.Type}");
+                        throw new ArgumentException($"Невядомы тып элемэнта: {item.Type}");
                     }
                 }
                 await writer.WriteLineAsync("</s>");
