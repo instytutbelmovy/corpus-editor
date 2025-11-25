@@ -36,15 +36,14 @@ public static class Editing
 {
     public static void MapEditing(this IEndpointRouteBuilder builder)
     {
-        var todosApi = builder.MapGroup("/api/registry-files");
-        todosApi.MapGet("/{n:int}", GetDocument).Viewer();
-        todosApi.MapGet("/{n:int}/download", DownloadDocument).Viewer();
-        todosApi.MapPut("/{n:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/paradigm-form-id", PutParadigmFormId).Editor();
-        todosApi.MapPut("/{n:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/lemma-tag", PutLemmaTags).Editor();
-        todosApi.MapPut("/{n:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/text", PutText).Editor();
-        todosApi.MapPut("/{n:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/comment", PutComment).Editor();
-        todosApi.MapGet("/{id}/metadata", GetMetadata).Viewer();
-        todosApi.MapPut("/{id}/metadata", PutMetadata).Editor();
+        var group = builder.MapGroup("/api/registry-files");
+        group.MapGet("/{n:int}", GetDocument).Viewer();
+        group.MapPut("/{n:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/paradigm-form-id", PutParadigmFormId).Editor();
+        group.MapPut("/{n:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/lemma-tag", PutLemmaTags).Editor();
+        group.MapPut("/{n:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/text", PutText).Editor();
+        group.MapPut("/{n:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/comment", PutComment).Editor();
+        group.MapGet("/{id}/metadata", GetMetadata).Viewer();
+        group.MapPut("/{id}/metadata", PutMetadata).Editor();
     }
 
     public static async Task<CorpusDocumentView> GetDocument(int n, GrammarDb grammarDb, AwsFilesCache awsFilesCache, int skipUpToId = 0, int take = 20)
@@ -69,24 +68,6 @@ public static class Editing
                                 .Select(si => new LinguisticItemView(si, si.Type == SentenceItemType.Word ? grammarDb.LookupWord(si.Text, pickCustomWords: true).Select(x => x with { Lemma = Normalizer.NormalizeTypographicStress(x.Lemma) }) : [])),
                         }),
                 }));
-    }
-
-    public static async Task<IResult> DownloadDocument(int n, AwsFilesCache awsFilesCache)
-    {
-        if (n < 0)
-            throw new BadRequestException();
-
-        try
-        {
-            var stream = await awsFilesCache.GetRawFile(n);
-            var fileName = $"{n}.verti";
-
-            return Results.File(stream, "text/plain", fileName);
-        }
-        catch (FileNotFoundException)
-        {
-            throw new NotFoundException();
-        }
     }
 
     public static async Task PutParadigmFormId(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] ParadigmFormId paradigmFormId, GrammarDb grammarDb, AwsFilesCache awsFilesCache)

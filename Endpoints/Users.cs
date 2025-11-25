@@ -8,11 +8,11 @@ public static class Users
 {
     public static void MapUsers(this IEndpointRouteBuilder builder)
     {
-        var authApi = builder.MapGroup("/api/users");
-        authApi.MapGet("/", GetAllUsers).Admin();
-        authApi.MapPost("/", CreateUser).Validate<EditorUserCreateDto>().Admin();
-        authApi.MapPut("/{id}", UpdateUser).Validate<EditorUserCreateDto>().Admin();
-        authApi.MapPost("/{id}/invite", InviteUser).Validate<InviteUserRequest>().Admin();
+        var group = builder.MapGroup("/api/users");
+        group.MapGet("/", GetAllUsers).Admin();
+        group.MapPost("/", CreateUser).Validate<EditorUserCreateDto>().Admin();
+        group.MapPut("/{id}", UpdateUser).Validate<EditorUserCreateDto>().Admin();
+        group.MapPost("/{id}/invite", InviteUser).Validate<InviteUserRequest>().Admin();
     }
 
     private static IEnumerable<EditorUserDto> GetAllUsers(

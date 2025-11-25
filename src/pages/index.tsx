@@ -8,7 +8,7 @@ export default function Home() {
   const { documentsList, loading, error, fetchDocuments, documentService } = useDocumentStore();
   const { displayMode, setDisplayMode } = useUIStore();
   const [openMenu, setOpenMenu] = useState<number | null>(null);
-  
+
   const isExpanded = displayMode === 'full';
 
   useEffect(() => {
@@ -79,9 +79,8 @@ export default function Home() {
                     }}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${
-                        isExpanded ? 'translate-x-6' : 'translate-x-1'
-                      }`}
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${isExpanded ? 'translate-x-6' : 'translate-x-1'
+                        }`}
                     />
                   </button>
                 </div>
@@ -201,7 +200,7 @@ export default function Home() {
                               <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                             </svg>
                           </button>
-                          
+
                           {openMenu === doc.n && (
                             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border border-gray-200">
                               <div className="py-1">
@@ -225,7 +224,7 @@ export default function Home() {
                                   <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                   </svg>
-                                  Сцягнуць
+                                  Сьцягнуць
                                 </button>
                               </div>
                             </div>

@@ -6,9 +6,11 @@ public static class Registry
 {
     public static void MapRegistry(this IEndpointRouteBuilder builder)
     {
-        var todosApi = builder.MapGroup("/api/registry-files");
-        todosApi.MapGet("/", GetAllFiles).Viewer();
-        todosApi.MapPost("/", UploadFile).Editor();
+        var group = builder.MapGroup("/api/registry-files");
+        group.MapGet("/", GetAllFiles).Viewer();
+        group.MapPost("/", UploadFile).Editor();
+        group.MapGet("/{n:int}/download", DownloadFile).Viewer();
+        group.MapPost("/{n:int}/refresh", ReloadFile).Admin();
     }
 
     public static ValueTask<ICollection<CorpusDocumentHeader>> GetAllFiles(AwsFilesCache awsFilesCache)
@@ -80,5 +82,31 @@ public static class Registry
                     : null,
             };
         }
+    }
+
+    public static async Task<IResult> DownloadFile(int n, AwsFilesCache awsFilesCache)
+    {
+        if (n < 0)
+            throw new BadRequestException();
+
+        try
+        {
+            var stream = await awsFilesCache.GetRawFile(n);
+            var fileName = $"{n}.verti";
+
+            return Results.File(stream, "text/plain", fileName);
+        }
+        catch (FileNotFoundException)
+        {
+            throw new NotFoundException();
+        }
+    }
+
+    public static async Task<CorpusDocumentHeader> ReloadFile(int n, AwsFilesCache awsFilesCache)
+    {
+        if (n < 0)
+            throw new BadRequestException();
+
+        return await awsFilesCache.ReloadFile(n);
     }
 }

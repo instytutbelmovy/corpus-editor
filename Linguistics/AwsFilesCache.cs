@@ -61,7 +61,7 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
                     corpusDocument = rewriteCorpusDocument;
                 }
 
-                document = _documents.GetOrAdd(n, _ => new Document { CorpusDocument = corpusDocument, LastAccessedOn = DateTime.UtcNow });
+                _documents[n] = document = new Document { CorpusDocument = corpusDocument, LastAccessedOn = DateTime.UtcNow };
             }
 
             document.LastAccessedOn = DateTime.UtcNow;
@@ -90,11 +90,40 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
                 corpusDocument = rewriteCorpusDocument;
             }
 
-            document = _documents.GetOrAdd(n, _ => new Document { CorpusDocument = corpusDocument, LastAccessedOn = DateTime.UtcNow });
+            _documents[n] = document = new Document { CorpusDocument = corpusDocument, LastAccessedOn = DateTime.UtcNow };
         }
 
         document.LastAccessedOn = DateTime.UtcNow;
         return (new DocumentLockWrapper(documentLock), document.CorpusDocument);
+    }
+
+    public async Task<CorpusDocumentHeader> ReloadFile(int n)
+    {
+        await _initialized.Task;
+
+        var documentLock = GetDocumentLock(n);
+        await documentLock.WaitAsync();
+        try
+        {
+            var objectKey = $"{n}.verti";
+            var corpusDocument = await ReadDocumentFromS3(objectKey);
+            var rewriteCorpusDocument = CorpusDocument.CheckIdsAndConcurrencyStamps(corpusDocument);
+            if (rewriteCorpusDocument != null)
+            {
+                await WriteDocumentToS3(objectKey, rewriteCorpusDocument);
+                corpusDocument = rewriteCorpusDocument;
+            }
+
+            if (_documents.ContainsKey(n))
+                _documents[n] = new Document { CorpusDocument = corpusDocument, LastAccessedOn = DateTime.UtcNow };
+            _documentHeaders[n] = corpusDocument.Header;
+
+            return corpusDocument.Header;
+        }
+        finally
+        {
+            documentLock.Release();
+        }
     }
 
     public async Task<Stream> GetRawFile(int n)

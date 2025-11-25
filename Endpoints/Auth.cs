@@ -8,13 +8,13 @@ public static class Auth
 {
     public static void MapAuth(this IEndpointRouteBuilder builder)
     {
-        var authApi = builder.MapGroup("/api/auth");
-        authApi.MapPost("/sign-in", SignIn).Validate<SignInRequest>();
-        authApi.MapPost("/sign-out", SignOut);
-        authApi.MapGet("/who-am-i", WhoAmI);
-        authApi.MapPost("/forgot-password", ForgotPassword).Validate<ForgotPasswordRequest>();
-        authApi.MapPost("/reset-password", ResetPassword).Validate<ResetPasswordRequest>();
-        authApi.MapGet("/config", GetConfig);
+        var group = builder.MapGroup("/api/auth");
+        group.MapPost("/sign-in", SignIn).Validate<SignInRequest>();
+        group.MapPost("/sign-out", SignOut);
+        group.MapGet("/who-am-i", WhoAmI);
+        group.MapPost("/forgot-password", ForgotPassword).Validate<ForgotPasswordRequest>();
+        group.MapPost("/reset-password", ResetPassword).Validate<ResetPasswordRequest>();
+        group.MapGet("/config", GetConfig);
     }
 
     private static async Task<WhoAmIResponse> SignIn(
