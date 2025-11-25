@@ -96,6 +96,7 @@ public class NullDbSynchronizer : IDbSynchronizer
 
 public class EditorDbPushingService : IHostedService
 {
+    private const int RetryAttempts = 3;
     private readonly string _localDbPath;
     private readonly IDbSynchronizer _dbSynchronizer;
     private readonly ILogger _logger;
@@ -117,8 +118,15 @@ public class EditorDbPushingService : IHostedService
 
     private void OnChanged(object sender, FileSystemEventArgs e)
     {
-        Task.Factory.StartNew(async () =>
+        Task.Factory.StartNew(async () => { await AttemptPush(1); });
+
+        return;
+
+        async Task AttemptPush(int attempt)
         {
+            if (attempt != 1)
+                _logger.LogInformation("Attempt #{attempt} to push the database file", attempt);
+
             await _watcherSemaphore.WaitAsync();
             try
             {
@@ -127,12 +135,20 @@ public class EditorDbPushingService : IHostedService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to push the database file");
+                if (attempt < RetryAttempts)
+                {
+                    Task.Factory.StartNew(async () =>
+                    {
+                        await Task.Delay(2000);
+                        await AttemptPush(attempt + 1);
+                    });
+                }
             }
             finally
             {
                 _watcherSemaphore.Release();
             }
-        });
+        }
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
