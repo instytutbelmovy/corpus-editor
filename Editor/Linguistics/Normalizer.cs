@@ -73,7 +73,7 @@ public static class Normalizer
     
     public static bool IsApostrophe(char ch) => AllApostrophes.Contains(ch);
     
-    public static bool IsLetter(char ch) => char.IsLetter(ch);
+    public static bool IsLetter(char ch) => char.IsLetter(ch) || char.IsDigit(ch);
 
     private static string NormalizeWith(string word, Dictionary<char, char> mapping)
     {

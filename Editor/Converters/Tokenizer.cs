@@ -20,7 +20,7 @@ public static class Tokenizer
         var currentWord = new StringBuilder();
         var currentTail = new StringBuilder();
 
-        void AppendCharacter(char ch)
+        void AppendTailCharacter(char ch)
         {
             if (currentTail.Length == 0)
             {
@@ -93,7 +93,7 @@ public static class Tokenizer
                 }
                 else
                 {
-                    AppendCharacter(ch);
+                    AppendTailCharacter(ch);
                     CloseWord();
                     result.Add(new Token("", TokenType.SentenceSeparator));
                 }
@@ -106,7 +106,7 @@ public static class Tokenizer
                 }
                 else
                 {
-                    AppendCharacter(ch);
+                    AppendTailCharacter(ch);
                 }
             }
             else if (Normalizer.IsLetter(ch) || ch == '[' || ch == ']')
@@ -119,7 +119,7 @@ public static class Tokenizer
             }
             else
             {
-                AppendCharacter(ch);
+                AppendTailCharacter(ch);
             }
 
             i++;
