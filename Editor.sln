@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.9.34723.18
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Editor", "Editor.csproj", "{3564F4D0-0FCB-479D-A7CE-44FDFAFBAEEC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Editor", "Editor\Editor.csproj", "{3564F4D0-0FCB-479D-A7CE-44FDFAFBAEEC}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GrammarDbConverter", "GrammarDbConverter\GrammarDbConverter.csproj", "{ABC873AC-FB48-4028-B177-44A399E3C7D7}"
 EndProject
