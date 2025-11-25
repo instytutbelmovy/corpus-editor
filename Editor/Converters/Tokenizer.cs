@@ -6,6 +6,7 @@ public enum TokenType
 {
     AlphaNumeric = 1,
     NonAlphaNumeric = 2,
+    WordSeparator = 3,
     SentenceSeparator = 3,
     LineBreak = 4,
 }

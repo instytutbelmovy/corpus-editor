@@ -13,11 +13,12 @@ public class TokenizerTests
     }
 
     [Fact]
-    public void Parse_WhiteSpaceOnly_ReturnsEmptyList()
+    public void Parse_WhiteSpaceOnly_ReturnsWordSeparator()
     {
         var result = Tokenizer.Parse("   ");
 
-        Assert.Empty(result);
+        Assert.Single(result);
+        Assert.True(result[0] is { Type: TokenType.WordSeparator });
     }
 
     [Fact]
@@ -26,8 +27,7 @@ public class TokenizerTests
         var result = Tokenizer.Parse("слова");
 
         Assert.Single(result);
-        Assert.Equal("слова", result[0].Text);
-        Assert.Equal(TokenType.AlphaNumeric, result[0].Type);
+        Assert.True(result[0] is { Text: "слова", Type: TokenType.AlphaNumeric });
     }
 
     [Fact]
@@ -36,12 +36,9 @@ public class TokenizerTests
         var result = Tokenizer.Parse("першае другое");
 
         Assert.Equal(3, result.Count);
-        Assert.Equal("першае", result[0].Text);
-        Assert.Equal(TokenType.AlphaNumeric, result[0].Type);
-        Assert.Equal(" ", result[1].Text);
-        Assert.Equal(TokenType.NonAlphaNumeric, result[1].Type);
-        Assert.Equal("другое", result[2].Text);
-        Assert.Equal(TokenType.AlphaNumeric, result[2].Type);
+        Assert.True(result[0] is { Text: "першае", Type: TokenType.AlphaNumeric });
+        Assert.True(result[1] is { Text: " ", Type: TokenType.NonAlphaNumeric });
+        Assert.True(result[2] is { Text: "другое", Type: TokenType.AlphaNumeric });
     }
 
     [Fact]
@@ -50,12 +47,9 @@ public class TokenizerTests
         var result = Tokenizer.Parse("слова.");
 
         Assert.Equal(3, result.Count);
-        Assert.Equal("слова", result[0].Text);
-        Assert.Equal(TokenType.AlphaNumeric, result[0].Type);
-        Assert.Equal(".", result[1].Text);
-        Assert.Equal(TokenType.NonAlphaNumeric, result[1].Type);
-        Assert.Equal("", result[2].Text);
-        Assert.Equal(TokenType.SentenceSeparator, result[2].Type);
+        Assert.True(result[0] is { Text: "слова", Type: TokenType.AlphaNumeric });
+        Assert.True(result[1] is { Text: ".", Type: TokenType.NonAlphaNumeric });
+        Assert.True(result[2] is { Type: TokenType.SentenceSeparator });
     }
 
     [Fact]
@@ -64,11 +58,9 @@ public class TokenizerTests
         var result = Tokenizer.Parse("слова?");
 
         Assert.Equal(3, result.Count);
-        Assert.Equal("слова", result[0].Text);
-        Assert.Equal("?", result[1].Text);
-        Assert.Equal(TokenType.NonAlphaNumeric, result[1].Type);
-        Assert.Equal("", result[2].Text);
-        Assert.Equal(TokenType.SentenceSeparator, result[2].Type);
+        Assert.True(result[0] is { Text: "слова" });
+        Assert.True(result[1] is { Text: "?", Type: TokenType.NonAlphaNumeric });
+        Assert.True(result[2] is { Type: TokenType.SentenceSeparator });
     }
 
     [Fact]
@@ -77,11 +69,9 @@ public class TokenizerTests
         var result = Tokenizer.Parse("слова!");
 
         Assert.Equal(3, result.Count);
-        Assert.Equal("слова", result[0].Text);
-        Assert.Equal("!", result[1].Text);
-        Assert.Equal(TokenType.NonAlphaNumeric, result[1].Type);
-        Assert.Equal("", result[2].Text);
-        Assert.Equal(TokenType.SentenceSeparator, result[2].Type);
+        Assert.True(result[0] is { Text: "слова" });
+        Assert.True(result[1] is { Text: "!", Type: TokenType.NonAlphaNumeric });
+        Assert.True(result[2] is { Type: TokenType.SentenceSeparator });
     }
 
     [Fact]
@@ -90,11 +80,9 @@ public class TokenizerTests
         var result = Tokenizer.Parse("слова...");
 
         Assert.Equal(3, result.Count);
-        Assert.Equal("слова", result[0].Text);
-        Assert.Equal("...", result[1].Text);
-        Assert.Equal(TokenType.NonAlphaNumeric, result[1].Type);
-        Assert.Equal("", result[2].Text);
-        Assert.Equal(TokenType.SentenceSeparator, result[2].Type);
+        Assert.True(result[0] is { Text: "слова" });
+        Assert.True(result[1] is { Text: "...", Type: TokenType.NonAlphaNumeric });
+        Assert.True(result[2] is { Type: TokenType.SentenceSeparator });
     }
 
     [Fact]
@@ -103,8 +91,7 @@ public class TokenizerTests
         var result = Tokenizer.Parse("вераб'і");
 
         Assert.Single(result);
-        Assert.Equal("верабʼі", result[0].Text);
-        Assert.Equal(TokenType.AlphaNumeric, result[0].Type);
+        Assert.True(result[0] is { Text: "верабʼі", Type: TokenType.AlphaNumeric });
     }
 
     [Fact]
@@ -113,8 +100,7 @@ public class TokenizerTests
         var result = Tokenizer.Parse("кветка-роза");
 
         Assert.Single(result);
-        Assert.Equal("кветка-роза", result[0].Text);
-        Assert.Equal(TokenType.AlphaNumeric, result[0].Type);
+        Assert.True(result[0] is { Text: "кветка-роза", Type: TokenType.AlphaNumeric });
     }
 
     [Fact]
@@ -123,12 +109,9 @@ public class TokenizerTests
         var result = Tokenizer.Parse("слова\nслова");
 
         Assert.Equal(3, result.Count);
-        Assert.Equal("слова", result[0].Text);
-        Assert.Equal(TokenType.AlphaNumeric, result[0].Type);
-        Assert.Equal("", result[1].Text);
-        Assert.Equal(TokenType.LineBreak, result[1].Type);
-        Assert.Equal("слова", result[2].Text);
-        Assert.Equal(TokenType.AlphaNumeric, result[2].Type);
+        Assert.True(result[0] is { Text: "слова", Type: TokenType.AlphaNumeric });
+        Assert.True(result[1] is { Text: "", Type: TokenType.LineBreak });
+        Assert.True(result[2] is { Text: "слова", Type: TokenType.AlphaNumeric });
     }
 
     [Fact]
@@ -137,8 +120,7 @@ public class TokenizerTests
         var result = Tokenizer.Parse("   слова");
 
         Assert.Single(result);
-        Assert.Equal("слова", result[0].Text);
-        Assert.Equal(TokenType.AlphaNumeric, result[0].Type);
+        Assert.True(result[0] is { Text: "слова", Type: TokenType.AlphaNumeric });
     }
 
     [Fact]
@@ -147,8 +129,7 @@ public class TokenizerTests
         var result = Tokenizer.Parse("слова   ");
 
         Assert.Single(result);
-        Assert.Equal("слова", result[0].Text);
-        Assert.Equal(TokenType.AlphaNumeric, result[0].Type);
+        Assert.True(result[0] is { Text: "слова", Type: TokenType.AlphaNumeric });
     }
 
     [Fact]
@@ -157,12 +138,9 @@ public class TokenizerTests
         var result = Tokenizer.Parse("першае, другое");
 
         Assert.Equal(3, result.Count);
-        Assert.Equal("першае", result[0].Text);
-        Assert.Equal(TokenType.AlphaNumeric, result[0].Type);
-        Assert.Equal(", ", result[1].Text);
-        Assert.Equal(TokenType.NonAlphaNumeric, result[1].Type);
-        Assert.Equal("другое", result[2].Text);
-        Assert.Equal(TokenType.AlphaNumeric, result[2].Type);
+        Assert.True(result[0] is { Text: "першае", Type: TokenType.AlphaNumeric });
+        Assert.True(result[1] is { Text: ", ", Type: TokenType.NonAlphaNumeric });
+        Assert.True(result[2] is { Text: "другое", Type: TokenType.AlphaNumeric });
     }
 
     [Fact]
@@ -171,21 +149,19 @@ public class TokenizerTests
         var result = Tokenizer.Parse("Гэта першае слова, а гэта другое!");
 
         Assert.Equal(13, result.Count);
-        Assert.Equal("Гэта", result[0].Text);
-        Assert.Equal(TokenType.AlphaNumeric, result[0].Type);
-        Assert.Equal(" ", result[1].Text);
-        Assert.Equal("першае", result[2].Text);
-        Assert.Equal(" ", result[3].Text);
-        Assert.Equal("слова", result[4].Text);
-        Assert.Equal(", ", result[5].Text);
-        Assert.Equal(TokenType.NonAlphaNumeric, result[5].Type);
-        Assert.Equal("а", result[6].Text);
-        Assert.Equal(" ", result[7].Text);
-        Assert.Equal("гэта", result[8].Text);
-        Assert.Equal(" ", result[9].Text);
-        Assert.Equal("другое", result[10].Text);
-        Assert.Equal("!", result[11].Text);
-        Assert.Equal(TokenType.SentenceSeparator, result[12].Type);
+        Assert.True(result[0] is { Text: "Гэта", Type: TokenType.AlphaNumeric });
+        Assert.True(result[1] is { Text: " " });
+        Assert.True(result[2] is { Text: "першае" });
+        Assert.True(result[3] is { Text: " " });
+        Assert.True(result[4] is { Text: "слова" });
+        Assert.True(result[5] is { Text: ", ", Type: TokenType.NonAlphaNumeric });
+        Assert.True(result[6] is { Text: "а" });
+        Assert.True(result[7] is { Text: " " });
+        Assert.True(result[8] is { Text: "гэта" });
+        Assert.True(result[9] is { Text: " " });
+        Assert.True(result[10] is { Text: "другое" });
+        Assert.True(result[11] is { Text: "!" });
+        Assert.True(result[12] is { Type: TokenType.SentenceSeparator });
     }
 
     [Fact]
@@ -194,8 +170,7 @@ public class TokenizerTests
         var result = Tokenizer.Parse("i");
 
         Assert.Single(result);
-        Assert.Equal("і", result[0].Text);
-        Assert.Equal(TokenType.AlphaNumeric, result[0].Type);
+        Assert.True(result[0] is { Text: "і", Type: TokenType.AlphaNumeric });
     }
 
     [Fact]
@@ -204,16 +179,16 @@ public class TokenizerTests
         var result = Tokenizer.Parse("Вітаю ў \"цудоўным\" «спальным» „вагоне“");
 
         Assert.Equal(10, result.Count);
-        Assert.Equal("Вітаю", result[0].Text);
-        Assert.Equal(" ", result[1].Text);
-        Assert.Equal("ў", result[2].Text);
-        Assert.Equal(" \"", result[3].Text);
-        Assert.Equal("цудоўным", result[4].Text);
-        Assert.Equal("\" «", result[5].Text);
-        Assert.Equal("спальным", result[6].Text);
-        Assert.Equal("» „", result[7].Text);
-        Assert.Equal("вагоне", result[8].Text);
-        Assert.Equal("“", result[9].Text);
+        Assert.True(result[0] is { Text: "Вітаю", Type: TokenType.AlphaNumeric });
+        Assert.True(result[1] is { Text: " ", Type: TokenType.NonAlphaNumeric });
+        Assert.True(result[2] is { Text: "ў", Type: TokenType.AlphaNumeric });
+        Assert.True(result[3] is { Text: " \"", Type: TokenType.NonAlphaNumeric });
+        Assert.True(result[4] is { Text: "цудоўным", Type: TokenType.AlphaNumeric });
+        Assert.True(result[5] is { Text: "\" «", Type: TokenType.NonAlphaNumeric });
+        Assert.True(result[6] is { Text: "спальным", Type: TokenType.AlphaNumeric });
+        Assert.True(result[7] is { Text: "» „", Type: TokenType.NonAlphaNumeric });
+        Assert.True(result[8] is { Text: "вагоне", Type: TokenType.AlphaNumeric });
+        Assert.True(result[9] is { Text: "“", Type: TokenType.NonAlphaNumeric });
     }
 
     [Fact]
@@ -222,10 +197,9 @@ public class TokenizerTests
         var result = Tokenizer.Parse("123 слова");
 
         Assert.Equal(3, result.Count);
-        Assert.Equal("123", result[0].Text);
-        Assert.Equal(TokenType.AlphaNumeric, result[0].Type);
-        Assert.Equal(" ", result[1].Text);
-        Assert.Equal("слова", result[2].Text);
+        Assert.True(result[0] is { Text: "123", Type: TokenType.AlphaNumeric });
+        Assert.True(result[1] is { Text: " " });
+        Assert.True(result[2] is { Text: "слова", Type: TokenType.AlphaNumeric });
     }
 
     [Fact]
@@ -234,10 +208,8 @@ public class TokenizerTests
         var result = Tokenizer.Parse("...");
 
         Assert.Equal(2, result.Count);
-        Assert.Equal("...", result[0].Text);
-        Assert.Equal(TokenType.NonAlphaNumeric, result[0].Type);
-        Assert.Equal("", result[1].Text);
-        Assert.Equal(TokenType.SentenceSeparator, result[1].Type);
+        Assert.True(result[0] is { Text: "...", Type: TokenType.NonAlphaNumeric });
+        Assert.True(result[1] is { Text: "", Type: TokenType.SentenceSeparator });
     }
 }
 

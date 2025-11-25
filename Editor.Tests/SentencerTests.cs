@@ -26,9 +26,7 @@ public class SentencerTests
 
         Assert.Single(result);
         Assert.Single(result[0]);
-        Assert.Equal("слова", result[0][0].Text);
-        Assert.Equal(SentenceItemType.Word, result[0][0].Type);
-        Assert.False(result[0][0].GlueNext);
+        Assert.True(result[0][0] is { Text: "слова", Type: SentenceItemType.Word, GlueNext: false });
     }
 
     [Fact]
@@ -45,12 +43,8 @@ public class SentencerTests
 
         Assert.Single(result);
         Assert.Equal(2, result[0].Count);
-        Assert.Equal("першае", result[0][0].Text);
-        Assert.Equal(SentenceItemType.Word, result[0][0].Type);
-        Assert.False(result[0][0].GlueNext);
-        Assert.Equal("другое", result[0][1].Text);
-        Assert.Equal(SentenceItemType.Word, result[0][1].Type);
-        Assert.False(result[0][1].GlueNext);
+        Assert.True(result[0][0] is { Text: "першае", Type: SentenceItemType.Word, GlueNext: false });
+        Assert.True(result[0][1] is { Text: "другое", Type: SentenceItemType.Word, GlueNext: false });
     }
 
     [Fact]
@@ -66,12 +60,8 @@ public class SentencerTests
 
         Assert.Single(result);
         Assert.Equal(2, result[0].Count);
-        Assert.Equal("слова", result[0][0].Text);
-        Assert.Equal(SentenceItemType.Word, result[0][0].Type);
-        Assert.True(result[0][0].GlueNext);
-        Assert.Equal(".", result[0][1].Text);
-        Assert.Equal(SentenceItemType.Punctuation, result[0][1].Type);
-        Assert.False(result[0][1].GlueNext);
+        Assert.True(result[0][0] is { Text: "слова", Type: SentenceItemType.Word, GlueNext: true });
+        Assert.True(result[0][1] is { Text: ".", Type: SentenceItemType.Punctuation, GlueNext: false });
     }
 
     [Fact]
@@ -91,11 +81,11 @@ public class SentencerTests
 
         Assert.Equal(2, result.Count);
         Assert.Equal(2, result[0].Count);
-        Assert.Equal("першае", result[0][0].Text);
-        Assert.Equal(".", result[0][1].Text);
+        Assert.True(result[0][0] is { Text: "першае" });
+        Assert.True(result[0][1] is { Text: "." });
         Assert.Equal(2, result[1].Count);
-        Assert.Equal("другое", result[1][0].Text);
-        Assert.Equal(".", result[1][1].Text);
+        Assert.True(result[1][0] is { Text: "другое" });
+        Assert.True(result[1][1] is { Text: "." });
     }
 
     [Fact]
@@ -111,7 +101,7 @@ public class SentencerTests
 
         Assert.Single(result);
         Assert.Single(result[0]);
-        Assert.Equal("слова", result[0][0].Text);
+        Assert.True(result[0][0] is { Text: "слова" });
     }
 
     [Fact]
@@ -128,12 +118,9 @@ public class SentencerTests
 
         Assert.Single(result);
         Assert.Equal(3, result[0].Count);
-        Assert.Equal("першае", result[0][0].Text);
-        Assert.Equal(SentenceItemType.Word, result[0][0].Type);
-        Assert.Equal("", result[0][1].Text);
-        Assert.Equal(SentenceItemType.LineBreak, result[0][1].Type);
-        Assert.Equal("другое", result[0][2].Text);
-        Assert.Equal(SentenceItemType.Word, result[0][2].Type);
+        Assert.True(result[0][0] is { Text: "першае", Type: SentenceItemType.Word });
+        Assert.True(result[0][1] is { Text: "", Type: SentenceItemType.LineBreak });
+        Assert.True(result[0][2] is { Text: "другое", Type: SentenceItemType.Word });
     }
 
     [Fact]
@@ -149,8 +136,7 @@ public class SentencerTests
 
         Assert.Single(result);
         Assert.Single(result[0]);
-        Assert.Equal("слова", result[0][0].Text);
-        Assert.Equal(SentenceItemType.Word, result[0][0].Type);
+        Assert.True(result[0][0] is { Text: "слова", Type: SentenceItemType.Word });
     }
 
     [Fact]
@@ -167,13 +153,9 @@ public class SentencerTests
 
         Assert.Single(result);
         Assert.Equal(3, result[0].Count);
-        Assert.Equal("першае", result[0][0].Text);
-        Assert.True(result[0][0].GlueNext);
-        Assert.Equal(",", result[0][1].Text);
-        Assert.Equal(SentenceItemType.Punctuation, result[0][1].Type);
-        Assert.False(result[0][1].GlueNext);
-        Assert.Equal("другое", result[0][2].Text);
-        Assert.False(result[0][2].GlueNext);
+        Assert.True(result[0][0] is { Text: "першае", GlueNext: true });
+        Assert.True(result[0][1] is { Text: ",", Type: SentenceItemType.Punctuation, GlueNext: false });
+        Assert.True(result[0][2] is { Text: "другое", GlueNext: false });
     }
 
     [Fact]
@@ -204,10 +186,8 @@ public class SentencerTests
 
         Assert.Single(result);
         Assert.Equal(2, result[0].Count);
-        Assert.Equal("першае", result[0][0].Text);
-        Assert.False(result[0][0].GlueNext);
-        Assert.Equal("другое", result[0][1].Text);
-        Assert.False(result[0][1].GlueNext);
+        Assert.True(result[0][0] is { Text: "першае", GlueNext: false });
+        Assert.True(result[0][1] is { Text: "другое", GlueNext: false });
     }
 
     [Fact]
@@ -225,17 +205,10 @@ public class SentencerTests
 
         Assert.Single(result);
         Assert.Equal(4, result[0].Count);
-        Assert.Equal("слова", result[0][0].Text);
-        Assert.False(result[0][0].GlueNext);
-
-        Assert.Equal("\"", result[0][1].Text);
-        Assert.Equal(SentenceItemType.Punctuation, result[0][1].Type);
-        Assert.True(result[0][1].GlueNext);
-
-        Assert.Equal("цудоўны", result[0][2].Text);
-        Assert.True(result[0][2].GlueNext);
-
-        Assert.Equal("\"", result[0][3].Text);
+        Assert.True(result[0][0] is { Text: "слова", GlueNext: false });
+        Assert.True(result[0][1] is { Text: "\"", Type: SentenceItemType.Punctuation, GlueNext: true });
+        Assert.True(result[0][2] is { Text: "цудоўны", GlueNext: true });
+        Assert.True(result[0][3] is { Text: "\"" });
     }
 
     [Fact]
@@ -255,8 +228,8 @@ public class SentencerTests
         var result = Sentencer.ToSentences(tokens).ToList();
 
         Assert.Equal(2, result.Count);
-        Assert.Equal("першае", result[0][0].Text);
-        Assert.Equal("другое", result[1][0].Text);
+        Assert.True(result[0][0] is { Text: "першае" });
+        Assert.True(result[1][0] is { Text: "другое" });
     }
 
     [Fact]
@@ -273,10 +246,8 @@ public class SentencerTests
 
         Assert.Single(result);
         Assert.Equal(2, result[0].Count);
-        Assert.Equal("слова", result[0][0].Text);
-        Assert.True(result[0][0].GlueNext);
-        Assert.Equal("...", result[0][1].Text);
-        Assert.Equal(SentenceItemType.Punctuation, result[0][1].Type);
+        Assert.True(result[0][0] is { Text: "слова", GlueNext: true });
+        Assert.True(result[0][1] is { Text: "...", Type: SentenceItemType.Punctuation });
     }
 
     [Fact]
@@ -303,20 +274,14 @@ public class SentencerTests
 
         Assert.Single(result);
         Assert.Equal(8, result[0].Count);
-        Assert.Equal("Гэта", result[0][0].Text);
-        Assert.False(result[0][0].GlueNext);
-        Assert.Equal("першае", result[0][1].Text);
-        Assert.False(result[0][1].GlueNext);
-        Assert.Equal("слова", result[0][2].Text);
-        Assert.True(result[0][2].GlueNext);
-        Assert.Equal(",", result[0][3].Text);
-        Assert.Equal(SentenceItemType.Punctuation, result[0][3].Type);
-        Assert.Equal("а", result[0][4].Text);
-        Assert.Equal("гэта", result[0][5].Text);
-        Assert.Equal("другое", result[0][6].Text);
-        Assert.True(result[0][6].GlueNext);
-        Assert.Equal("!", result[0][7].Text);
-        Assert.Equal(SentenceItemType.Punctuation, result[0][7].Type);
+        Assert.True(result[0][0] is { Text: "Гэта", GlueNext: false });
+        Assert.True(result[0][1] is { Text: "першае", GlueNext: false });
+        Assert.True(result[0][2] is { Text: "слова", GlueNext: true });
+        Assert.True(result[0][3] is { Text: ",", Type: SentenceItemType.Punctuation });
+        Assert.True(result[0][4] is { Text: "а" });
+        Assert.True(result[0][5] is { Text: "гэта" });
+        Assert.True(result[0][6] is { Text: "другое", GlueNext: true });
+        Assert.True(result[0][7] is { Text: "!", Type: SentenceItemType.Punctuation });
     }
 
     [Fact]
@@ -332,8 +297,7 @@ public class SentencerTests
 
         Assert.Single(result);
         Assert.Single(result[0]);
-        Assert.Equal("...", result[0][0].Text);
-        Assert.Equal(SentenceItemType.Punctuation, result[0][0].Type);
+        Assert.True(result[0][0] is { Text: "...", Type: SentenceItemType.Punctuation });
     }
 }
 
