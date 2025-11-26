@@ -69,7 +69,7 @@ public static class Normalizer
     
     public static string NormalizeTypographicStress(string word) => NormalizeOnly(word, TypographicStressNormalize);
     
-    public static string TokinizationNormalize(string word) => NormalizeWith(word, GrammarSearchLightNormalize);
+    public static string TokenizationNormalize(string word) => NormalizeWith(word, GrammarSearchLightNormalize);
     
     public static bool IsApostrophe(char ch) => AllApostrophes.Contains(ch);
     

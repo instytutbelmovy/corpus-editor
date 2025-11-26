@@ -2,7 +2,7 @@ namespace Editor.Converters;
 
 public static class Sentencer
 {
-    public static IEnumerable<List<SentenceItem>> ToSentences(List<Token> tokens)
+    public static IEnumerable<List<SentenceItem>> ToSentences(IEnumerable<Token> tokens)
     {
         var currentSentence = new List<SentenceItem>();
         var nextGlueable = false;

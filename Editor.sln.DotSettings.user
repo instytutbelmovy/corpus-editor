@@ -1,0 +1,8 @@
+﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=0f2d3f5e_002D4e22_002D4e48_002Db657_002Df04dbb44d593/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Parse_EmptyString_ReturnsEmptyList" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;TestAncestor&gt;&#xD;
+    &lt;TestId&gt;xUnit::04DB12A0-9F90-A3E3-7B72-56CFF6E1B8AD::net10.0::Editor.Tests.TokenizerTests.Parse_EmptyString_ReturnsEmptyList&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::04DB12A0-9F90-A3E3-7B72-56CFF6E1B8AD::net10.0::Editor.Tests.TokenizerTests.Parse_WordsWithComma_ReturnsCommaAsNonAlphaNumeric&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;xUnit::04DB12A0-9F90-A3E3-7B72-56CFF6E1B8AD::net10.0::Editor.Tests.TokenizerTests.Parse_WindowsLineBreak_ReturnsLineBreakToken&lt;/TestId&gt;&#xD;
+  &lt;/TestAncestor&gt;&#xD;
+&lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>
