@@ -2,61 +2,52 @@ namespace Editor.Converters;
 
 public static class Sentencer
 {
-    public static IEnumerable<List<SentenceItem>> ToSentences(List<Token> tokens)
+    public static IEnumerable<List<SentenceItem>> ToSentences(IEnumerable<Token> tokens)
     {
         var currentSentence = new List<SentenceItem>();
         var nextGlueable = false;
 
         foreach (var token in tokens)
         {
-            if (token.Type == TokenType.SentenceSeparator)
+            switch (token.Type)
             {
-                nextGlueable = false;
-                if (currentSentence.Count > 0)
+                case TokenType.WordSeparator:
+                    nextGlueable = false;
+                    break;
+                case TokenType.SentenceSeparator:
                 {
-                    yield return currentSentence;
-                    currentSentence = new List<SentenceItem>();
-                }
-                continue;
-            }
+                    nextGlueable = false;
+                    if (currentSentence.Count > 0)
+                    {
+                        yield return currentSentence;
+                        currentSentence = [];
+                    }
 
-            if (token.Type == TokenType.LineBreak)
-            {
-                nextGlueable = false;
-                if (currentSentence.Count > 0)
-                {
-                    currentSentence.Add(new SentenceItem("", SentenceItemType.LineBreak));
+                    break;
                 }
-                continue;
-            }
+                case TokenType.LineBreak:
+                {
+                    nextGlueable = false;
+                    if (currentSentence.Count > 0)
+                        currentSentence.Add(new SentenceItem("", SentenceItemType.LineBreak));
 
-            if (token.Type == TokenType.AlphaNumeric)
-            {
-                if (nextGlueable)
-                {
-                    var lastItem = currentSentence[^1];
-                    currentSentence[^1] = lastItem with { GlueNext = true };
+                    break;
                 }
-                currentSentence.Add(new SentenceItem(token.Text, SentenceItemType.Word));
-                nextGlueable = true;
-            }
-            else if (token.Type == TokenType.NonAlphaNumeric)
-            {
-                if (nextGlueable && !string.IsNullOrEmpty(token.Text) && !char.IsWhiteSpace(token.Text[0]))
+                case TokenType.AlphaNumeric:
+                case TokenType.NonAlphaNumeric:
                 {
-                    var lastItem = currentSentence[^1];
-                    currentSentence[^1] = lastItem with { GlueNext = true };
+                    if (nextGlueable)
+                        currentSentence[^1] = currentSentence[^1] with { GlueNext = true };
+                    currentSentence.Add(new SentenceItem(token.Text, token.Type == TokenType.AlphaNumeric ? SentenceItemType.Word : SentenceItemType.Punctuation));
+                    nextGlueable = true;
+                    break;
                 }
-                nextGlueable = !string.IsNullOrEmpty(token.Text) && !char.IsWhiteSpace(token.Text[^1]);
-                var strippedText = token.Text.Trim();
-                if (!string.IsNullOrEmpty(strippedText))
-                {
-                    currentSentence.Add(new SentenceItem(strippedText, SentenceItemType.Punctuation));
-                }
+                default:
+                    throw new ArgumentException($"Unexpected token type in {token}");
             }
         }
 
         if (currentSentence.Count > 0)
             yield return currentSentence;
     }
-} 
+}

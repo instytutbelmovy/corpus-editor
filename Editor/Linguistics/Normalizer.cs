@@ -69,11 +69,11 @@ public static class Normalizer
     
     public static string NormalizeTypographicStress(string word) => NormalizeOnly(word, TypographicStressNormalize);
     
-    public static string TokinizationNormalize(string word) => NormalizeWith(word, GrammarSearchLightNormalize);
+    public static string TokenizationNormalize(string word) => NormalizeWith(word, GrammarSearchLightNormalize);
     
     public static bool IsApostrophe(char ch) => AllApostrophes.Contains(ch);
     
-    public static bool IsLetter(char ch) => char.IsLetter(ch);
+    public static bool IsLetter(char ch) => char.IsLetter(ch) || char.IsDigit(ch);
 
     private static string NormalizeWith(string word, Dictionary<char, char> mapping)
     {

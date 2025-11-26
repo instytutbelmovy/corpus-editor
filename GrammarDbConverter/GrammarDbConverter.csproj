@@ -8,9 +8,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\Linguistics\LinguisticTag.cs" Link="LinguisticTag.cs" />
-    <Compile Include="..\Linguistics\Normalizer.cs" Link="Normalizer.cs" />
-    <Compile Include="..\Linguistics\ParadigmFormId.cs" Link="ParadigmFormId.cs" />
+    <Compile Include="..\Editor\Linguistics\LinguisticTag.cs" Link="LinguisticTag.cs" />
+    <Compile Include="..\Editor\Linguistics\Normalizer.cs" Link="Normalizer.cs" />
+    <Compile Include="..\Editor\Linguistics\ParadigmFormId.cs" Link="ParadigmFormId.cs" />
   </ItemGroup>
 
   <ItemGroup>
