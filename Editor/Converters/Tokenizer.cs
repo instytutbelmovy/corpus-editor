@@ -6,9 +6,9 @@ public enum TokenType
 {
     AlphaNumeric = 1,
     NonAlphaNumeric = 2,
-    WordSeparator = 3,
-    SentenceSeparator = 3,
-    LineBreak = 4,
+    WordSeparator = 20,
+    SentenceSeparator = 24,
+    LineBreak = 28,
 }
 
 public record Token(string Text, TokenType Type);
