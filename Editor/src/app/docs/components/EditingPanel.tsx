@@ -2,6 +2,7 @@ import {
   SelectedWord,
   ParadigmFormId,
   LinguisticTag,
+  LinguisticErrorType,
 } from '../types';
 import { parseLinguisticTag } from '../linguisticCategories';
 import { useDisplaySettings } from '../hooks/useDisplaySettings';
@@ -24,6 +25,7 @@ interface EditingPanelProps {
     linguisticTag: LinguisticTag
   ) => Promise<void>;
   onSaveComment?: (comment: string) => Promise<void>;
+  onSaveErrorType?: (errorType: LinguisticErrorType) => Promise<void>;
 }
 
 export function EditingPanel({
@@ -35,8 +37,9 @@ export function EditingPanel({
   onUpdateWordText,
   onSaveManualCategories,
   onSaveComment,
+  onSaveErrorType,
 }: EditingPanelProps) {
-  const { displayMode, setDisplayMode } = useDisplaySettings();
+  const { displayMode, setDisplayMode, isSavingError } = useDisplaySettings();
   const [isEditingText, setIsEditingText] = useState(false);
   const [editText, setEditText] = useState('');
   const [isSavingText, setIsSavingText] = useState(false);
@@ -46,6 +49,14 @@ export function EditingPanel({
   const [isSavingComment, setIsSavingComment] = useState(false);
   const commentTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedCommentRef = useRef<string>('');
+  const [showErrorDropdown, setShowErrorDropdown] = useState(false);
+
+  useEffect(() => {
+    setShowErrorDropdown(false);
+  }, [selectedWord?.paragraphId, selectedWord?.sentenceId, selectedWord?.wordIndex]);
+
+  const hasError = !!selectedWord?.item.metadata?.errorType;
+  const showDropdown = hasError || showErrorDropdown;
 
   // Вызначаем, ці было слова адрэдагавана ў ручным рэжыме
   const isManuallyEdited =
@@ -501,8 +512,30 @@ export function EditingPanel({
                 </div>
               )}
             </div>
+
             {!isEditingText && (
               <div className="flex items-center space-x-2">
+                {onSaveErrorType && !showDropdown && (
+                  <button
+                    onClick={() => setShowErrorDropdown(true)}
+                    className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                    title="Пазначыць памылку"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      />
+                    </svg>
+                  </button>
+                )}
                 <SettingsButton
                   displayMode={displayMode}
                   onDisplayModeChange={setDisplayMode}
@@ -534,6 +567,32 @@ export function EditingPanel({
           </div>
 
           <div className="mb-4">
+            {onSaveErrorType && showDropdown && selectedWord && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Тып памылкі
+                </label>
+                <select
+                  value={selectedWord.item.metadata?.errorType || LinguisticErrorType.None}
+                  onChange={(e) => {
+                    const newVal = Number(e.target.value) as LinguisticErrorType;
+                    onSaveErrorType(newVal);
+                    if (newVal === LinguisticErrorType.None) {
+                      setShowErrorDropdown(true);
+                    }
+                  }}
+                  disabled={isSavingError}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+                >
+                  <option value={LinguisticErrorType.None}>Няма памылкі</option>
+                  <option value={LinguisticErrorType.Lexical}>Лексічная</option>
+                  <option value={LinguisticErrorType.Orthoepic}>Артаэпічная</option>
+                  <option value={LinguisticErrorType.Formational}>Словаўтваральная</option>
+                  <option value={LinguisticErrorType.Stylistic}>Стылістычная</option>
+                  <option value={LinguisticErrorType.Grammatical}>Граматычная</option>
+                </select>
+              </div>
+            )}
             <div className="overflow-y-auto lg:overflow-visible">
               {showManualInput ? (
                 <ManualLinguisticInput
@@ -619,7 +678,7 @@ export function EditingPanel({
             </div>
           )}
         </div>
-      </div>
+      </div >
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { DocumentData, SelectedWord, ParadigmFormId, LinguisticTag, GrammarInfo } from './types';
+import { DocumentData, SelectedWord, ParadigmFormId, LinguisticTag, GrammarInfo, LinguisticErrorType } from './types';
 import { DocumentService } from './service';
 import { useDocumentStore } from './store';
 import { useUIStore } from './uiStore';
@@ -254,24 +254,32 @@ export class WordEditingService {
         return newData;
       });
 
-      // Абнаўляем выбранае слова з новымі дадзенымі
-      setSelectedWord({
-        ...selectedWord,
-        item: {
-          ...selectedWord.item,
-          text: text,
-          paradigmFormId: null,
-          lemma: null,
-          linguisticTag: null,
-          metadata: selectedWord.item.metadata
-            ? {
-              ...selectedWord.item.metadata,
-              resolvedOn: null,
-            }
-            : null,
-        },
-        options: newOptions,
-      });
+      // Абнаўляем выбранае слова з новымі дадзенымі, толькі калі яно ўсё яшчэ выбрана
+      const currentSelectedWord = useUIStore.getState().selectedWord;
+      if (
+        currentSelectedWord &&
+        currentSelectedWord.paragraphId === selectedWord.paragraphId &&
+        currentSelectedWord.sentenceId === selectedWord.sentenceId &&
+        currentSelectedWord.wordIndex === selectedWord.wordIndex
+      ) {
+        setSelectedWord({
+          ...selectedWord,
+          item: {
+            ...selectedWord.item,
+            text: text,
+            paradigmFormId: null,
+            lemma: null,
+            linguisticTag: null,
+            metadata: selectedWord.item.metadata
+              ? {
+                ...selectedWord.item.metadata,
+                resolvedOn: null,
+              }
+              : null,
+          },
+          options: newOptions,
+        });
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Невядомая памылка';
       setSaveError(errorMessage);
@@ -428,17 +436,92 @@ export class WordEditingService {
         return newData;
       });
 
-      // Абнаўляем выбранае слова з новым камэнтарам
-      setSelectedWord({
-        ...selectedWord,
-        item: {
-          ...selectedWord.item,
-          comment: comment,
-        },
-      });
+      // Абнаўляем выбранае слова з новым камэнтарам, толькі калі яно ўсё яшчэ выбрана
+      const currentSelectedWord = useUIStore.getState().selectedWord;
+      if (
+        currentSelectedWord &&
+        currentSelectedWord.paragraphId === selectedWord.paragraphId &&
+        currentSelectedWord.sentenceId === selectedWord.sentenceId &&
+        currentSelectedWord.wordIndex === selectedWord.wordIndex
+      ) {
+        setSelectedWord({
+          ...selectedWord,
+          item: {
+            ...selectedWord.item,
+            comment: comment,
+          },
+        });
+      }
     } catch (err) {
       console.error('Памылка захаваньня камэнтара:', err);
       // Для камэнтараў не паказваем памылку карыстальніку, толькі логуем
+    }
+  }
+
+  // Захаваньне тыпу памылкі
+  async saveErrorType(
+    documentId: string,
+    selectedWord: SelectedWord,
+    errorType: LinguisticErrorType
+  ): Promise<void> {
+    const { updateDocument } = useDocumentStore.getState();
+    const { setSelectedWord, addPendingSave, removePendingSave } = useUIStore.getState();
+
+    const wordKey = `${selectedWord.paragraphId}-${selectedWord.sentenceId}-${selectedWord.wordIndex}`;
+    addPendingSave(wordKey);
+
+    try {
+      await this.documentService.saveErrorType(
+        documentId,
+        selectedWord.paragraphId,
+        selectedWord.paragraphStamp,
+        selectedWord.sentenceId,
+        selectedWord.sentenceStamp,
+        selectedWord.wordIndex,
+        errorType
+      );
+
+      removePendingSave(wordKey);
+
+      // Абнаўляем лакальна пасля паспяховага захаваньня
+      updateDocument(prev => {
+        if (!prev) return prev;
+        const newData = { ...prev };
+        for (const paragraph of newData.paragraphs) {
+          if (paragraph.id !== selectedWord.paragraphId) continue;
+          for (const sentence of paragraph.sentences) {
+            if (sentence.id !== selectedWord.sentenceId) continue;
+            const item = sentence.sentenceItems[selectedWord.wordIndex];
+            if (!item.linguisticItem.metadata) {
+              item.linguisticItem.metadata = { suggested: null, resolvedOn: null };
+            }
+            item.linguisticItem.metadata.errorType = errorType;
+          }
+        }
+        return newData;
+      });
+
+      // Абнаўляем выбранае слова, толькі калі яно ўсё яшчэ выбрана
+      const currentSelectedWord = useUIStore.getState().selectedWord;
+      if (
+        currentSelectedWord &&
+        currentSelectedWord.paragraphId === selectedWord.paragraphId &&
+        currentSelectedWord.sentenceId === selectedWord.sentenceId &&
+        currentSelectedWord.wordIndex === selectedWord.wordIndex
+      ) {
+        setSelectedWord({
+          ...selectedWord,
+          item: {
+            ...selectedWord.item,
+            metadata: selectedWord.item.metadata
+              ? { ...selectedWord.item.metadata, errorType }
+              : { suggested: null, resolvedOn: null, errorType },
+          },
+        });
+      }
+    } catch (err) {
+      removePendingSave(wordKey);
+      console.error('Памылка захаваньня тыпу памылкі:', err);
     }
   }
 }

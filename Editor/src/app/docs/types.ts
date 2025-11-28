@@ -9,9 +9,19 @@ export interface LinguisticTag {
   formTag: string | null;
 }
 
+export enum LinguisticErrorType {
+  None = 0,
+  Lexical = 5,
+  Orthoepic = 10,
+  Formational = 15,
+  Stylistic = 20,
+  Grammatical = 25,
+}
+
 export interface Metadata {
   suggested: unknown;
   resolvedOn: string | null;
+  errorType?: LinguisticErrorType;
 }
 
 export interface LinguisticItem {

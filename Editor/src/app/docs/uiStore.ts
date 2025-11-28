@@ -16,6 +16,7 @@ interface UIState {
   isSavingText: boolean;
   isSavingManual: boolean;
   isSavingComment: boolean;
+  isSavingError: boolean;
   showManualInput: boolean;
 
   // Памылкі
@@ -36,6 +37,7 @@ interface UIState {
   setIsSavingText: (saving: boolean) => void;
   setIsSavingManual: (saving: boolean) => void;
   setIsSavingComment: (saving: boolean) => void;
+  setIsSavingError: (saving: boolean) => void;
   setShowManualInput: (show: boolean) => void;
 
   // Дзеяньні для памылак
@@ -58,6 +60,7 @@ export const useUIStore = create<UIState>()(
       isSavingText: false,
       isSavingManual: false,
       isSavingComment: false,
+      isSavingError: false,
       showManualInput: false,
       saveError: null,
       pendingSaves: new Set(),
@@ -74,6 +77,7 @@ export const useUIStore = create<UIState>()(
       setIsSavingText: (saving) => set({ isSavingText: saving }),
       setIsSavingManual: (saving) => set({ isSavingManual: saving }),
       setIsSavingComment: (saving) => set({ isSavingComment: saving }),
+      setIsSavingError: (saving) => set({ isSavingError: saving }),
       setShowManualInput: (show) => set({ showManualInput: show }),
 
       // Дзеяньні для памылак

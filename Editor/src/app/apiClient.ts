@@ -89,7 +89,7 @@ export class ApiClient {
         'Content-Type': 'application/json',
         ...options.headers
       },
-      body: body ? JSON.stringify(body) : undefined,
+      body: body === undefined || body === null ? undefined : JSON.stringify(body),
       ...options
     });
 
@@ -105,7 +105,7 @@ export class ApiClient {
         'Content-Type': 'application/json',
         ...options.headers
       },
-      body: body ? JSON.stringify(body) : undefined,
+      body: body === undefined || body === null ? undefined : JSON.stringify(body),
       ...options
     });
 

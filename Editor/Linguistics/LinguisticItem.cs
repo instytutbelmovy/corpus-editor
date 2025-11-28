@@ -15,4 +15,14 @@ public record LinguisticItem(
         => new(sentenceItem.Text, sentenceItem.Type, sentenceItem.GlueNext);
 }
 
-public record LinguisticItemMetadata(ParadigmFormId? Suggested, DateOnly? ResolvedOn);
+public record LinguisticItemMetadata(ParadigmFormId? Suggested, DateOnly? ResolvedOn, LinguisticErrorType ErrorType = LinguisticErrorType.None);
+
+public enum LinguisticErrorType
+{
+    None = 0,
+    Lexical = 5,
+    Orthoepic = 10,
+    Formational = 15,
+    Stylistic = 20,
+    Grammatical = 25,
+}

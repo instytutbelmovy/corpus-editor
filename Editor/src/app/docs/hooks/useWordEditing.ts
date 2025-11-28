@@ -2,14 +2,15 @@ import { useCallback } from 'react';
 import { useWordSelection } from './useWordSelection';
 import { useUIStore } from '../uiStore';
 import { WordEditingService } from '../wordEditingService';
-import { ParadigmFormId, LinguisticTag } from '../types';
+import { ParadigmFormId, LinguisticTag, LinguisticErrorType } from '../types';
 
 export function useWordEditing(documentId: string, wordEditingService: WordEditingService) {
   const { selectedWord } = useWordSelection();
   const {
     setIsSavingText,
     setIsSavingManual,
-    setIsSavingComment
+    setIsSavingComment,
+    setIsSavingError,
   } = useUIStore();
 
   const handleSaveParadigm = useCallback(async (paradigmFormId: ParadigmFormId) => {
@@ -63,10 +64,24 @@ export function useWordEditing(documentId: string, wordEditingService: WordEditi
     }
   }, [selectedWord, documentId, wordEditingService, setIsSavingComment]);
 
+  const handleSaveErrorType = useCallback(async (errorType: LinguisticErrorType) => {
+    if (!selectedWord || !documentId) return;
+
+    setIsSavingError(true);
+    try {
+      await wordEditingService.saveErrorType(documentId, selectedWord, errorType);
+    } catch (error) {
+      console.error('Памылка захаваньня тыпу памылкі:', error);
+    } finally {
+      setIsSavingError(false);
+    }
+  }, [selectedWord, documentId, wordEditingService, setIsSavingError]);
+
   return {
     handleSaveParadigm,
     handleUpdateWordText,
     handleSaveManualCategories,
     handleSaveComment,
+    handleSaveErrorType,
   };
 }

@@ -42,6 +42,7 @@ public static class Editing
         group.MapPut("/{n:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/lemma-tag", PutLemmaTags).Editor();
         group.MapPut("/{n:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/text", PutText).Editor();
         group.MapPut("/{n:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/comment", PutComment).Editor();
+        group.MapPut("/{n:int}/{paragraphId:int}.{paragraphStamp:guid}/{sentenceId:int}.{sentenceStamp:guid}/{wordIndex:int}/error-type", PutErrorType).Editor();
         group.MapGet("/{id}/metadata", GetMetadata).Viewer();
         group.MapPut("/{id}/metadata", PutMetadata).Editor();
     }
@@ -136,6 +137,19 @@ public static class Editing
         await EditDocument(n, paragraphId, paragraphStamp, sentenceId, sentenceStamp, wordIndex, awsFilesCache, si => si with
         {
             Comment = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim(),
+        });
+    }
+
+    public static async Task PutErrorType(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] LinguisticErrorType errorType, AwsFilesCache awsFilesCache)
+    {
+        if (n < 0 || paragraphId < 0 || sentenceId < 0)
+            throw new BadRequestException();
+
+        await EditDocument(n, paragraphId, paragraphStamp, sentenceId, sentenceStamp, wordIndex, awsFilesCache, si => si with
+        {
+            Metadata = si.Metadata == null
+                ? new LinguisticItemMetadata(null, null, errorType)
+                : si.Metadata with { ErrorType = errorType },
         });
     }
 

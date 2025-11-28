@@ -158,6 +158,24 @@ export class DocumentService {
       throw new Error(response.error);
     }
   }
+
+  async saveErrorType(
+    documentId: string,
+    paragraphId: number,
+    paragraphStamp: string,
+    sentenceId: number,
+    sentenceStamp: string,
+    wordIndex: number,
+    errorType: number
+  ): Promise<void> {
+    const url = `/registry-files/${documentId}/${paragraphId}.${paragraphStamp}/${sentenceId}.${sentenceStamp}/${wordIndex}/error-type`;
+
+    const response = await this.apiClient.put(url, errorType);
+
+    if (response.error) {
+      throw new Error(response.error);
+    }
+  }
 }
 
 // Экспарт класа, а не экземпляра

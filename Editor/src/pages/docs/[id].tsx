@@ -49,6 +49,7 @@ export default function DocumentPage() {
     handleUpdateWordText,
     handleSaveManualCategories,
     handleSaveComment,
+    handleSaveErrorType,
   } = useWordEditing(documentId, wordEditingService);
 
   // Хук для клавіятурнай навігацыі
@@ -125,6 +126,7 @@ export default function DocumentPage() {
               onUpdateWordText={handleUpdateWordText}
               onSaveManualCategories={handleSaveManualCategories}
               onSaveComment={handleSaveComment}
+              onSaveErrorType={handleSaveErrorType}
             />
           </div>
         </div>
