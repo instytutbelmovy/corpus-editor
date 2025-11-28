@@ -26,10 +26,6 @@ src/yarn-error.log*
 .DS_Store
 Thumbs.db
 
-# Git
-.git/
-.gitignore
-
 # Docker
 Dockerfile
 .dockerignore

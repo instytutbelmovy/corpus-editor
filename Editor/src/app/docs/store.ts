@@ -25,6 +25,7 @@ interface DocumentState {
   reloadDocument: (documentId: string) => Promise<void>;
   fetchDocuments: () => Promise<void>;
   refreshDocumentHeader: (documentId: number) => Promise<void>;
+  refreshDocumentsList: () => Promise<void>;
   updateDocument: (updater: (prev: DocumentData | null) => DocumentData | null) => void;
   clearDocument: () => void;
   setError: (error: string | null) => void;
@@ -150,6 +151,22 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     } catch (err) {
       console.error('Failed to refresh document:', err);
       // Optionally handle error in UI
+    }
+  },
+
+  refreshDocumentsList: async () => {
+    const { documentService } = get();
+    if (!documentService) {
+      return;
+    }
+
+    try {
+      set({ loading: true, error: null });
+      const documents = await documentService.refreshDocumentsList();
+      set({ documentsList: documents, loading: false });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Невядомая памылка';
+      set({ error: errorMessage, loading: false });
     }
   },
 

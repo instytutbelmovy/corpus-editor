@@ -20,9 +20,9 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
     private readonly AwsSettings _awsSettings = awsSettings;
     private IAmazonS3 _s3Client = null!;
     private ConcurrentDictionary<int, CorpusDocumentHeader> _documentHeaders = null!;
-    private readonly ConcurrentDictionary<int, SemaphoreSlim> _documentsLocks = new();
-    private readonly ConcurrentDictionary<int, Document> _documents = new();
-    private readonly TaskCompletionSource _initialized = new();
+    private ConcurrentDictionary<int, SemaphoreSlim> _documentsLocks = new();
+    private ConcurrentDictionary<int, Document> _documents = new();
+    private TaskCompletionSource _initialized = new();
     private readonly ILogger? _logger = logger;
 
     public void Initialize()
@@ -33,13 +33,31 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
         _s3Client = new AmazonS3Client(_awsSettings.AccessKeyId, _awsSettings.SecretAccessKey, RegionEndpoint.GetBySystemName(_awsSettings.Region));
 
         _logger?.LogInformation("Initializing AWS Files Cache with bucket: {BucketName}", _awsSettings.BucketName);
-        Task.Factory.StartNew(async () =>
+        Task.Factory.StartNew(ReadAwsFilesList);
+    }
+
+    public async Task ReloadFilesList()
+    {
+        if (!_initialized.Task.IsCompleted)
+            return;
+        _initialized = new();
+        
+        _logger?.LogInformation("Re-initializing AWS Files Cache with bucket: {BucketName}", _awsSettings.BucketName);
+        await ReadAwsFilesList();
+        var removedDocuments = _documentsLocks.Keys.Except(_documentHeaders.Keys).ToList();
+        foreach (var id in removedDocuments)
         {
-            var documentHeaders = await GetDocumentHeadersFromS3();
-            _documentHeaders = new ConcurrentDictionary<int, CorpusDocumentHeader>(documentHeaders.ToDictionary(x => x.N));
-            _initialized.SetResult();
-            _logger?.LogInformation("Initialized AWS Files Cache");
-        });
+            _documentsLocks.TryRemove(id, out _);
+            _documents.TryRemove(id, out _);
+        }
+    }
+
+    private async Task ReadAwsFilesList()
+    {
+        var documentHeaders = await GetDocumentHeadersFromS3();
+        _documentHeaders = new ConcurrentDictionary<int, CorpusDocumentHeader>(documentHeaders.ToDictionary(x => x.N));
+        _initialized.SetResult();
+        _logger?.LogInformation("Initialized AWS Files Cache");
     }
 
     public async Task<CorpusDocument> GetFileForRead(int n)
@@ -350,10 +368,15 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
         var horizon = DateTime.UtcNow - age;
         foreach (var (id, documentsLock) in _documentsLocks)
         {
-            if (documentsLock.Wait(0))
+            if (!documentsLock.Wait(0)) continue;
+            try
             {
                 if (_documents.TryGetValue(id, out var document) && document.LastAccessedOn < horizon)
                     _documents.TryRemove(id, out _);
+            }
+            finally
+            {
+                documentsLock.Release();
             }
         }
     }

@@ -8,23 +8,32 @@ interface DocumentsTableProps {
   documents: DocumentHeader[];
   isExpanded: boolean;
   onRefresh?: (documentId: number) => void;
+  onRefreshList?: () => void;
   userRole?: Roles;
 }
 
-export const DocumentsTable = ({ documents, isExpanded, onRefresh, userRole }: DocumentsTableProps) => {
+export const DocumentsTable = ({ documents, isExpanded, onRefresh, onRefreshList, userRole }: DocumentsTableProps) => {
   const [openMenu, setOpenMenu] = useState<number | null>(null);
+  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const [headerMenuPos, setHeaderMenuPos] = useState<{ top: number; left: number } | null>(null);
 
   useEffect(() => {
     const handleClickOutside = () => {
       if (openMenu !== null) {
         setOpenMenu(null);
       }
+      if (headerMenuOpen) {
+        setHeaderMenuOpen(false);
+      }
     };
 
     const handleScroll = () => {
       if (openMenu !== null) {
         setOpenMenu(null);
+      }
+      if (headerMenuOpen) {
+        setHeaderMenuOpen(false);
       }
     };
 
@@ -37,7 +46,7 @@ export const DocumentsTable = ({ documents, isExpanded, onRefresh, userRole }: D
       window.removeEventListener('resize', handleScroll);
       window.removeEventListener('scroll', handleScroll, true);
     };
-  }, [openMenu]);
+  }, [openMenu, headerMenuOpen]);
 
   const handleDownload = (documentId: number) => {
     window.open(`/api/registry-files/${documentId}/download`, '_blank');
@@ -60,6 +69,25 @@ export const DocumentsTable = ({ documents, isExpanded, onRefresh, userRole }: D
   const handleMenuActionClick = (event: React.MouseEvent) => {
     event.stopPropagation();
     setOpenMenu(null);
+  };
+
+  const handleHeaderMenuClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (headerMenuOpen) {
+      setHeaderMenuOpen(false);
+    } else {
+      const rect = event.currentTarget.getBoundingClientRect();
+      setHeaderMenuPos({
+        top: rect.bottom + window.scrollY,
+        left: rect.right + window.scrollX
+      });
+      setHeaderMenuOpen(true);
+    }
+  };
+
+  const handleHeaderMenuActionClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    setHeaderMenuOpen(false);
   };
 
   return (
@@ -93,6 +121,45 @@ export const DocumentsTable = ({ documents, isExpanded, onRefresh, userRole }: D
               Прагрэс
             </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {userRole === Roles.Admin && (
+                <div className="relative">
+                  <button
+                    onClick={handleHeaderMenuClick}
+                    className="text-gray-400 hover:text-gray-600 transition-colors duration-150 p-1 rounded-full hover:bg-gray-100"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                    </svg>
+                  </button>
+                  {headerMenuOpen && typeof document !== 'undefined' && createPortal(
+                    <div
+                      className="absolute w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200"
+                      style={{
+                        top: `${(headerMenuPos?.top || 0) + 8}px`,
+                        left: `${headerMenuPos?.left || 0}px`,
+                        transform: 'translateX(-100%)'
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="py-1">
+                        <button
+                          onClick={(event) => {
+                            handleHeaderMenuActionClick(event);
+                            onRefreshList?.();
+                          }}
+                          className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
+                        >
+                          <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          Абнавіць сьпіс
+                        </button>
+                      </div>
+                    </div>,
+                    document.body
+                  )}
+                </div>
+              )}
             </th>
           </tr>
         </thead>

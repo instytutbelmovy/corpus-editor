@@ -5,10 +5,9 @@ import { useUIStore } from '@/app/docs/uiStore';
 import { DocumentsListHeader } from '@/app/components/documents/DocumentsListHeader';
 import { DocumentsTable } from '@/app/components/documents/DocumentsTable';
 import { useAuthStore } from '@/app/auth/store';
-import { Roles } from '@/app/auth/types';
 
 export default function Home() {
-  const { documentsList, loading, error, fetchDocuments, documentService, refreshDocumentHeader } = useDocumentStore();
+  const { documentsList, loading, error, fetchDocuments, documentService, refreshDocumentHeader, refreshDocumentsList } = useDocumentStore();
   const { displayMode, setDisplayMode } = useUIStore();
   const { user } = useAuthStore();
 
@@ -44,6 +43,7 @@ export default function Home() {
             documents={documentsList}
             isExpanded={isExpanded}
             onRefresh={refreshDocumentHeader}
+            onRefreshList={refreshDocumentsList}
             userRole={user?.role}
           />
         </div>

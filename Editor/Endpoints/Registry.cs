@@ -10,6 +10,7 @@ public static class Registry
         group.MapGet("/", GetAllFiles).Viewer();
         group.MapPost("/", UploadFile).Editor();
         group.MapGet("/{n:int}/download", DownloadFile).Viewer();
+        group.MapPost("/refresh", ReloadFilesList).Admin();
         group.MapPost("/{n:int}/refresh", ReloadFile).Admin();
     }
 
@@ -100,6 +101,12 @@ public static class Registry
         {
             throw new NotFoundException();
         }
+    }
+
+    public static async Task<ICollection<CorpusDocumentHeader>> ReloadFilesList(AwsFilesCache awsFilesCache)
+    {
+        await awsFilesCache.ReloadFilesList();
+        return await awsFilesCache.GetAllDocumentHeaders();
     }
 
     public static async Task<CorpusDocumentHeader> ReloadFile(int n, AwsFilesCache awsFilesCache)

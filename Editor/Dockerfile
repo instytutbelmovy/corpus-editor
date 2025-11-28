@@ -5,6 +5,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 
 WORKDIR /app
 COPY . ./
+COPY .git ./.git
 
 WORKDIR /app/src
 RUN apk add nodejs npm git
@@ -12,7 +13,7 @@ RUN npm ci
 RUN npm run build
 
 WORKDIR /app
-RUN dotnet restore Editor.sln
+RUN dotnet restore Editor.csproj
 RUN dotnet publish Editor.csproj -c Release -r linux-musl-x64 -o out --no-restore
 
 

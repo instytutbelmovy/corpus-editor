@@ -84,6 +84,17 @@ export class DocumentService {
     return response.data!;
   }
 
+  async refreshDocumentsList(): Promise<DocumentHeader[]> {
+    const response = await this.apiClient.post<DocumentHeader[]>('/registry-files/refresh', {});
+
+    if (response.error) {
+      throw new Error(response.error);
+    }
+    const data = response.data!;
+    data.sort((a: DocumentHeader, b: DocumentHeader) => a.n - b.n);
+    return data;
+  }
+
   async saveParadigmFormId(
     documentId: string,
     paragraphId: number,
