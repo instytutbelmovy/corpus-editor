@@ -267,5 +267,14 @@ public class TokenizerTests
         Assert.True(result[0] is { Text: "...", Type: TokenType.NonAlphaNumeric });
         Assert.True(result[1] is { Text: "", Type: TokenType.SentenceSeparator });
     }
+
+    [Fact]
+    public void Parse_Asterisk_AsAlphanumeric()
+    {
+        var result = Tokenizer.Parse("ві*дзік").ToList();
+
+        Assert.Single(result);
+        Assert.True(result[0] is { Text: "ві*дзік", Type: TokenType.AlphaNumeric });
+    }
 }
 

@@ -112,7 +112,7 @@ public static class Tokenizer
                     AppendTailCharacter(ch);
                 }
             }
-            else if (Normalizer.IsLetter(ch) || ch == '[' || ch == ']')
+            else if (Normalizer.IsLetter(ch) || ch is '[' or ']' or '*')
             {
                 if (currentTail.Length > 0)
                 {

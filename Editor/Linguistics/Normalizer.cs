@@ -31,6 +31,8 @@ public static class Normalizer
             }
         }
 
+        tokenizationNormalize['*'] = '*'; // asterisk allowed as helper mark to be later edited away in Editor
+
         // Апострафы
         foreach (char c in AllApostrophes)
         {
