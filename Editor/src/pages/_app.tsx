@@ -57,13 +57,13 @@ export default function App({ Component, pageProps }: AppProps) {
     routerRef.current = router;
   }, [router]);
 
-  // Функцыя для перанакіроўкі на ўваход з захаваннем returnTo
+  // Функцыя для перанакіроўкі на ўваход з захаваньнем returnTo
   const handleUnauthorizedRef = useRef(() => {
     const currentPath = routerRef.current.asPath;
     if (currentPath.startsWith('/sign-in') || currentPath.includes('returnTo=')) {
       routerRef.current.push('/sign-in');
     } else {
-      // Правяраем лякальнасць URL перад захаваннем
+      // Правяраем лякальнасць URL перад захаваньнем
       if (isValidReturnUrl(currentPath)) {
         const returnTo = `?returnTo=${encodeURIComponent(currentPath)}`;
         routerRef.current.push(`/sign-in${returnTo}`);

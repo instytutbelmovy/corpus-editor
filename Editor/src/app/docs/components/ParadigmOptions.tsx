@@ -42,7 +42,7 @@ function groupOptionsByPartOfSpeech(options: GrammarInfo[]): GroupedOptions[] {
   }));
 }
 
-// Функцыя для вызначэння агульных катэгорый у групе
+// Функцыя для вызначэньня агульных катэгорый у групе
 function getCommonCategories(
   options: GrammarInfo[]
 ): Partial<LinguisticCategories> {
@@ -72,7 +72,7 @@ function getCommonCategories(
   return commonCategories;
 }
 
-// Функцыя для адлюстравання катэгорыі
+// Функцыя для адлюстраваньня катэгорыі
 function renderCategory(
   key: string,
   value: string | null,
@@ -88,9 +88,9 @@ function renderCategory(
     properName: 'Уласнае/агульнае',
     animacy: 'Адушаўлёнасць',
     personhood: 'Асабовасць',
-    abbreviation: 'Скарачэнне',
+    abbreviation: 'Скарачэньне',
     gender: 'Род',
-    declension: 'Скланенне',
+    declension: 'Скланеньне',
     case: 'Склон',
     number: 'Лік',
     adjectiveType: 'Тып прыметніка',
@@ -100,17 +100,17 @@ function renderCategory(
     numeralType: 'Тып лічэбніка',
     numeralStructure: 'Структура лічэбніка',
     numeralInflection: 'Зменлівасць лічэбніка',
-    pronounType: 'Тып займенніка',
+    pronounType: 'Тып займеньніка',
     person: 'Асоба',
     verbTransitivity: 'Пераходнасць дзеяслова',
     verbAspect: 'Від дзеяслова',
     verbReflexivity: 'Зваротнасць дзеяслова',
-    verbConjugation: 'Спражэнне дзеяслова',
+    verbConjugation: 'Спражэньне дзеяслова',
     verbTense: 'Час дзеяслова',
     verbMood: 'Лад дзеяслова',
     participleType: 'Тып дзеепрыметніка',
     participleForm: 'Форма дзеепрыметніка',
-    adverbOrigin: 'Паходжанне прыслоўя',
+    adverbOrigin: 'Паходжаньне прыслоўя',
     conjunctionType: 'Тып злучніка',
   };
 
@@ -177,18 +177,18 @@ export function ParadigmOptions({
                 // Правяраем, ці выбрана опцыя
                 const isSelected = option.paradigmFormId === null
                   ? // Для кастомных словаў правяраем lemma і linguisticTag
-                    selectedItem !== null &&
-                    selectedItem !== undefined &&
-                    selectedItem.paradigmFormId === null &&
-                    selectedItem.lemma === option.lemma &&
-                    selectedItem.linguisticTag !== null &&
-                    selectedItem.linguisticTag.paradigmTag === option.linguisticTag.paradigmTag &&
-                    selectedItem.linguisticTag.formTag === option.linguisticTag.formTag
+                  selectedItem !== null &&
+                  selectedItem !== undefined &&
+                  selectedItem.paradigmFormId === null &&
+                  selectedItem.lemma === option.lemma &&
+                  selectedItem.linguisticTag !== null &&
+                  selectedItem.linguisticTag.paradigmTag === option.linguisticTag.paradigmTag &&
+                  selectedItem.linguisticTag.formTag === option.linguisticTag.formTag
                   : // Для звычайных парадыгм правяраем paradigmFormId
-                    selectedParadigmFormId !== null &&
-                    selectedParadigmFormId.paradigmId === option.paradigmFormId.paradigmId &&
-                    selectedParadigmFormId.variantId === option.paradigmFormId.variantId &&
-                    selectedParadigmFormId.formTag === option.paradigmFormId.formTag;
+                  selectedParadigmFormId !== null &&
+                  selectedParadigmFormId.paradigmId === option.paradigmFormId.paradigmId &&
+                  selectedParadigmFormId.variantId === option.paradigmFormId.variantId &&
+                  selectedParadigmFormId.formTag === option.paradigmFormId.formTag;
 
                 const categories = parseLinguisticTag(option.linguisticTag);
 
@@ -200,16 +200,15 @@ export function ParadigmOptions({
                 return (
                   <div
                     key={optionKey}
-                    className={`border rounded-lg p-3 transition-colors cursor-pointer ${
-                      isSelected
-                        ? 'border-green-500 bg-green-50'
-                        : 'border-gray-200 hover:border-blue-300'
-                    }`}
+                    className={`border rounded-lg p-3 transition-colors cursor-pointer ${isSelected
+                      ? 'border-green-500 bg-green-50'
+                      : 'border-gray-200 hover:border-blue-300'
+                      }`}
                     onClick={async () => {
                       if (onBeforeSelect) {
                         await onBeforeSelect();
                       }
-                      // Калі paradigmFormId null, гэта кастомнае слова - выклікаем захаванне ручных катэгорый
+                      // Калі paradigmFormId null, гэта кастомнае слова - выклікаем захаваньне ручных катэгорый
                       if (option.paradigmFormId === null) {
                         if (onSaveManualCategories) {
                           await onSaveManualCategories(option.lemma, option.linguisticTag);
@@ -232,7 +231,7 @@ export function ParadigmOptions({
                               const isCommon =
                                 key in commonCategories &&
                                 commonCategories[
-                                  key as keyof LinguisticCategories
+                                key as keyof LinguisticCategories
                                 ] === value;
                               return renderCategory(
                                 key,

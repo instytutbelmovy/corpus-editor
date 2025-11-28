@@ -51,13 +51,13 @@ export default function UsersPage() {
 
   const handleInviteUser = async (user: EditorUserDto) => {
     if (!userService) return;
-    
+
     try {
       await userService.inviteUser(user.id);
-      // Тут можна дадаць паведамленне аб паспяховым дасыланні
+      // Тут можна дадаць паведамленьне аб паспяховым дасыланьні
       alert(`Запрашэньне даслана на ${user.email}`);
     } catch (error) {
-      console.error('Памылка пры дасыланні запрашэньня:', error);
+      console.error('Памылка пры дасыланьні запрашэньня:', error);
       alert('Не ўдалося даслаць запрашэньне. Паспрабуйце яшчэ раз.');
     }
   };
@@ -87,7 +87,7 @@ export default function UsersPage() {
             <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  Кіраванне карыстальнікамі
+                  Кіраваньне карыстальнікамі
                 </h1>
               </div>
               <button

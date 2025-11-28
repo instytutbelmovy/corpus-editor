@@ -55,9 +55,8 @@ export function UserList({ users, onEdit, onInvite, loading = false, openMenu, s
           {users.map((user) => (
             <tr
               key={user.id}
-              className={`hover:bg-gray-50 transition-colors duration-150 ${
-                user.role === 0 ? 'text-gray-400' : 'text-gray-900'
-              }`}
+              className={`hover:bg-gray-50 transition-colors duration-150 ${user.role === 0 ? 'text-gray-400' : 'text-gray-900'
+                }`}
             >
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 {user.userName}
@@ -73,16 +72,15 @@ export function UserList({ users, onEdit, onInvite, loading = false, openMenu, s
                   <div className="relative inline-block text-left">
                     <button
                       onClick={(event) => handleMenuClick(event, user.id)}
-                      className={`transition-colors duration-150 p-1 rounded-full hover:bg-gray-100 ${
-                        user.role === 0 ? 'text-gray-300 hover:text-gray-400' : 'text-gray-400 hover:text-gray-600'
-                      }`}
-                      title="Дзеянні"
+                      className={`transition-colors duration-150 p-1 rounded-full hover:bg-gray-100 ${user.role === 0 ? 'text-gray-300 hover:text-gray-400' : 'text-gray-400 hover:text-gray-600'
+                        }`}
+                      title="Дзеяньні"
                     >
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                       </svg>
                     </button>
-                    
+
                     {openMenu === user.id && (
                       <div className="absolute right-0 mt-2 min-w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200 whitespace-nowrap">
                         <div className="py-1">

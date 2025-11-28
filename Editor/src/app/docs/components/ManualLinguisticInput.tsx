@@ -29,8 +29,8 @@ const categoryOptions = {
       { value: 'I', label: 'неасабовы' },
     ],
     abbreviation: [
-      { value: 'B', label: 'скарачэнне' },
-      { value: 'N', label: 'не скарачэнне' },
+      { value: 'B', label: 'скарачэньне' },
+      { value: 'N', label: 'не скарачэньне' },
     ],
     gender: [
       { value: 'M', label: 'мужчынскі' },
@@ -42,13 +42,13 @@ const categoryOptions = {
       { value: 'P', label: 'толькі множны лік' },
     ],
     declension: [
-      { value: '1', label: '1 скланенне' },
-      { value: '2', label: '2 скланенне' },
-      { value: '3', label: '3 скланенне' },
+      { value: '1', label: '1 скланеньне' },
+      { value: '2', label: '2 скланеньне' },
+      { value: '3', label: '3 скланеньне' },
       { value: '0', label: 'нескланяльны' },
       { value: '4', label: 'рознаскланяльны' },
-      { value: '5', label: "ад'ектыўны тып скланення" },
-      { value: '6', label: 'зьмешаны тып скланення' },
+      { value: '5', label: "ад'ектыўны тып скланеньня" },
+      { value: '6', label: 'зьмешаны тып скланеньня' },
       { value: '7', label: 'множналікавы' },
     ],
     case: [
@@ -136,7 +136,7 @@ const categoryOptions = {
     ],
   },
   S: {
-    // Займеннік
+    // Займеньнік
     inflectionType: [
       { value: 'N', label: 'як у назоўніка' },
       { value: 'A', label: 'як у прыметніка' },
@@ -262,7 +262,7 @@ const categoryOptions = {
       { value: 'N', label: 'ад назоўнікаў' },
       { value: 'A', label: 'ад прыметнікаў' },
       { value: 'M', label: 'ад лічэбнікаў' },
-      { value: 'S', label: 'ад займеннікаў' },
+      { value: 'S', label: 'ад займеньнікаў' },
       { value: 'G', label: 'ад дзеепрыслоўяў' },
       { value: 'V', label: 'ад дзеясловаў' },
       { value: 'E', label: 'ад часціц' },
@@ -288,9 +288,9 @@ const categoryLabels: Record<string, string> = {
   properName: 'Уласнае/агульнае',
   animacy: 'Адушаўлёнасць',
   personhood: 'Асабовасць',
-  abbreviation: 'Скарачэнне',
+  abbreviation: 'Скарачэньне',
   gender: 'Род',
-  declension: 'Скланенне',
+  declension: 'Скланеньне',
   case: 'Склон',
   number: 'Лік',
   adjectiveType: 'Тып прыметніка',
@@ -300,17 +300,17 @@ const categoryLabels: Record<string, string> = {
   numeralType: 'Тып лічэбніка',
   numeralStructure: 'Структура лічэбніка',
   numeralInflection: 'Зменлівасць лічэбніка',
-  pronounType: 'Тып займенніка',
+  pronounType: 'Тып займеньніка',
   person: 'Асоба',
   verbTransitivity: 'Пераходнасць дзеяслова',
   verbAspect: 'Від дзеяслова',
   verbReflexivity: 'Зваротнасць дзеяслова',
-  verbConjugation: 'Спражэнне дзеяслова',
+  verbConjugation: 'Спражэньне дзеяслова',
   verbTense: 'Час дзеяслова',
   verbMood: 'Лад дзеяслова',
   participleType: 'Тып дзеепрыметніка',
   participleForm: 'Форма дзеепрыметніка',
-  adverbOrigin: 'Паходжанне прыслоўя',
+  adverbOrigin: 'Паходжаньне прыслоўя',
   conjunctionType: 'Тып злучніка',
 };
 
@@ -343,14 +343,14 @@ export function ManualLinguisticInput({
   const [partOfSpeech, setPartOfSpeech] = useState<string>('');
   const [categories, setCategories] = useState<Record<string, string>>({});
 
-  // Ініцыялізуем значэнні, калі яны перададзены
+  // Ініцыялізуем значэньні, калі яны перададзены
   useEffect(() => {
     if (initialValues) {
       setLemma(initialValues.lemma || '');
       setPartOfSpeech(initialValues.partOfSpeech || '');
       setCategories(initialValues.categories || {});
     } else {
-      // Скідаем значэнні, калі initialValues не перададзены
+      // Скідаем значэньні, калі initialValues не перададзены
       setLemma('');
       setPartOfSpeech('');
       setCategories({});
@@ -584,7 +584,7 @@ export function ManualLinguisticInput({
           disabled={!lemma.trim() || !partOfSpeech || isSaving}
           className="flex-1 bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {isSaving ? 'Захаванне...' : 'Захаваць'}
+          {isSaving ? 'Захаваньне...' : 'Захаваць'}
         </button>
         <button
           onClick={onCancel}

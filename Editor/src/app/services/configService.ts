@@ -7,7 +7,7 @@ export interface FrontendConfig {
   version: string;
 }
 
-// Ключ для захавання канфігу ў localStorage
+// Ключ для захаваньня канфігу ў localStorage
 const CONFIG_STORAGE_KEY = 'editor-config';
 
 class ConfigService {
@@ -17,7 +17,7 @@ class ConfigService {
   // Функцыі для працы з localStorage
   private getConfigFromStorage(): FrontendConfig | null {
     if (typeof window === 'undefined') return null;
-    
+
     try {
       const stored = localStorage.getItem(CONFIG_STORAGE_KEY);
       if (stored) {
@@ -28,15 +28,15 @@ class ConfigService {
         }
       }
     } catch (error) {
-      console.error('Памылка чытання канфігу з localStorage:', error);
+      console.error('Памылка чытаньня канфігу з localStorage:', error);
     }
-    
+
     return null;
   }
 
   private setConfigToStorage(config: FrontendConfig): void {
     if (typeof window === 'undefined') return;
-    
+
     localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(config));
   }
 
@@ -45,11 +45,11 @@ class ConfigService {
   }
 
   private configsAreDifferent(config1: FrontendConfig, config2: FrontendConfig): boolean {
-    return config1.recaptchaSiteKey !== config2.recaptchaSiteKey 
-           || config1.sentryDsn !== config2.sentryDsn
-           || config1.environment !== config2.environment
-           //|| config1.version !== config2.version // Вэрсія ня лічыцца дастатковаю прычынаю каб перагружаць старонку
-           ;
+    return config1.recaptchaSiteKey !== config2.recaptchaSiteKey
+      || config1.sentryDsn !== config2.sentryDsn
+      || config1.environment !== config2.environment
+      //|| config1.version !== config2.version // Вэрсія ня лічыцца дастатковаю прычынаю каб перагружаць старонку
+      ;
   }
 
   async getConfig(apiClient: ApiClient): Promise<FrontendConfig> {
@@ -100,7 +100,7 @@ class ConfigService {
       return reseivedConfig;
     } catch (error) {
       console.error('Памылка загрузкі канфігу:', error);
-      // Fallback да значэньняў па змаўчанні, канфігурацыя з проду. Таму што так я імаверней пачну разьбірацца што пайло ня так
+      // Fallback да значэньняў па змаўчаньні, канфігурацыя з проду. Таму што так я імаверней пачну разьбірацца што пайло ня так
       return {
         recaptchaSiteKey: '6LccmsUrAAAAABoGBBMbOdJWENmowzmY66pEQaME',
         sentryDsn: 'https://659ec7317863b18f497a2ec253dad619@o4509997938638848.ingest.de.sentry.io/4509998009876560',

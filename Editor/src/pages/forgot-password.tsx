@@ -47,7 +47,7 @@ export default function ForgotPassword() {
       } else {
         try {
           const errorData = await response.json();
-          // Праверка розных фарматаў паведамленняў пра памылкі
+          // Праверка розных фарматаў паведамленьняў пра памылкі
           if (errorData.message) {
             setError(errorData.message);
           } else if (errorData.error) {
@@ -62,7 +62,7 @@ export default function ForgotPassword() {
         }
       }
     } catch {
-      setError('Памылка злучэння з серверам');
+      setError('Памылка злучэньня з серверам');
     } finally {
       setIsLoading(false);
     }

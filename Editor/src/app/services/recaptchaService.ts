@@ -61,7 +61,7 @@ class ReCaptchaService {
       script.src = `https://www.google.com/recaptcha/api.js?render=${this.siteKey}`;
       script.async = true;
       script.defer = true;
-      
+
       script.onload = () => {
         this.scriptLoaded = true;
         this.isLoaded = true;
@@ -89,7 +89,7 @@ class ReCaptchaService {
       const token = await window.grecaptcha.execute(this.siteKey, { action });
       return token;
     } catch (error) {
-      console.error('Памылка выканання reCAPTCHA:', error);
+      console.error('Памылка выкананьня reCAPTCHA:', error);
       return null;
     }
   }

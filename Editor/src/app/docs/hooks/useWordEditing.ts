@@ -18,7 +18,7 @@ export function useWordEditing(documentId: string, wordEditingService: WordEditi
     try {
       await wordEditingService.saveParadigmFormId(documentId, selectedWord, paradigmFormId);
     } catch (error) {
-      console.error('Памылка захавання парадыгмы:', error);
+      console.error('Памылка захаваньня парадыгмы:', error);
     }
   }, [selectedWord, documentId, wordEditingService]);
 
@@ -29,7 +29,7 @@ export function useWordEditing(documentId: string, wordEditingService: WordEditi
     try {
       await wordEditingService.updateWordText(documentId, selectedWord, text);
     } catch (error) {
-      console.error('Памылка абнаўлення тэксту:', error);
+      console.error('Памылка абнаўленьня тэксту:', error);
       throw error;
     } finally {
       setIsSavingText(false);
@@ -43,7 +43,7 @@ export function useWordEditing(documentId: string, wordEditingService: WordEditi
     try {
       await wordEditingService.saveManualCategories(documentId, selectedWord, lemma, linguisticTag);
     } catch (error) {
-      console.error('Памылка захавання катэгорый:', error);
+      console.error('Памылка захаваньня катэгорый:', error);
       throw error;
     } finally {
       setIsSavingManual(false);
@@ -57,7 +57,7 @@ export function useWordEditing(documentId: string, wordEditingService: WordEditi
     try {
       await wordEditingService.saveComment(documentId, selectedWord, comment);
     } catch (error) {
-      console.error('Памылка захавання камэнтара:', error);
+      console.error('Памылка захаваньня камэнтара:', error);
     } finally {
       setIsSavingComment(false);
     }

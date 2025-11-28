@@ -19,7 +19,7 @@ interface DocumentState {
   // Сэрвіс
   documentService: DocumentService | null;
 
-  // Дзеянні
+  // Дзеяньні
   setDocumentService: (service: DocumentService) => void;
   fetchDocument: (documentId: string, skipUpToId?: number, isInitial?: boolean) => Promise<void>;
   reloadDocument: (documentId: string) => Promise<void>;
@@ -41,7 +41,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   lastParagraphId: 0,
   documentService: null,
 
-  // Дзеянні
+  // Дзеяньні
   setDocumentService: (service) => set({ documentService: service }),
 
   fetchDocument: async (documentId, skipUpToId = 0, isInitial = false) => {

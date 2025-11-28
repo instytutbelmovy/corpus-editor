@@ -8,11 +8,11 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: User | null;
-  
+
   // Сэрвіс
   authService: AuthService | null;
-  
-  // Дзеянні
+
+  // Дзеяньні
   setAuthService: (service: AuthService) => void;
   signIn: (email: string, password: string, recaptchaToken?: string | null) => Promise<{ success: boolean; message?: string }>;
   signOut: () => Promise<void>;
@@ -29,7 +29,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   authService: null,
 
-  // Дзеянні
+  // Дзеяньні
   setAuthService: (service) => set({ authService: service }),
 
   signIn: async (email, password, recaptchaToken) => {
@@ -41,9 +41,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const result = await authService.signIn(email, password, recaptchaToken);
     if (result.success) {
       const user = AuthStorage.get();
-      set({ 
-        isAuthenticated: true, 
-        user: user || null 
+      set({
+        isAuthenticated: true,
+        user: user || null
       });
     }
     return result;
@@ -54,9 +54,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (authService) {
       await authService.signOut();
     }
-    set({ 
-      isAuthenticated: false, 
-      user: null 
+    set({
+      isAuthenticated: false,
+      user: null
     });
   },
 
@@ -71,25 +71,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const isAuth = await authService.checkAuthStatus();
       if (isAuth) {
         const user = AuthStorage.get();
-        set({ 
-          isAuthenticated: true, 
+        set({
+          isAuthenticated: true,
           user: user || null,
-          isLoading: false 
+          isLoading: false
         });
       } else {
-        set({ 
-          isAuthenticated: false, 
+        set({
+          isAuthenticated: false,
           user: null,
-          isLoading: false 
+          isLoading: false
         });
       }
       return isAuth;
     } catch (error) {
       console.error('Auth check failed:', error);
-      set({ 
-        isAuthenticated: false, 
+      set({
+        isAuthenticated: false,
         user: null,
-        isLoading: false 
+        isLoading: false
       });
       return false;
     }

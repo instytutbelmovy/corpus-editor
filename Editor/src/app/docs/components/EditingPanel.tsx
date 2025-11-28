@@ -63,7 +63,7 @@ export function EditingPanel({
     }
   }, [selectedWord, isManuallyEdited]);
 
-  // Скідаем стан рэдагавання тэксту пры змене выбраннага слова
+  // Скідаем стан рэдагаваньня тэксту пры змене выбраннага слова
   useEffect(() => {
     setIsEditingText(false);
     setEditText('');
@@ -85,7 +85,7 @@ export function EditingPanel({
         await onSaveComment(comment);
         lastSavedCommentRef.current = comment;
       } catch (error) {
-        console.error('Памылка захавання камэнтара:', error);
+        console.error('Памылка захаваньня камэнтара:', error);
       } finally {
         setIsSavingComment(false);
       }
@@ -104,7 +104,7 @@ export function EditingPanel({
     }
   }, [selectedWord]);
 
-  // Пачынаем рэдагаванне тэксту
+  // Пачынаем рэдагаваньне тэксту
   const handleStartEditText = () => {
     if (selectedWord) {
       setEditText(selectedWord.item.text);
@@ -122,13 +122,13 @@ export function EditingPanel({
       setIsEditingText(false);
       setEditText('');
     } catch (error) {
-      console.error('Памылка захавання тэксту:', error);
+      console.error('Памылка захаваньня тэксту:', error);
     } finally {
       setIsSavingText(false);
     }
   };
 
-  // Скасоўваем рэдагаванне
+  // Скасоўваем рэдагаваньне
   const handleCancelEditText = () => {
     setIsEditingText(false);
     setEditText('');
@@ -146,11 +146,11 @@ export function EditingPanel({
       await saveCommentImmediately(); // Захоўваем камэнтар перад пераходам
       await onSaveManualCategories(lemma, linguisticTag);
       setShowManualInput(false);
-      // Пасля захавання мы вяртаемся да выбару прапанаваных опцый
+      // Пасля захаваньня мы вяртаемся да выбару прапанаваных опцый
       // Але слова цяпер пазначана як адрэдагаванае ўручную
       // Кнопка "Вярнуцца да ручнага ўводу" будзе даступная
     } catch (error) {
-      console.error('Памылка захавання лінгвістычных катэгорый:', error);
+      console.error('Памылка захаваньня лінгвістычных катэгорый:', error);
     } finally {
       setIsSavingManual(false);
     }
@@ -159,8 +159,8 @@ export function EditingPanel({
   // Скасоўваем ручны ўвод
   const handleCancelManualInput = () => {
     setShowManualInput(false);
-    // Калі слова было адрэдагавана ўручную, то пры скасаванні мы вяртаемся да выбару прапанаваных опцый
-    // Але не скідваем існуючыя значэнні, каб карыстальнік мог іх зноў выкарыстаць
+    // Калі слова было адрэдагавана ўручную, то пры скасаваньні мы вяртаемся да выбару прапанаваных опцый
+    // Але не скідваем існуючыя значэньні, каб карыстальнік мог іх зноў выкарыстаць
     // Кнопка "Вярнуцца да ручнага ўводу" будзе даступная
   };
 
@@ -173,7 +173,7 @@ export function EditingPanel({
       clearTimeout(commentTimeoutRef.current);
     }
 
-    // Усталёўваем новы таймаут для аўтазахавання праз 1 секунду
+    // Усталёўваем новы таймаут для аўтазахаваньня праз 1 секунду
     commentTimeoutRef.current = setTimeout(async () => {
       if (
         onSaveComment &&
@@ -185,7 +185,7 @@ export function EditingPanel({
           await onSaveComment(newComment);
           lastSavedCommentRef.current = newComment;
         } catch (error) {
-          console.error('Памылка захавання камэнтара:', error);
+          console.error('Памылка захаваньня камэнтара:', error);
         } finally {
           setIsSavingComment(false);
         }
@@ -193,7 +193,7 @@ export function EditingPanel({
     }, 1000);
   };
 
-  // Ачыстка таймаута пры размаўтанні кампанента
+  // Ачыстка таймаута пры размаўтаньні кампанента
   useEffect(() => {
     return () => {
       if (commentTimeoutRef.current) {
@@ -202,7 +202,7 @@ export function EditingPanel({
     };
   }, []);
 
-  // Атрымліваем існуючыя значэнні для ручнага ўводу
+  // Атрымліваем існуючыя значэньні для ручнага ўводу
   const getExistingManualValues = () => {
     if (!selectedWord?.item.linguisticTag || !selectedWord?.item.lemma) {
       return null;
@@ -224,7 +224,7 @@ export function EditingPanel({
     else if (categories.partOfSpeech === 'прыслоўе') partOfSpeech = 'R';
     else if (categories.partOfSpeech === 'злучнік') partOfSpeech = 'C';
 
-    // Дадаем значэнні катэгорый
+    // Дадаем значэньні катэгорый
     if (categories.properName === 'агульны') categoryValues.properName = 'C';
     else if (categories.properName === 'уласны')
       categoryValues.properName = 'P';
@@ -391,7 +391,7 @@ export function EditingPanel({
       categoryValues.adverbOrigin = 'A';
     else if (categories.adverbOrigin === 'ад лічэбнікаў')
       categoryValues.adverbOrigin = 'M';
-    else if (categories.adverbOrigin === 'ад займеннікаў')
+    else if (categories.adverbOrigin === 'ад займеньнікаў')
       categoryValues.adverbOrigin = 'S';
     else if (categories.adverbOrigin === 'ад дзеепрыслоўяў')
       categoryValues.adverbOrigin = 'G';
@@ -420,7 +420,7 @@ export function EditingPanel({
       <div className="hidden lg:block lg:static lg:w-80 lg:h-full lg:border-l lg:border-gray-200 lg:bg-gray-50 lg:p-4">
         <div className="text-center text-gray-500 py-8">
           <div className="text-2xl mb-2">📝</div>
-          <p className="text-sm">Выберыце слова для рэдагавання</p>
+          <p className="text-sm">Выберыце слова для рэдагаваньня</p>
         </div>
       </div>
     );
@@ -591,7 +591,7 @@ export function EditingPanel({
                   <div className="text-red-500 text-lg">❌</div>
                   <div>
                     <div className="text-sm font-medium text-red-800 mb-1">
-                      Памылка захавання:
+                      Памылка захаваньня:
                     </div>
                     <div className="text-sm text-red-700">{saveError}</div>
                   </div>

@@ -47,7 +47,7 @@ export function SettingsButton({
         ref={buttonRef}
         onClick={handleToggle}
         className="text-gray-400 hover:text-gray-600 transition-colors p-1"
-        title="Налады адлюстравання"
+        title="Налады адлюстраваньня"
       >
         <svg
           className="w-5 h-5"
@@ -77,16 +77,15 @@ export function SettingsButton({
         >
           <div className="p-2">
             <div className="text-xs font-medium text-gray-500 mb-2 px-2">
-              Рэжым адлюстравання
+              Рэжым адлюстраваньня
             </div>
 
             <button
               onClick={() => handleModeChange('full')}
-              className={`w-full text-left px-2 py-1.5 text-sm rounded ${
-                displayMode === 'full'
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-700 hover:bg-gray-50'
-              }`}
+              className={`w-full text-left px-2 py-1.5 text-sm rounded ${displayMode === 'full'
+                ? 'bg-blue-50 text-blue-700'
+                : 'text-gray-700 hover:bg-gray-50'
+                }`}
             >
               <div className="font-medium">Поўны</div>
               <div className="text-xs text-gray-500">
@@ -96,11 +95,10 @@ export function SettingsButton({
 
             <button
               onClick={() => handleModeChange('compact')}
-              className={`w-full text-left px-2 py-1.5 text-sm rounded ${
-                displayMode === 'compact'
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-gray-700 hover:bg-gray-50'
-              }`}
+              className={`w-full text-left px-2 py-1.5 text-sm rounded ${displayMode === 'compact'
+                ? 'bg-blue-50 text-blue-700'
+                : 'text-gray-700 hover:bg-gray-50'
+                }`}
             >
               <div className="font-medium">Скарочаны</div>
               <div className="text-xs text-gray-500">

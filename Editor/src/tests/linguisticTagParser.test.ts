@@ -103,7 +103,7 @@ describe('parseLinguisticTag', () => {
     expect(categories.case).toBeNull();
   });
 
-  test('тэг з адсутнымі значэннямі', () => {
+  test('тэг з адсутнымі значэньнямі', () => {
     const tag = { paradigmTag: 'N.....', formTag: '..' };
     const categories = parseLinguisticTag(tag);
 

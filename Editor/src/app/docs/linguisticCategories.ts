@@ -6,9 +6,9 @@ export interface LinguisticCategories {
   properName: string | null; // 2 - уласнае/агульнае
   animacy: string | null; // 3 - адушаўлёнасць
   personhood: string | null; // 4 - асабовасць
-  abbreviation: string | null; // 5 - скарачэнне
+  abbreviation: string | null; // 5 - скарачэньне
   gender: string | null; // 6 - род
-  declension: string | null; // 7 - скланенне
+  declension: string | null; // 7 - скланеньне
   case: string | null; // 8 - склон
   number: string | null; // 9 - лік
   adjectiveType: string | null; // 10 - тып прыметніка
@@ -18,17 +18,17 @@ export interface LinguisticCategories {
   numeralType: string | null; // 14 - тып лічэбніка
   numeralStructure: string | null; // 15 - структура лічэбніка
   numeralInflection: string | null; // 16 - зменлівасць лічэбніка
-  pronounType: string | null; // 17 - тып займенніка
+  pronounType: string | null; // 17 - тып займеньніка
   person: string | null; // 18 - асоба
   verbTransitivity: string | null; // 19 - пераходнасць дзеяслова
   verbAspect: string | null; // 20 - від дзеяслова
   verbReflexivity: string | null; // 21 - зваротнасць дзеяслова
-  verbConjugation: string | null; // 22 - спражэнне дзеяслова
+  verbConjugation: string | null; // 22 - спражэньне дзеяслова
   verbTense: string | null; // 23 - час дзеяслова
   verbMood: string | null; // 24 - лад дзеяслова
   participleType: string | null; // 25 - тып дзеепрыметніка
   participleForm: string | null; // 26 - форма дзеепрыметніка
-  adverbOrigin: string | null; // 27 - паходжанне прыслоўя
+  adverbOrigin: string | null; // 27 - паходжаньне прыслоўя
   conjunctionType: string | null; // 28 - тып злучніка
 }
 
@@ -152,7 +152,7 @@ export function parseLinguisticTag(tag: LinguisticTag): LinguisticCategories {
     '0': 'інфінітыў',
   };
 
-  // Усталяванне часткі мовы
+  // Усталяваньне часткі мовы
   categories.partOfSpeech = posMapping[pos] || null;
 
   // Разбор у залежнасці ад часткі мовы
@@ -600,7 +600,7 @@ export function parseLinguisticTag(tag: LinguisticTag): LinguisticCategories {
         N: 'ад назоўнікаў',
         A: 'ад прыметнікаў',
         M: 'ад лічэбнікаў',
-        S: 'ад займеннікаў',
+        S: 'ад займеньнікаў',
         G: 'ад дзеепрыслоўяў',
         V: 'ад дзеясловаў',
         E: 'ад часціц',

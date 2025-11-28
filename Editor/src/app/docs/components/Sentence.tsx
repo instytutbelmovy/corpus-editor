@@ -26,12 +26,12 @@ export function Sentence({
         const currentItem = sentenceItem.linguisticItem;
         const isCurrentlyEditing = Boolean(
           selectedWord &&
-            selectedWord.paragraphId === paragraphId &&
-            selectedWord.sentenceId === sentence.id &&
-            selectedWord.wordIndex === index
+          selectedWord.paragraphId === paragraphId &&
+          selectedWord.sentenceId === sentence.id &&
+          selectedWord.wordIndex === index
         );
 
-        // Правяраем ці чакае слова захавання
+        // Правяраем ці чакае слова захаваньня
         let isPendingSave = false;
         if (currentItem.type === 1) {
           const wordKey = `${paragraphId}-${sentence.id}-${index}`;

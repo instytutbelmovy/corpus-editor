@@ -32,7 +32,7 @@ public class GrammarDbConverter
 
     public async Task ConvertAsync(string inputDirectory)
     {
-        _logger.LogInformation("Пачынаю канвэртаванне XML файлаў з дырэкторыі {directory}", inputDirectory);
+        _logger.LogInformation("Пачынаю канвэртаваньне XML файлаў з дырэкторыі {directory}", inputDirectory);
         
         // Ствараем базу даных
         await CreateDatabaseAsync();
@@ -75,7 +75,7 @@ public class GrammarDbConverter
         await InsertFormsInBatchesAsync(formInfos);
         
         
-        _logger.LogInformation("Канвэртаванне завершана. Парадыгм: {paradigmCount}, Форм: {formCount}", 
+        _logger.LogInformation("Канвэртаваньне завершана. Парадыгм: {paradigmCount}, Форм: {formCount}", 
             allParadigms.Count, formInfos.Count);
     }
 
@@ -174,7 +174,7 @@ public class GrammarDbConverter
 
                     if (!string.IsNullOrEmpty(formValue))
                     {
-                        // Нармалізуем форму для індэксавання
+                        // Нармалізуем форму для індэксаваньня
                         var normalizedForm = Normalizer.GrammarDbAggressiveNormalize(formValue);
 
                         forms.Add((normalizedForm, $"{paradigmId}{variantId}|{formTag}"));
@@ -395,7 +395,7 @@ class Program
 
         if (args.Length != 2)
         {
-            Console.WriteLine("Выкарыстанне: GrammarDbConverter <input_directory> <output_db_path>");
+            Console.WriteLine("Выкарыстаньне: GrammarDbConverter <input_directory> <output_db_path>");
             Console.WriteLine("Прыклад: GrammarDbConverter C:\\grammar_xml C:\\grammar.db");
             return;
         }
@@ -426,11 +426,11 @@ class Program
         try
         {
             await converter.ConvertAsync(inputDirectory);
-            Console.WriteLine($"Канвэртаванне завершана! База даных створана: {outputDbPath}");
+            Console.WriteLine($"Канвэртаваньне завершана! База даных створана: {outputDbPath}");
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Памылка падчас канвэртавання");
+            logger.LogError(ex, "Памылка падчас канвэртаваньня");
             Console.WriteLine($"Памылка: {ex.Message}");
         }
     }

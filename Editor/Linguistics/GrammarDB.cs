@@ -140,7 +140,7 @@ public partial class GrammarDb(string dbPath)
             intersectionLemma = lemmas.Count() == 1 ? lemmas.First() : null;
         }
 
-        // Калі знайшліся зусім розныя варыянты - вяртаем пустыя значэнні
+        // Калі знайшліся зусім розныя варыянты - вяртаем пустыя значэньні
         return (intersectionParadigmFormId, intersectionLemma, intersectionLinguisticTag);
     }
 

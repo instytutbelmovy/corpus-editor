@@ -32,7 +32,7 @@ export default function DocumentPage() {
     fetchDocument,
   } = useDocument(documentId);
 
-  // Хукі для выбару і рэдагавання слоў
+  // Хукі для выбару і рэдагаваньня слоў
   const {
     selectedWord,
     selectWord,
@@ -59,7 +59,7 @@ export default function DocumentPage() {
     onLoadMore: skipUpToId => fetchDocument(documentId, skipUpToId, false),
   });
 
-  // Функцыя для выбару слова для рэдагавання
+  // Функцыя для выбару слова для рэдагаваньня
   const handleWordClick = useCallback(
     (item: LinguisticItemType) => {
       if (item.type !== 1 || !documentData) return;
@@ -100,7 +100,7 @@ export default function DocumentPage() {
           {/* Загаловак */}
           <DocumentHeader header={documentData.header} />
 
-          {/* Асноўны кантэнт з тэкстам і панэллю рэдагавання */}
+          {/* Асноўны кантэнт з тэкстам і панэллю рэдагаваньня */}
           <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0 max-h-full">
             {/* Тэкст дакумэнта */}
             <div className="flex-1 overflow-y-auto min-h-0 max-h-full">
@@ -115,7 +115,7 @@ export default function DocumentPage() {
               />
             </div>
 
-            {/* Панэль рэдагавання */}
+            {/* Панэль рэдагаваньня */}
             <EditingPanel
               selectedWord={selectedWord}
               saveError={saveError}

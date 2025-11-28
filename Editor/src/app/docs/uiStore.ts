@@ -7,42 +7,42 @@ export type DisplayMode = 'full' | 'compact';
 interface UIState {
   // Выбранае слова
   selectedWord: SelectedWord | null;
-  
-  // Налады адлюстравання
+
+  // Налады адлюстраваньня
   displayMode: DisplayMode;
-  
-  // Стан рэдагавання
+
+  // Стан рэдагаваньня
   isEditingText: boolean;
   isSavingText: boolean;
   isSavingManual: boolean;
   isSavingComment: boolean;
   showManualInput: boolean;
-  
+
   // Памылкі
   saveError: string | null;
-  
-  // Чакаючыя захаванні
+
+  // Чакаючыя захаваньні
   pendingSaves: Set<string>;
-  
-  // Дзеянні для выбару слоў
+
+  // Дзеяньні для выбару слоў
   setSelectedWord: (word: SelectedWord | null) => void;
   clearSelectedWord: () => void;
-  
-  // Дзеянні для налад
+
+  // Дзеяньні для налад
   setDisplayMode: (mode: 'full' | 'compact') => void;
-  
-  // Дзеянні для рэдагавання
+
+  // Дзеяньні для рэдагаваньня
   setIsEditingText: (editing: boolean) => void;
   setIsSavingText: (saving: boolean) => void;
   setIsSavingManual: (saving: boolean) => void;
   setIsSavingComment: (saving: boolean) => void;
   setShowManualInput: (show: boolean) => void;
-  
-  // Дзеянні для памылак
+
+  // Дзеяньні для памылак
   setSaveError: (error: string | null) => void;
   clearSaveError: () => void;
-  
-  // Дзеянні для чакаючых захаванняў
+
+  // Дзеяньні для чакаючых захаваньняў
   addPendingSave: (key: string) => void;
   removePendingSave: (key: string) => void;
   clearPendingSaves: () => void;
@@ -62,31 +62,31 @@ export const useUIStore = create<UIState>()(
       saveError: null,
       pendingSaves: new Set(),
 
-      // Дзеянні для выбару слоў
+      // Дзеяньні для выбару слоў
       setSelectedWord: (word) => set({ selectedWord: word }),
       clearSelectedWord: () => set({ selectedWord: null }),
 
-      // Дзеянні для налад
+      // Дзеяньні для налад
       setDisplayMode: (mode) => set({ displayMode: mode }),
 
-      // Дзеянні для рэдагавання
+      // Дзеяньні для рэдагаваньня
       setIsEditingText: (editing) => set({ isEditingText: editing }),
       setIsSavingText: (saving) => set({ isSavingText: saving }),
       setIsSavingManual: (saving) => set({ isSavingManual: saving }),
       setIsSavingComment: (saving) => set({ isSavingComment: saving }),
       setShowManualInput: (show) => set({ showManualInput: show }),
 
-      // Дзеянні для памылак
+      // Дзеяньні для памылак
       setSaveError: (error) => set({ saveError: error }),
       clearSaveError: () => set({ saveError: null }),
 
-      // Дзеянні для чакаючых захаванняў
+      // Дзеяньні для чакаючых захаваньняў
       addPendingSave: (key) => {
         set(state => ({
           pendingSaves: new Set([...state.pendingSaves, key])
         }));
       },
-      
+
       removePendingSave: (key) => {
         set(state => {
           const newSet = new Set(state.pendingSaves);
@@ -94,7 +94,7 @@ export const useUIStore = create<UIState>()(
           return { pendingSaves: newSet };
         });
       },
-      
+
       clearPendingSaves: () => set({ pendingSaves: new Set() }),
     }),
     {

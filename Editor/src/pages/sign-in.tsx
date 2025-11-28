@@ -18,7 +18,7 @@ export default function SignIn() {
     // Праверка, ці ўжо ўвайшоў карыстальнік
     const checkAuth = async () => {
       if (!authService) return;
-      
+
       // Спачатку правяраем localStorage, каб пазбегнуць залішніх API выклікаў
       const cachedUser = authService.getCurrentUser();
       if (cachedUser) {
@@ -65,7 +65,7 @@ export default function SignIn() {
       }
 
       const result = await storeSignIn(email, password, recaptchaToken);
-      
+
       if (result.success) {
         const returnTo = router.query.returnTo as string;
         if (returnTo && isValidReturnUrl(decodeURIComponent(returnTo))) {
@@ -77,7 +77,7 @@ export default function SignIn() {
         setError(result.message || 'Памылка ўваходу');
       }
     } catch {
-      setError('Памылка злучэння з серверам');
+      setError('Памылка злучэньня з серверам');
     } finally {
       setIsLoading(false);
     }

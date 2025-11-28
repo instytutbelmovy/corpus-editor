@@ -23,12 +23,12 @@ export class ApiClient {
     if (response.status === 401) {
       // Ачысціць аўтэнтыфікацыю
       AuthStorage.clear();
-      
+
       // Перанакіраваць на ўваход толькі калі гэта не праверка аўтэнтыфікацыі
       if (!skipUnauthorizedRedirect) {
         this.onUnauthorized();
       }
-      
+
       return { status: 401, error: 'Unauthorized' };
     }
 
@@ -44,7 +44,7 @@ export class ApiClient {
       } else {
         try {
           const errorData = await response.json();
-          // Праверка розных фарматаў паведамленняў пра памылкі
+          // Праверка розных фарматаў паведамленьняў пра памылкі
           if (errorData.message) {
             error = errorData.message;
           } else if (errorData.error) {

@@ -79,7 +79,7 @@ export class WordEditingService {
     return null;
   }
 
-  // Захаванне выбару парадыгмы
+  // Захаваньне выбару парадыгмы
   async saveParadigmFormId(
     documentId: string,
     selectedWord: SelectedWord,
@@ -111,7 +111,7 @@ export class WordEditingService {
     const nextWord = this.findNextUnresolvedWord(documentData, selectedWord);
     setSelectedWord(nextWord);
 
-    // Дадаем слова ў спіс чакаючых захавання
+    // Дадаем слова ў спіс чакаючых захаваньня
     addPendingSave(wordKey);
 
     // Абнаўляем лакальна толькі парадыгму
@@ -153,7 +153,7 @@ export class WordEditingService {
         paradigmFormId
       );
 
-      // Пасля паспяховага захавання ўсталёўваем resolvedOn
+      // Пасля паспяховага захаваньня ўсталёўваем resolvedOn
       updateDocument(prev => {
         if (!prev) return prev;
         const newData = { ...prev };
@@ -204,7 +204,7 @@ export class WordEditingService {
     }
   }
 
-  // Абнаўленне тэксту слова
+  // Абнаўленьне тэксту слова
   async updateWordText(
     documentId: string,
     selectedWord: SelectedWord,
@@ -279,7 +279,7 @@ export class WordEditingService {
     }
   }
 
-  // Захаванне ручна ўведзеных лінгвістычных катэгорый
+  // Захаваньне ручна ўведзеных лінгвістычных катэгорый
   async saveManualCategories(
     documentId: string,
     selectedWord: SelectedWord,
@@ -291,7 +291,7 @@ export class WordEditingService {
 
     const wordKey = `${selectedWord.paragraphId}-${selectedWord.sentenceId}-${selectedWord.wordIndex}`;
 
-    // Дадаем слова ў спіс чакаючых захавання
+    // Дадаем слова ў спіс чакаючых захаваньня
     addPendingSave(wordKey);
 
     // Абнаўляем лакальна толькі лему і тэг
@@ -326,7 +326,7 @@ export class WordEditingService {
         tagString
       );
 
-      // Пасля паспяховага захавання ўсталёўваем resolvedOn
+      // Пасля паспяховага захаваньня ўсталёўваем resolvedOn
       updateDocument(prev => {
         if (!prev) return prev;
         const newData = { ...prev };
@@ -388,7 +388,7 @@ export class WordEditingService {
     }
   }
 
-  // Захаванне камэнтара
+  // Захаваньне камэнтара
   async saveComment(
     documentId: string,
     selectedWord: SelectedWord,
@@ -413,7 +413,7 @@ export class WordEditingService {
         comment
       );
 
-      // Абнаўляем лакальна пасля паспяховага захавання
+      // Абнаўляем лакальна пасля паспяховага захаваньня
       updateDocument(prev => {
         if (!prev) return prev;
         const newData = { ...prev };
@@ -437,7 +437,7 @@ export class WordEditingService {
         },
       });
     } catch (err) {
-      console.error('Памылка захавання камэнтара:', err);
+      console.error('Памылка захаваньня камэнтара:', err);
       // Для камэнтараў не паказваем памылку карыстальніку, толькі логуем
     }
   }

@@ -22,7 +22,7 @@ public static class Normalizer
     {
         var tokenizationNormalize = new Dictionary<char, char>();
 
-        // Запаўненне базавых табліц
+        // Запаўненьне базавых табліц
         for (int c = 0; c < 0x2020; c++)
         {
             if (char.IsLetterOrDigit((char)c))
