@@ -9,7 +9,7 @@ public class AwsFilesPurgeService(AwsFilesCache awsFilesCache, ILogger<AwsFilesP
         while (true)
         {
             await Task.Delay(_checkInterval, stoppingToken);
-            logger.LogInformation("Purging aws files cache");
+            logger.LogTrace("Purging aws files cache");
             awsFilesCache.PurgeFilesOlderThan(_checkInterval);
         }
     }

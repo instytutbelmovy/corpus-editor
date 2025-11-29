@@ -5,14 +5,13 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 
 WORKDIR /app
 COPY . ./
-COPY .git ./.git
 
-WORKDIR /app/src
+WORKDIR /app/Editor/src
 RUN apk add nodejs npm git
 RUN npm ci
 RUN npm run build
 
-WORKDIR /app
+WORKDIR /app/Editor
 RUN dotnet restore Editor.csproj
 RUN dotnet publish Editor.csproj -c Release -r linux-musl-x64 -o out --no-restore
 
@@ -32,8 +31,8 @@ RUN addgroup -g 1001 -S appgroup && \
 WORKDIR /app
 
 # Капіруем збудаваны праект
-COPY --from=build /app/out ./
-COPY files/grammar.db ./files/grammar.db
+COPY --from=build /app/Editor/out ./
+COPY Editor/files/grammar.db ./files/grammar.db
 RUN chown -R appuser:appgroup /app
 
 USER appuser
