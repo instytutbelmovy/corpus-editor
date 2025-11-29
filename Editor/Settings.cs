@@ -9,6 +9,7 @@ public class Settings
 
 public class ReCaptchaSettings
 {
+    public bool IsEnforced { get; set; } = true;
     public string SiteKey { get; set; } = string.Empty;
     public string SecretKey { get; set; } = string.Empty;
 }

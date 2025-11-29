@@ -1,4 +1,3 @@
-using DocumentFormat.OpenXml.Spreadsheet;
 using System.Text.Json;
 
 namespace Editor;
@@ -7,15 +6,23 @@ public class ReCaptchaService
 {
     private readonly HttpClient _httpClient;
     private readonly ReCaptchaSettings _settings;
+    private readonly ILogger<ReCaptchaService> _logger;
 
-    public ReCaptchaService(HttpClient httpClient, ReCaptchaSettings settings)
+    public ReCaptchaService(HttpClient httpClient, ReCaptchaSettings settings, ILogger<ReCaptchaService> logger)
     {
         _httpClient = httpClient;
         _settings = settings;
+        _logger = logger;
     }
 
     public async Task<bool> VerifyTokenAsync(string token, string? remoteIp = null)
     {
+        if (!_settings.IsEnforced)
+        {
+            _logger.LogWarning("ReCaptcha check skipped due to settings");
+            return true;
+        }
+
         if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(_settings.SecretKey))
             return false;
 
