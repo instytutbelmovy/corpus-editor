@@ -15,12 +15,20 @@ import {
 } from '@/app/docs/components';
 import { LoadingScreen, ErrorScreen } from '@/app/components';
 import { useAuth } from '../_app';
+import { useEffect } from 'react';
+import { useUIStore } from '@/app/docs/uiStore';
 import { WordEditingService } from '@/app/docs/wordEditingService';
 
 export default function DocumentPage() {
   const router = useRouter();
   const documentId = router.query.id as string;
   const { documentService } = useAuth();
+  const { setIsStructureEditingMode } = useUIStore();
+
+  // Скідваем рэжым рэдагаваньня пры змене дакумэнта
+  useEffect(() => {
+    setIsStructureEditingMode(false);
+  }, [documentId, setIsStructureEditingMode]);
 
   // Хукі для работы з дакумэнтам
   const {
@@ -95,16 +103,16 @@ export default function DocumentPage() {
   }
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col">
-      <div className="max-w-7xl mx-auto px-2 sm:px-2 lg:px-4 pt-4 pb-8 flex-1 flex flex-col max-h-full">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex-1 flex flex-col min-h-0 max-h-full">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="max-w-7xl mx-auto px-2 sm:px-2 lg:px-4 pt-4 pb-8 flex-1 flex flex-col">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex-1 flex flex-col">
           {/* Загаловак */}
           <DocumentHeader header={documentData.header} />
 
           {/* Асноўны кантэнт з тэкстам і панэллю рэдагаваньня */}
-          <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0 max-h-full">
+          <div className="flex flex-col lg:flex-row gap-6 flex-1">
             {/* Тэкст дакумэнта */}
-            <div className="flex-1 overflow-y-auto min-h-0 max-h-full">
+            <div className="flex-1">
               <DocumentContent
                 documentData={documentData}
                 selectedWord={selectedWord}

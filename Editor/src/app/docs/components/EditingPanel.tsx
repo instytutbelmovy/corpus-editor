@@ -445,7 +445,7 @@ export function EditingPanel({
         aria-hidden="true"
       />
       <div
-        className="fixed bottom-0 left-0 w-full h-2/3 bg-white border-t border-gray-200 shadow-2xl z-50 rounded-t-2xl overflow-y-auto lg:static lg:w-80 lg:h-full lg:border-t-0 lg:border-l lg:border-r-0 lg:border-b-0 lg:rounded-none lg:shadow-none lg:overflow-y-auto"
+        className="fixed bottom-0 left-0 w-full h-2/3 bg-white border-t border-gray-200 shadow-2xl z-50 rounded-t-2xl overflow-y-auto lg:sticky lg:top-6 lg:w-80 lg:h-[calc(100vh-3rem)] lg:border-t-0 lg:border-l lg:border-r-0 lg:border-b-0 lg:rounded-none lg:shadow-none lg:overflow-y-auto"
         style={{ touchAction: 'manipulation' }}
       >
         <div className="p-4">

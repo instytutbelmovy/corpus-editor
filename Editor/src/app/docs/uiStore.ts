@@ -48,6 +48,10 @@ interface UIState {
   addPendingSave: (key: string) => void;
   removePendingSave: (key: string) => void;
   clearPendingSaves: () => void;
+
+  // Рэжым рэдагаваньня структуры
+  isStructureEditingMode: boolean;
+  setIsStructureEditingMode: (mode: boolean) => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -100,6 +104,10 @@ export const useUIStore = create<UIState>()(
       },
 
       clearPendingSaves: () => set({ pendingSaves: new Set() }),
+
+      // Рэжым рэдагаваньня структуры
+      isStructureEditingMode: false,
+      setIsStructureEditingMode: (mode) => set({ isStructureEditingMode: mode }),
     }),
     {
       name: 'editor-ui-store',

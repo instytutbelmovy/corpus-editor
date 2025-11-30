@@ -6,6 +6,8 @@ import {
 import { Paragraph } from './Paragraph';
 import { LoadingIndicator } from './LoadingIndicator';
 
+import { useUIStore } from '../uiStore';
+
 interface DocumentContentProps {
   documentData: DocumentData;
   selectedWord: SelectedWord | null;
@@ -25,15 +27,19 @@ export function DocumentContent({
   onWordClick,
   observerRef,
 }: DocumentContentProps) {
+  const { isStructureEditingMode } = useUIStore();
+
   return (
     <div className="prose max-w-none">
-      {documentData.paragraphs.map(paragraph => (
+      {documentData.paragraphs.map((paragraph, index) => (
         <Paragraph
           key={paragraph.id}
           paragraph={paragraph}
           selectedWord={selectedWord}
           pendingSaves={pendingSaves}
           onWordClick={onWordClick}
+          isStructureEditingMode={isStructureEditingMode}
+          index={index}
         />
       ))}
 
