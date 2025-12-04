@@ -33,19 +33,17 @@ public record CorpusDocument(CorpusDocumentHeader Header, List<Paragraph> Paragr
 
     public static CorpusDocument? CheckIdsAndConcurrencyStamps(CorpusDocument document)
     {
-        var previousParagraphId = 0;
         List<Paragraph> replaceParagraphs = null!;
         for (int i = 0; i < document.Paragraphs.Count; i++)
         {
             var paragraph = document.Paragraphs[i];
-            var updateParagraphId = paragraph.Id <= previousParagraphId;
+            var updateParagraphId = paragraph.Id != i + 1;
             var updateParagraphStamp = paragraph.ConcurrencyStamp == default;
-            int previousSentenceId = 0;
             List<Sentence> replaceSentences = null!;
             for (int j = 0; j < paragraph.Sentences.Count; j++)
             {
                 var sentence = paragraph.Sentences[j];
-                var updateSentenceId = sentence.Id <= previousSentenceId;
+                var updateSentenceId = sentence.Id != j + 1;
                 var updateSentenceStamp = sentence.ConcurrencyStamp == default;
                 var replaceSentence = updateSentenceId || updateSentenceStamp;
 
@@ -53,7 +51,7 @@ public record CorpusDocument(CorpusDocumentHeader Header, List<Paragraph> Paragr
                 {
                     sentence = sentence with
                     {
-                        Id = updateSentenceId ? previousSentenceId + 1 : sentence.Id,
+                        Id = j + 1,
                         ConcurrencyStamp = updateSentenceId ? Guid.NewGuid() : sentence.ConcurrencyStamp,
                     };
 
@@ -62,8 +60,6 @@ public record CorpusDocument(CorpusDocumentHeader Header, List<Paragraph> Paragr
 
                 if (replaceSentences != null)
                     replaceSentences.Add(sentence);
-
-                previousSentenceId = sentence.Id;
             }
 
             var replaceParagraph = updateParagraphId || updateParagraphStamp || replaceSentences != null;
@@ -71,7 +67,7 @@ public record CorpusDocument(CorpusDocumentHeader Header, List<Paragraph> Paragr
             {
                 paragraph = paragraph with
                 {
-                    Id = updateParagraphId ? previousParagraphId + 1 : paragraph.Id,
+                    Id = i + 1,
                     ConcurrencyStamp = updateParagraphStamp ? Guid.NewGuid() : paragraph.ConcurrencyStamp,
                     Sentences = replaceSentences ?? paragraph.Sentences,
                 };
@@ -80,8 +76,6 @@ public record CorpusDocument(CorpusDocumentHeader Header, List<Paragraph> Paragr
             }
 
             replaceParagraphs?.Add(paragraph);
-
-            previousParagraphId = paragraph.Id;
         }
 
         return replaceParagraphs != null
