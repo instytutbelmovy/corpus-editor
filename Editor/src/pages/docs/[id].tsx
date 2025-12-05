@@ -12,18 +12,20 @@ import {
   DocumentHeader,
   DocumentContent,
   EditingPanel,
+  Toolbar,
 } from '@/app/docs/components';
 import { LoadingScreen, ErrorScreen } from '@/app/components';
 import { useAuth } from '../_app';
 import { useEffect } from 'react';
 import { useUIStore } from '@/app/docs/uiStore';
+import { useDocumentStore } from '@/app/docs/store';
 import { WordEditingService } from '@/app/docs/wordEditingService';
 
 export default function DocumentPage() {
   const router = useRouter();
   const documentId = router.query.id as string;
   const { documentService } = useAuth();
-  const { setIsStructureEditingMode } = useUIStore();
+  const { isStructureEditingMode, setIsStructureEditingMode } = useUIStore();
 
   // Скідваем рэжым рэдагаваньня пры змене дакумэнта
   useEffect(() => {
@@ -49,6 +51,14 @@ export default function DocumentPage() {
     clearSaveError,
     pendingSaves,
   } = useWordSelection();
+
+  // Скідваем выбранае слова пры змене рэжыму рэдагаваньня структуры
+  useEffect(() => {
+    clearSelectedWord();
+    if (isStructureEditingMode) {
+      useDocumentStore.getState().startEditing();
+    }
+  }, [isStructureEditingMode, clearSelectedWord]);
 
   // Ініцыялізуем WordEditingService
   const wordEditingService = new WordEditingService(documentService!);
@@ -110,6 +120,7 @@ export default function DocumentPage() {
           <DocumentHeader header={documentData.header} />
 
           {/* Асноўны кантэнт з тэкстам і панэллю рэдагаваньня */}
+          {isStructureEditingMode && <Toolbar />}
           <div className="flex flex-col lg:flex-row gap-6 flex-1">
             {/* Тэкст дакумэнта */}
             <div className="flex-1">
@@ -124,18 +135,20 @@ export default function DocumentPage() {
               />
             </div>
 
-            {/* Панэль рэдагаваньня */}
-            <EditingPanel
-              selectedWord={selectedWord}
-              saveError={saveError}
-              onClose={clearSelectedWord}
-              onSaveParadigm={handleSaveParadigm}
-              onClearError={clearSaveError}
-              onUpdateWordText={handleUpdateWordText}
-              onSaveManualCategories={handleSaveManualCategories}
-              onSaveComment={handleSaveComment}
-              onSaveErrorType={handleSaveErrorType}
-            />
+            {/* Панэль рэдагаваньня (толькі ў рэжыме прагляду) */}
+            {!isStructureEditingMode && (
+              <EditingPanel
+                selectedWord={selectedWord}
+                saveError={saveError}
+                onClose={clearSelectedWord}
+                onSaveParadigm={handleSaveParadigm}
+                onClearError={clearSaveError}
+                onUpdateWordText={handleUpdateWordText}
+                onSaveManualCategories={handleSaveManualCategories}
+                onSaveComment={handleSaveComment}
+                onSaveErrorType={handleSaveErrorType}
+              />
+            )}
           </div>
         </div>
       </div>

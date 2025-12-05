@@ -3,19 +3,20 @@ import { useDocumentStore } from '../store';
 import { LinguisticItem, SelectedWord } from '../types';
 
 export function useWordSelection() {
-  const { 
-    selectedWord, 
-    setSelectedWord, 
+  const {
+    selectedWord,
+    setSelectedWord,
     clearSelectedWord,
     saveError,
     setSaveError,
     clearSaveError,
-    pendingSaves 
+    pendingSaves
   } = useUIStore();
 
-  const { documentData } = useDocumentStore();
+
 
   const selectWord = (item: LinguisticItem, paragraphId: number, sentenceId: number, wordIndex: number) => {
+    const { documentData } = useDocumentStore.getState();
     if (!documentData) return;
 
     // Знаходзім параграф і сказ

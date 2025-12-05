@@ -335,7 +335,7 @@ public record DocumentEditRequest(List<ParagraphOperation> Operations);
 
 public record ParagraphOperation
 {
-    /// <summary> For Create operations, this is the ID of the paragraph after which the new paragraph will be inserted. </summary>
+    /// <summary> For Create operations, this is the ID at which the new paragraph will be inserted, shifting the paragraph that previously had this id to have ID = ID + 1 </summary>
     public required int ParagraphId { get; set; }
     public required OperationType OperationType { get; set; }
 
@@ -347,8 +347,8 @@ public record ParagraphOperation
 public enum OperationType
 {
     Delete = -1,
-    Create = 0,
-    Update = 1,
+    Update = 0,
+    Create = 1,
 }
 
 public record DocumentEditResponse(IList<ParagraphView> EditedParagraphs);

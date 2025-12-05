@@ -5,6 +5,7 @@ import {
 } from '../types';
 import { Sentence } from './Sentence';
 import { useState } from 'react';
+import { useDocumentStore } from '../store';
 
 interface ParagraphProps {
   paragraph: ParagraphType;
@@ -38,19 +39,21 @@ export function Paragraph({
             isStructureEditingMode={isStructureEditingMode}
             index={sentenceIndex}
             isLastSentence={sentenceIndex === paragraph.sentences.length - 1}
+            nextSentenceId={paragraph.sentences[sentenceIndex + 1]?.id}
           />
           {sentenceIndex < paragraph.sentences.length - 1 && ' '}
         </span>
       ))}
       {isStructureEditingMode && (
-        <ParagraphBoundary />
+        <ParagraphBoundary paragraphId={paragraph.id} />
       )}
     </div>
   );
 }
 
-function ParagraphBoundary() {
+function ParagraphBoundary({ paragraphId }: { paragraphId: number }) {
   const [isMergeHovered, setIsMergeHovered] = useState(false);
+  const { joinParagraph } = useDocumentStore();
 
   return (
     <span className={`text-gray-400 select-none ml-1 cursor-pointer hover:text-blue-500 relative group/boundary px-1 ${isMergeHovered ? '!bg-red-100 rounded' : ''}`}>
@@ -61,6 +64,7 @@ function ParagraphBoundary() {
             className="px-2 py-1 text-xs hover:bg-gray-100 rounded text-left text-red-600"
             onMouseEnter={() => setIsMergeHovered(true)}
             onMouseLeave={() => setIsMergeHovered(false)}
+            onClick={() => joinParagraph(paragraphId)}
           >
             Аб'яднаць абзацы
           </button>

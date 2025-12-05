@@ -5,6 +5,9 @@ import {
 } from '../types';
 import { LinguisticItem } from './LinguisticItem';
 import { InteractiveSpace } from './InteractiveSpace';
+import { useDocumentStore } from '../store';
+import { useWordSelection } from '../hooks/useWordSelection';
+import { useUIStore } from '../uiStore';
 
 interface SentenceProps {
   sentence: SentenceType;
@@ -15,6 +18,7 @@ interface SentenceProps {
   isStructureEditingMode: boolean;
   index: number;
   isLastSentence: boolean;
+  nextSentenceId?: number;
 }
 
 export function Sentence({
@@ -26,8 +30,12 @@ export function Sentence({
   isStructureEditingMode,
   index,
   isLastSentence,
+  nextSentenceId,
 }: SentenceProps) {
   const bgClass = isStructureEditingMode && index % 2 !== 0 ? 'bg-yellow-50' : '';
+  const { addWord, addPunctuation, splitParagraph, joinSentence, setGlue } = useDocumentStore();
+  const { selectWord } = useWordSelection();
+  const { setIsEditingText } = useUIStore();
 
   return (
     <span key={sentence.id} className={bgClass}>
@@ -37,7 +45,24 @@ export function Sentence({
           &nbsp;
           <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 translate-y-1 pb-2 hidden group-hover/start:flex flex-col z-10 min-w-[150px]">
             <div className="flex flex-col gap-1 bg-white shadow-lg rounded p-1 border border-gray-200 whitespace-nowrap">
-              <button className="px-2 py-1 text-xs hover:bg-gray-100 rounded text-left">Дадаць слова</button>
+              <button
+                className="px-2 py-1 text-xs hover:bg-gray-100 rounded text-left"
+                onClick={() => {
+                  addWord(paragraphId, sentence.id, -1);
+                  const { documentData } = useDocumentStore.getState();
+                  if (documentData) {
+                    const paragraph = documentData.paragraphs.find(p => p.id === paragraphId);
+                    const currentSentence = paragraph?.sentences.find(s => s.id === sentence.id);
+                    const newItem = currentSentence?.sentenceItems[0]?.linguisticItem;
+                    if (newItem) {
+                      selectWord(newItem, paragraphId, sentence.id, 0);
+                      setIsEditingText(true);
+                    }
+                  }
+                }}
+              >
+                Дадаць слова
+              </button>
             </div>
           </div>
         </span>
@@ -52,6 +77,12 @@ export function Sentence({
           selectedWord.sentenceId === sentence.id &&
           selectedWord.wordIndex === itemIndex
         );
+
+        if (isCurrentlyEditing) {
+          console.log('[Sentence] isCurrentlyEditing TRUE for:', paragraphId, sentence.id, itemIndex);
+        } else if (selectedWord && selectedWord.paragraphId === paragraphId && selectedWord.sentenceId === sentence.id && selectedWord.wordIndex === itemIndex) {
+          console.log('[Sentence] isCurrentlyEditing FALSE but IDs match? This should not happen.', isCurrentlyEditing);
+        }
 
         // Правяраем ці чакае слова захаваньня
         let isPendingSave = false;
@@ -74,6 +105,8 @@ export function Sentence({
               isPendingSave={isPendingSave}
               onWordClick={onWordClick}
               isStructureEditingMode={isStructureEditingMode}
+              paragraphId={paragraphId}
+              sentenceId={sentence.id}
             />
 
             {/* Glued punctuation handling */}
@@ -81,8 +114,48 @@ export function Sentence({
               <span className="relative group/glued inline-block w-0.5 text-center cursor-pointer hover:bg-blue-200 rounded align-middle h-4">
                 <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 translate-y-1 pb-2 hidden group-hover/glued:flex flex-col z-10 min-w-[150px]">
                   <div className="flex flex-col gap-1 bg-white shadow-lg rounded p-1 border border-gray-200 whitespace-nowrap">
-                    <button className="px-2 py-1 text-xs hover:bg-gray-100 rounded text-left">Дадаць слова</button>
-                    <button className="px-2 py-1 text-xs hover:bg-gray-100 rounded text-left">Дадаць прабел</button>
+                    <button
+                      className="px-2 py-1 text-xs hover:bg-gray-100 rounded text-left"
+                      onClick={() => {
+                        addWord(paragraphId, sentence.id, itemIndex);
+                        const { documentData } = useDocumentStore.getState();
+                        if (documentData) {
+                          const paragraph = documentData.paragraphs.find(p => p.id === paragraphId);
+                          const currentSentence = paragraph?.sentences.find(s => s.id === sentence.id);
+                          const newItem = currentSentence?.sentenceItems[itemIndex + 1]?.linguisticItem;
+                          if (newItem) {
+                            selectWord(newItem, paragraphId, sentence.id, itemIndex + 1);
+                            setIsEditingText(true);
+                          }
+                        }
+                      }}
+                    >
+                      Дадаць слова
+                    </button>
+                    <button
+                      className="px-2 py-1 text-xs hover:bg-gray-100 rounded text-left"
+                      onClick={() => {
+                        addPunctuation(paragraphId, sentence.id, itemIndex);
+                        const { documentData } = useDocumentStore.getState();
+                        if (documentData) {
+                          const paragraph = documentData.paragraphs.find(p => p.id === paragraphId);
+                          const currentSentence = paragraph?.sentences.find(s => s.id === sentence.id);
+                          const newItem = currentSentence?.sentenceItems[itemIndex + 1]?.linguisticItem;
+                          if (newItem) {
+                            selectWord(newItem, paragraphId, sentence.id, itemIndex + 1);
+                            setIsEditingText(true);
+                          }
+                        }
+                      }}
+                    >
+                      Дадаць пунктуацыю
+                    </button>
+                    <button
+                      className="px-2 py-1 text-xs hover:bg-gray-100 rounded text-left"
+                      onClick={() => setGlue(paragraphId, sentence.id, itemIndex, false)}
+                    >
+                      Дадаць прабел
+                    </button>
                   </div>
                 </div>
               </span>
@@ -93,6 +166,9 @@ export function Sentence({
                 <InteractiveSpace
                   canGlue={Boolean(canGlue)}
                   isLastItem={itemIndex === sentence.sentenceItems.length - 1}
+                  paragraphId={paragraphId}
+                  sentenceId={sentence.id}
+                  itemIndex={itemIndex}
                 />
               ) : ' '
             )}
@@ -104,14 +180,20 @@ export function Sentence({
           |
           <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 translate-y-1 pb-2 hidden group-hover/boundary:flex flex-col z-10">
             <div className="flex flex-col gap-1 bg-white shadow-lg rounded p-1 border border-gray-200 whitespace-nowrap">
-              <button className="px-2 py-1 text-xs hover:bg-gray-100 rounded text-left text-gray-900">
+              <button
+                className="px-2 py-1 text-xs hover:bg-gray-100 rounded text-left text-gray-900"
+                onClick={() => nextSentenceId && splitParagraph(paragraphId, nextSentenceId)}
+              >
                 Разьбіць на абзацы
               </button>
             </div>
           </div>
           <div className="absolute top-full left-1/2 transform -translate-x-1/2 -translate-y-1 pt-2 hidden group-hover/boundary:flex flex-col z-10">
             <div className="flex flex-col gap-1 bg-white shadow-lg rounded p-1 border border-gray-200 whitespace-nowrap">
-              <button className="px-2 py-1 text-xs hover:bg-gray-100 rounded text-left text-red-600">
+              <button
+                className="px-2 py-1 text-xs hover:bg-gray-100 rounded text-left text-red-600"
+                onClick={() => joinSentence(paragraphId, sentence.id)}
+              >
                 Аб'яднаць сказы
               </button>
             </div>

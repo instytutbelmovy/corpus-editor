@@ -71,7 +71,7 @@ export const useUIStore = create<UIState>()(
 
       // Дзеяньні для выбару слоў
       setSelectedWord: (word) => set({ selectedWord: word }),
-      clearSelectedWord: () => set({ selectedWord: null }),
+      clearSelectedWord: () => set({ selectedWord: null, isEditingText: false }),
 
       // Дзеяньні для налад
       setDisplayMode: (mode) => set({ displayMode: mode }),

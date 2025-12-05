@@ -39,30 +39,13 @@ export function DocumentHeader({ header }: DocumentHeaderProps) {
         </Link>
 
         <div className="flex items-center gap-2">
-          {canEdit && (
-            isStructureEditingMode ? (
-              <>
-                <button
-                  onClick={handleSaveEdit}
-                  className="px-3 py-1.5 text-sm font-medium text-white bg-green-600 rounded hover:bg-green-700 transition-colors"
-                >
-                  Захаваць
-                </button>
-                <button
-                  onClick={handleCancelEdit}
-                  className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
-                >
-                  Скасаваць
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={handleEnableEdit}
-                className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
-              >
-                Рэдагаваць тэкст
-              </button>
-            )
+          {canEdit && !isStructureEditingMode && (
+            <button
+              onClick={handleEnableEdit}
+              className="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
+            >
+              Рэдагаваць тэкст
+            </button>
           )}
         </div>
       </div>

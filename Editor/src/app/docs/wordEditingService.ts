@@ -85,8 +85,10 @@ export class WordEditingService {
     selectedWord: SelectedWord,
     paradigmFormId: ParadigmFormId
   ): Promise<void> {
-    const { updateDocument } = useDocumentStore.getState();
+    const { updateDocument, snapshot } = useDocumentStore.getState();
     const { setSelectedWord, addPendingSave, removePendingSave, setSaveError } = useUIStore.getState();
+
+    snapshot();
 
     // Правяраем, ці ўжо выбрана гэтая парадыгма
     const currentParadigmFormId = selectedWord.item.paradigmFormId;
@@ -210,8 +212,14 @@ export class WordEditingService {
     selectedWord: SelectedWord,
     text: string
   ): Promise<void> {
-    const { updateDocument } = useDocumentStore.getState();
+    const { updateDocument, snapshot } = useDocumentStore.getState();
     const { setSelectedWord, setSaveError } = useUIStore.getState();
+
+    // Калі тэкст не пусты, робім здымак стану перад зменай (для undo)
+    // Калі тэкст пусты (новае слова), мы не робім здымак, каб undo выдаляла слова цалкам
+    if (selectedWord.item.text !== '') {
+      snapshot();
+    }
 
     try {
       const newOptions: GrammarInfo[] = await this.documentService.updateWordText(
@@ -294,8 +302,10 @@ export class WordEditingService {
     lemma: string,
     linguisticTag: LinguisticTag
   ): Promise<void> {
-    const { updateDocument } = useDocumentStore.getState();
+    const { updateDocument, snapshot } = useDocumentStore.getState();
     const { setSelectedWord, addPendingSave, removePendingSave, setSaveError } = useUIStore.getState();
+
+    snapshot();
 
     const wordKey = `${selectedWord.paragraphId}-${selectedWord.sentenceId}-${selectedWord.wordIndex}`;
 
@@ -402,13 +412,15 @@ export class WordEditingService {
     selectedWord: SelectedWord,
     comment: string
   ): Promise<void> {
-    const { updateDocument } = useDocumentStore.getState();
+    const { updateDocument, snapshot } = useDocumentStore.getState();
     const { setSelectedWord } = useUIStore.getState();
 
     // Правяраем, ці змяніўся камэнтар
     if (selectedWord.item.comment === comment) {
       return;
     }
+
+    snapshot();
 
     try {
       await this.documentService.saveComment(
@@ -464,8 +476,10 @@ export class WordEditingService {
     selectedWord: SelectedWord,
     errorType: LinguisticErrorType
   ): Promise<void> {
-    const { updateDocument } = useDocumentStore.getState();
+    const { updateDocument, snapshot } = useDocumentStore.getState();
     const { setSelectedWord, addPendingSave, removePendingSave } = useUIStore.getState();
+
+    snapshot();
 
     const wordKey = `${selectedWord.paragraphId}-${selectedWord.sentenceId}-${selectedWord.wordIndex}`;
     addPendingSave(wordKey);

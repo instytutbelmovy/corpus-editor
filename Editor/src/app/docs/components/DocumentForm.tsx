@@ -7,6 +7,7 @@ import {
   textTypeOptions,
   styleOptions
 } from '../formTypes';
+import { BUTTON_STYLES } from '../styles';
 
 interface DocumentFormProps<T extends NewDocumentFormData | MetadataFormData> {
   initialData: T;
@@ -308,14 +309,14 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
               <button
                 type="button"
                 onClick={onCancel}
-                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className={`px-4 py-2 rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${BUTTON_STYLES.secondary}`}
               >
                 Скасаваць
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`px-4 py-2 rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${BUTTON_STYLES.primary}`}
               >
                 {isSubmitting ? loadingButtonText : submitButtonText}
               </button>
