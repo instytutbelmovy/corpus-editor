@@ -2,6 +2,7 @@ import { LinguisticItem as LinguisticItemType } from '../types';
 import { useState, useRef, useEffect } from 'react';
 import { useDocumentStore } from '../store';
 import { useUIStore } from '../uiStore';
+import { DeleteMenu } from './DeleteMenu';
 
 interface LinguisticItemProps {
   item: LinguisticItemType;
@@ -47,21 +48,15 @@ export function LinguisticItem({
             <span className="text-gray-400 select-none mx-1 cursor-pointer hover:text-red-500">
               ↵
             </span>
-            <div className="absolute top-full left-1/2 transform -translate-x-1/2 -translate-y-1 pt-2 hidden group-hover/linebreak:flex flex-col z-20">
-              <div className="flex flex-col gap-1 bg-white shadow-lg rounded p-1 border border-gray-200 whitespace-nowrap">
-                <button
-                  className="px-2 py-1 text-xs hover:bg-gray-100 rounded text-left text-red-600"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (paragraphId !== undefined && sentenceId !== undefined) {
-                      deleteItem(paragraphId, sentenceId, index);
-                    }
-                  }}
-                >
-                  Прыбраць перанос
-                </button>
-              </div>
-            </div>
+            <DeleteMenu
+              groupHoverClass="group-hover/linebreak:flex"
+              label="Прыбраць перанос"
+              onDelete={() => {
+                if (paragraphId !== undefined && sentenceId !== undefined) {
+                  deleteItem(paragraphId, sentenceId, index);
+                }
+              }}
+            />
           </span>
           <br />
         </>
@@ -152,23 +147,17 @@ export function LinguisticItem({
         </span>
 
         {/* Delete button */}
-        <div className="absolute top-full left-1/2 transform -translate-x-1/2 -translate-y-1 pt-2 hidden group-hover/item:block z-20">
-          <div className="flex flex-col gap-1 bg-white shadow-lg rounded p-1 border border-gray-200 whitespace-nowrap">
-            <button
-              className="px-2 py-1 text-xs hover:bg-gray-100 rounded text-left text-red-600"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (paragraphId !== undefined && sentenceId !== undefined) {
-                  deleteItem(paragraphId, sentenceId, index);
-                }
-              }}
-              onMouseEnter={() => setIsDeleteHovered(true)}
-              onMouseLeave={() => setIsDeleteHovered(false)}
-            >
-              Выдаліць
-            </button>
-          </div>
-        </div>
+        <DeleteMenu
+          groupHoverClass="group-hover/item:flex"
+          label="Выдаліць"
+          onDelete={() => {
+            if (paragraphId !== undefined && sentenceId !== undefined) {
+              deleteItem(paragraphId, sentenceId, index);
+            }
+          }}
+          onMouseEnter={() => setIsDeleteHovered(true)}
+          onMouseLeave={() => setIsDeleteHovered(false)}
+        />
       </span>
     );
   }

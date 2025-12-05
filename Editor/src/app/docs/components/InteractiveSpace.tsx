@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useDocumentStore } from '../store';
-import { useWordSelection } from '../hooks/useWordSelection';
-import { useUIStore } from '../uiStore';
+import { useAddItem } from '../hooks/useAddItem';
 
 interface InteractiveSpaceProps {
   canGlue: boolean;
@@ -14,9 +13,8 @@ interface InteractiveSpaceProps {
 export function InteractiveSpace({ canGlue, isLastItem, paragraphId, sentenceId, itemIndex }: InteractiveSpaceProps) {
   const [isDeleteHovered, setIsDeleteHovered] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { addWord, addPunctuation, addLineBreak, splitSentence, deleteItem, setGlue } = useDocumentStore();
-  const { selectWord } = useWordSelection();
-  const { setIsEditingText } = useUIStore();
+  const { splitSentence, addLineBreak, setGlue } = useDocumentStore();
+  const { handleAddWord, handleAddPunctuation } = useAddItem();
 
   return (
     <span
@@ -30,17 +28,7 @@ export function InteractiveSpace({ canGlue, isLastItem, paragraphId, sentenceId,
           <button
             className="px-2 py-1 text-xs hover:bg-gray-100 rounded text-left"
             onClick={() => {
-              addWord(paragraphId, sentenceId, itemIndex);
-              const { documentData } = useDocumentStore.getState();
-              if (documentData) {
-                const paragraph = documentData.paragraphs.find(p => p.id === paragraphId);
-                const sentence = paragraph?.sentences.find(s => s.id === sentenceId);
-                const newItem = sentence?.sentenceItems[itemIndex + 1]?.linguisticItem;
-                if (newItem) {
-                  selectWord(newItem, paragraphId, sentenceId, itemIndex + 1);
-                  setIsEditingText(true);
-                }
-              }
+              handleAddWord(paragraphId, sentenceId, itemIndex);
               setIsMenuOpen(false);
             }}
           >
@@ -49,17 +37,7 @@ export function InteractiveSpace({ canGlue, isLastItem, paragraphId, sentenceId,
           <button
             className="px-2 py-1 text-xs hover:bg-gray-100 rounded text-left"
             onClick={() => {
-              addPunctuation(paragraphId, sentenceId, itemIndex);
-              const { documentData } = useDocumentStore.getState();
-              if (documentData) {
-                const paragraph = documentData.paragraphs.find(p => p.id === paragraphId);
-                const sentence = paragraph?.sentences.find(s => s.id === sentenceId);
-                const newItem = sentence?.sentenceItems[itemIndex + 1]?.linguisticItem;
-                if (newItem) {
-                  selectWord(newItem, paragraphId, sentenceId, itemIndex + 1);
-                  setIsEditingText(true);
-                }
-              }
+              handleAddPunctuation(paragraphId, sentenceId, itemIndex);
               setIsMenuOpen(false);
             }}
           >

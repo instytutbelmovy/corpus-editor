@@ -10,3 +10,4 @@ export { ParadigmOptions } from './ParadigmOptions';
 export { SettingsButton } from './SettingsButton';
 export { ManualLinguisticInput } from './ManualLinguisticInput';
 export { Toolbar } from './Toolbar';
+export { DeleteMenu } from './DeleteMenu';

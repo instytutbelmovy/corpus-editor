@@ -6,8 +6,7 @@ import {
 import { LinguisticItem } from './LinguisticItem';
 import { InteractiveSpace } from './InteractiveSpace';
 import { useDocumentStore } from '../store';
-import { useWordSelection } from '../hooks/useWordSelection';
-import { useUIStore } from '../uiStore';
+import { useAddItem } from '../hooks/useAddItem';
 
 interface SentenceProps {
   sentence: SentenceType;
@@ -33,9 +32,8 @@ export function Sentence({
   nextSentenceId,
 }: SentenceProps) {
   const bgClass = isStructureEditingMode && index % 2 !== 0 ? 'bg-yellow-50' : '';
-  const { addWord, addPunctuation, splitParagraph, joinSentence, setGlue } = useDocumentStore();
-  const { selectWord } = useWordSelection();
-  const { setIsEditingText } = useUIStore();
+  const { splitParagraph, joinSentence, setGlue } = useDocumentStore();
+  const { handleAddWord, handleAddPunctuation } = useAddItem();
 
   return (
     <span key={sentence.id} className={bgClass}>
@@ -48,17 +46,7 @@ export function Sentence({
               <button
                 className="px-2 py-1 text-xs hover:bg-gray-100 rounded text-left"
                 onClick={() => {
-                  addWord(paragraphId, sentence.id, -1);
-                  const { documentData } = useDocumentStore.getState();
-                  if (documentData) {
-                    const paragraph = documentData.paragraphs.find(p => p.id === paragraphId);
-                    const currentSentence = paragraph?.sentences.find(s => s.id === sentence.id);
-                    const newItem = currentSentence?.sentenceItems[0]?.linguisticItem;
-                    if (newItem) {
-                      selectWord(newItem, paragraphId, sentence.id, 0);
-                      setIsEditingText(true);
-                    }
-                  }
+                  handleAddWord(paragraphId, sentence.id, -1);
                 }}
               >
                 Дадаць слова
@@ -117,17 +105,7 @@ export function Sentence({
                     <button
                       className="px-2 py-1 text-xs hover:bg-gray-100 rounded text-left"
                       onClick={() => {
-                        addWord(paragraphId, sentence.id, itemIndex);
-                        const { documentData } = useDocumentStore.getState();
-                        if (documentData) {
-                          const paragraph = documentData.paragraphs.find(p => p.id === paragraphId);
-                          const currentSentence = paragraph?.sentences.find(s => s.id === sentence.id);
-                          const newItem = currentSentence?.sentenceItems[itemIndex + 1]?.linguisticItem;
-                          if (newItem) {
-                            selectWord(newItem, paragraphId, sentence.id, itemIndex + 1);
-                            setIsEditingText(true);
-                          }
-                        }
+                        handleAddWord(paragraphId, sentence.id, itemIndex);
                       }}
                     >
                       Дадаць слова
@@ -135,17 +113,7 @@ export function Sentence({
                     <button
                       className="px-2 py-1 text-xs hover:bg-gray-100 rounded text-left"
                       onClick={() => {
-                        addPunctuation(paragraphId, sentence.id, itemIndex);
-                        const { documentData } = useDocumentStore.getState();
-                        if (documentData) {
-                          const paragraph = documentData.paragraphs.find(p => p.id === paragraphId);
-                          const currentSentence = paragraph?.sentences.find(s => s.id === sentence.id);
-                          const newItem = currentSentence?.sentenceItems[itemIndex + 1]?.linguisticItem;
-                          if (newItem) {
-                            selectWord(newItem, paragraphId, sentence.id, itemIndex + 1);
-                            setIsEditingText(true);
-                          }
-                        }
+                        handleAddPunctuation(paragraphId, sentence.id, itemIndex);
                       }}
                     >
                       Дадаць пунктуацыю
