@@ -18,16 +18,6 @@ export function DocumentHeader({ header }: DocumentHeaderProps) {
     setIsStructureEditingMode(true);
   };
 
-  const handleCancelEdit = () => {
-    setIsStructureEditingMode(false);
-  };
-
-  const handleSaveEdit = () => {
-    // TODO: Implement save functionality
-    console.log('Save structure changes');
-    setIsStructureEditingMode(false);
-  };
-
   return (
     <div className="mb-6 flex items-center justify-between">
       <div className="flex items-center gap-4">

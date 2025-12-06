@@ -485,4 +485,36 @@ export const StructureEditor = {
       ],
     };
   },
+
+  updateItemText: (
+    data: DocumentData,
+    paragraphId: number,
+    sentenceId: number,
+    itemIndex: number,
+    text: string
+  ): EditResult => {
+    const newData = clone(data);
+    const paragraph = newData.paragraphs.find((p) => p.id === paragraphId);
+    if (!paragraph) throw new Error('Paragraph not found');
+    const sentence = paragraph.sentences.find((s) => s.id === sentenceId);
+    if (!sentence) throw new Error('Sentence not found');
+    const item = sentence.sentenceItems[itemIndex];
+    if (!item) throw new Error('Item not found');
+
+    item.linguisticItem.text = text;
+
+    return {
+      newDocumentData: newData,
+      newOperations: [
+        {
+          paragraphId: paragraphId,
+          operationType: OperationType.Update,
+          replacementSentences: paragraph.sentences.map((s) =>
+            s.sentenceItems.map((si) => si.linguisticItem)
+          ),
+          concurrencyStamp: paragraph.concurrencyStamp,
+        },
+      ],
+    };
+  },
 };

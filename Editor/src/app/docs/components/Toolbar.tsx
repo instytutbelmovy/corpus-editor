@@ -10,13 +10,13 @@ export function Toolbar() {
     cancelEditing,
     historyIndex,
     history,
-    pendingOperations,
+    hasChanges,
     loading
   } = useDocumentStore();
 
   const { isStructureEditingMode, setIsStructureEditingMode, isEditingText } = useUIStore();
 
-  const hasChanges = pendingOperations.length > 0;
+  const changes = hasChanges();
   const canUndo = historyIndex >= 0;
   const canRedo = historyIndex < history.length - 1;
 
@@ -66,7 +66,7 @@ export function Toolbar() {
       <button
         className={`px-3 py-1 rounded text-sm ${BUTTON_STYLES.primary}`}
         onClick={saveEditing}
-        disabled={!hasChanges || loading}
+        disabled={!changes || loading}
       >
         {loading ? 'Захоўваецца...' : 'Захаваць'}
       </button>

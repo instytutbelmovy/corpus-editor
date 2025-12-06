@@ -101,7 +101,7 @@ export interface ParagraphOperation {
   paragraphId: number;
   operationType: OperationType;
   replacementSentences: LinguisticItem[][] | null;
-  concurrencyStamp?: string;
+  concurrencyStamp?: string | null;
 }
 
 export interface DocumentEditResponse {

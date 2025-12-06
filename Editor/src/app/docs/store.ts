@@ -1,20 +1,18 @@
 import { create } from 'zustand';
-import { DocumentData, DocumentHeader, ParagraphOperation } from './types';
+import { DocumentData, DocumentHeader, ParagraphOperation, OperationType, Paragraph, Sentence, SentenceItem } from './types';
 import { DocumentService } from './service';
 import { StructureEditor, EditResult } from './structureEditor';
 import { useUIStore } from './uiStore';
 
 interface DocumentState {
   // Данныя дакумэнта
-  // Данныя дакумэнта
   documentData: DocumentData | null;
   originalDocumentData: DocumentData | null;
   documentsList: DocumentHeader[];
 
   // Гісторыя
-  history: { documentData: DocumentData; pendingOperations: ParagraphOperation[] }[];
+  history: { documentData: DocumentData }[];
   historyIndex: number;
-  pendingOperations: ParagraphOperation[];
 
   // Стан загрузкі
   loading: boolean;
@@ -54,21 +52,23 @@ interface DocumentState {
   joinParagraph: (paragraphId: number) => void;
   deleteItem: (paragraphId: number, sentenceId: number, itemIndex: number) => void;
   setGlue: (paragraphId: number, sentenceId: number, itemIndex: number, glueNext: boolean) => void;
+  updateItemText: (paragraphId: number, sentenceId: number, itemIndex: number, text: string, replaceHistory?: boolean) => void;
 
-  _applyEdit: (editResult: EditResult) => void;
+  _applyEdit: (editResult: EditResult, replaceHistory?: boolean) => void;
   snapshot: (replace?: boolean) => void;
   startEditing: () => void;
+
+  // Helpers
+  hasChanges: () => boolean;
 }
 
 export const useDocumentStore = create<DocumentState>((set, get) => ({
-  // Пачатковы стан
   // Пачатковы стан
   documentData: null,
   originalDocumentData: null,
   documentsList: [],
   history: [],
   historyIndex: -1,
-  pendingOperations: [],
   loading: false,
   loadingMore: false,
   error: null,
@@ -106,7 +106,6 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
           loading: false,
           history: [],
           historyIndex: -1,
-          pendingOperations: [],
         });
       } else {
         set((state: DocumentState) => ({
@@ -229,7 +228,6 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 
   // Structural Editing Implementation
 
-  // Structural Editing Implementation
   undo: () => {
     const { history, historyIndex, originalDocumentData } = get();
 
@@ -238,7 +236,6 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       const prev = history[historyIndex - 1];
       set({
         documentData: prev.documentData,
-        pendingOperations: prev.pendingOperations,
         historyIndex: historyIndex - 1,
       });
     } else if (historyIndex === 0) {
@@ -246,7 +243,6 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       if (originalDocumentData) {
         set({
           documentData: JSON.parse(JSON.stringify(originalDocumentData)),
-          pendingOperations: [],
           historyIndex: -1,
         });
       }
@@ -265,7 +261,6 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         const nextState = history[nextIndex];
         set({
           documentData: nextState.documentData,
-          pendingOperations: nextState.pendingOperations,
           historyIndex: nextIndex
         });
       }
@@ -278,7 +273,6 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     if (originalDocumentData) {
       set({
         documentData: JSON.parse(JSON.stringify(originalDocumentData)),
-        pendingOperations: [],
         history: [],
         historyIndex: -1,
       });
@@ -286,117 +280,41 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   saveEditing: async () => {
-    const { documentService, documentData, pendingOperations } = get();
-    if (!documentService || !documentData || pendingOperations.length === 0) return;
+    const { documentService, documentData, originalDocumentData } = get();
+    if (!documentService || !documentData || !originalDocumentData) return;
+
+    const operations = calculateOperations(originalDocumentData, documentData);
+    if (operations.length === 0) return;
 
     try {
       set({ loading: true });
-      // We need to send operations to BE.
-      // The BE returns updated paragraphs.
-      // We need to update our local state with these paragraphs.
 
-      // Note: pendingOperations might contain operations for paragraphs that are not in the current view?
-      // No, we only edit what we see.
+      const response = await documentService.saveDocument(documentData.header.n, operations);
 
-      // We need to construct the request.
-      // The `EditDocument` endpoint takes `DocumentEditRequest`.
-
-      // We need to group operations? No, the request takes a list.
-      // But we need to ensure they are sorted and IDs are correct?
-      // `StructureEditor` should generate them with correct IDs relative to the *starting* state of the transaction?
-      // No, `StructureEditor` generates operations sequentially.
-      // If we have multiple ops, we accumulate them.
-
-      // Wait, `StructureEditor` returns `newOperations`.
-      // If we perform 2 actions:
-      // 1. Add word (Op1)
-      // 2. Add word (Op2)
-      // `pendingOperations` = [Op1, Op2].
-
-      // The BE expects "paragraph ids must go in non-decreasing order".
-      // And "subsequent operation's ParagraphId to match those updated ids".
-
-      // Our `StructureEditor` logic updates the local `documentData` (shifting IDs).
-      // And generates an operation based on the *current* state (which has shifted IDs).
-      // So the operations generated sequentially *should* be correct for the BE if sent in order.
-
-      // Example:
-      // Doc: P1, P2, P3.
-      // Delete P2.
-      // Local: P1, P2 (was P3).
-      // Op1: Delete P2.
-
-      // Next, Delete P2 (was P3).
-      // Local: P1.
-      // Op2: Delete P2.
-
-      // BE:
-      // Op1 (Delete P2): P1, P2, P3 -> P1, P3.
-      // Op2 (Delete P2): P1, P3 -> P1.
-
-      // Matches!
-
-      // So we just send `pendingOperations`.
-
-      const response = await documentService.saveDocument(documentData.header.n, pendingOperations);
-
-      // Update paragraphs
-      // The response contains `EditedParagraphs`.
-      // We need to replace them in our local state.
-      // But wait, we already updated our local state!
-      // The BE might return slightly different data (e.g. resolved metadata, re-calculated things).
-      // So we should update.
-
-      // Matching IDs:
-      // The BE returns paragraphs with their *new* IDs.
-      // Our local `documentData` should already have these IDs.
-
+      // Merge edited paragraphs into current data
       const newParagraphs = [...documentData.paragraphs];
+
       for (const editedP of response.editedParagraphs) {
         const index = newParagraphs.findIndex(p => p.id === editedP.id);
         if (index !== -1) {
-          // Convert ParagraphView to Paragraph
-          // We need a mapper or just cast if compatible?
-          // Types are slightly different (View vs Internal).
-          // We need to map `SentenceView` to `Sentence`.
-
-          // Let's assume we can map it back.
-          // Actually, `fetchDocument` returns `DocumentData` which has `Paragraph`.
-          // The service should handle the mapping?
-          // `saveDocument` in service should return `DocumentData` or similar?
-          // The API returns `DocumentEditResponse`.
-
-          // I'll need to update `service.ts` to implement `saveDocument`.
-          // And likely a mapper.
-
-          // For now, let's assume we get back compatible data or we just trust our local state
-          // and only update concurrency stamps?
-          // No, we should update content.
-
-          // Let's implement `saveDocument` in service first.
-
-          // For now in store, let's assume `saveDocument` returns the updated paragraphs in a format we can use.
-
-          // Actually, if I update `service.ts`, I can make it return `Paragraph[]`.
+          newParagraphs[index] = editedP;
+        } else {
+          console.error(`Received update for unknown paragraph ID: ${editedP.id}`);
         }
       }
 
-      // For now, let's just clear pending and update history.
+      const newDocumentData = {
+        ...documentData,
+        paragraphs: newParagraphs
+      };
+
       set({
-        pendingOperations: [],
+        documentData: newDocumentData,
+        originalDocumentData: JSON.parse(JSON.stringify(newDocumentData)), // New baseline
         history: [],
         historyIndex: -1,
-        originalDocumentData: JSON.parse(JSON.stringify(documentData)), // New baseline
         loading: false
       });
-
-      // We should probably reload the document or merge the response to be safe.
-      // Let's trigger a reload of the document to get fresh state from BE?
-      // That's safer but slower.
-      // Or we can just trust the BE response.
-
-      // Let's reload for now to be safe and simple.
-      await get().fetchDocument(documentData.header.n.toString(), 0, true);
 
     } catch (err) {
       set({ error: err instanceof Error ? err.message : 'Save failed', loading: false });
@@ -404,25 +322,36 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   // Helper for applying edits
-  _applyEdit: (editResult: EditResult) => {
-    const { newDocumentData, newOperations } = editResult;
-    const { history, historyIndex, pendingOperations } = get();
+  _applyEdit: (editResult: EditResult, replaceHistory = false) => {
+    const { newDocumentData } = editResult;
+    const { history, historyIndex } = get();
 
     // Slice history if we are in the middle
     const newHistory = history.slice(0, historyIndex + 1);
 
-    // Push new state
-    newHistory.push({
-      documentData: newDocumentData,
-      pendingOperations: [...pendingOperations, ...newOperations]
-    });
+    if (replaceHistory && historyIndex >= 0) {
+      // Replace the current history entry
+      newHistory[historyIndex] = {
+        documentData: newDocumentData,
+      };
 
-    set({
-      documentData: newDocumentData,
-      pendingOperations: [...pendingOperations, ...newOperations],
-      history: newHistory,
-      historyIndex: newHistory.length - 1
-    });
+      set({
+        documentData: newDocumentData,
+        history: newHistory,
+        // historyIndex stays same
+      });
+    } else {
+      // Push new state
+      newHistory.push({
+        documentData: newDocumentData,
+      });
+
+      set({
+        documentData: newDocumentData,
+        history: newHistory,
+        historyIndex: newHistory.length - 1
+      });
+    }
   },
 
   addWord: (pId: number, sId: number, wIdx: number) => {
@@ -491,8 +420,15 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     get().snapshot();
   },
 
+  updateItemText: (pId: number, sId: number, itemIdx: number, text: string, replaceHistory = false) => {
+    const { documentData } = get();
+    if (!documentData) return;
+    const result = (StructureEditor as any).updateItemText(documentData, pId, sId, itemIdx, text);
+    get()._applyEdit(result, replaceHistory);
+  },
+
   snapshot: (replace = false) => {
-    const { history, historyIndex, documentData, pendingOperations } = get();
+    const { history, historyIndex, documentData } = get();
     if (!documentData) return;
 
     // Slice history if we are in the middle
@@ -500,7 +436,6 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 
     const newState = {
       documentData: JSON.parse(JSON.stringify(documentData)),
-      pendingOperations: [...pendingOperations]
     };
 
     // Deduplication: Check if the new state is identical to the previous one
@@ -533,8 +468,85 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         originalDocumentData: JSON.parse(JSON.stringify(documentData)),
         history: [],
         historyIndex: -1,
-        pendingOperations: []
       });
     }
   },
+
+  hasChanges: () => {
+    const { documentData, originalDocumentData } = get();
+    if (!documentData || !originalDocumentData) return false;
+    const ops = calculateOperations(originalDocumentData, documentData);
+    return ops.length > 0;
+  }
 }));
+
+function calculateOperations(original: DocumentData, current: DocumentData): ParagraphOperation[] {
+  const operations: ParagraphOperation[] = [];
+
+  // Map original paragraphs by concurrencyStamp for quick lookup
+  const originalMap = new Map<string, number>();
+  original.paragraphs.forEach((p, index) => originalMap.set(p.concurrencyStamp, index));
+
+  let virtualIndex = 0; // The index in 'original' we are currently matching against
+
+  for (let i = 0; i < current.paragraphs.length; i++) {
+    const currentP = current.paragraphs[i];
+    const origIdx = originalMap.get(currentP.concurrencyStamp);
+
+    // Check if we found a matching paragraph in the remaining original paragraphs
+    if (origIdx !== undefined && origIdx >= virtualIndex) {
+      // We found a match (or a move forward).
+      // Any paragraphs between virtualIndex and origIdx were skipped/deleted.
+
+      // Generate Deletes for skipped paragraphs
+      for (let k = virtualIndex; k < origIdx; k++) {
+        const pToDelete = original.paragraphs[k];
+        operations.push({
+          paragraphId: i + 1, // The deletion happens at the current build position
+          operationType: OperationType.Delete,
+          replacementSentences: null,
+          concurrencyStamp: pToDelete.concurrencyStamp
+        });
+      }
+
+      // Now we process the matched paragraph
+      const originalP = original.paragraphs[origIdx];
+      const originalContent = JSON.stringify(originalP.sentences.map((s: Sentence) => s.sentenceItems.map((si: SentenceItem) => si.linguisticItem)));
+      const currentContent = JSON.stringify(currentP.sentences.map((s: Sentence) => s.sentenceItems.map((si: SentenceItem) => si.linguisticItem)));
+
+      if (originalContent !== currentContent) {
+        operations.push({
+          paragraphId: i + 1,
+          operationType: OperationType.Update,
+          replacementSentences: currentP.sentences.map((s: Sentence) => s.sentenceItems.map((si: SentenceItem) => si.linguisticItem)),
+          concurrencyStamp: originalP.concurrencyStamp
+        });
+      }
+
+      // Advance virtualIndex past the matched paragraph
+      virtualIndex = origIdx + 1;
+
+    } else {
+      // Not found in remaining originals -> Treat as Create
+      operations.push({
+        paragraphId: i + 1,
+        operationType: OperationType.Create,
+        replacementSentences: currentP.sentences.map((s: Sentence) => s.sentenceItems.map((si: SentenceItem) => si.linguisticItem)),
+        concurrencyStamp: null
+      });
+    }
+  }
+
+  // Handle trailing deletes (any original paragraphs not reached)
+  for (let k = virtualIndex; k < original.paragraphs.length; k++) {
+    const pToDelete = original.paragraphs[k];
+    operations.push({
+      paragraphId: current.paragraphs.length + 1, // Deleting from the end
+      operationType: OperationType.Delete,
+      replacementSentences: null,
+      concurrencyStamp: pToDelete.concurrencyStamp
+    });
+  }
+
+  return operations;
+}

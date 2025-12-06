@@ -66,12 +66,6 @@ export function Sentence({
           selectedWord.wordIndex === itemIndex
         );
 
-        if (isCurrentlyEditing) {
-          console.log('[Sentence] isCurrentlyEditing TRUE for:', paragraphId, sentence.id, itemIndex);
-        } else if (selectedWord && selectedWord.paragraphId === paragraphId && selectedWord.sentenceId === sentence.id && selectedWord.wordIndex === itemIndex) {
-          console.log('[Sentence] isCurrentlyEditing FALSE but IDs match? This should not happen.', isCurrentlyEditing);
-        }
-
         // Правяраем ці чакае слова захаваньня
         let isPendingSave = false;
         if (currentItem.type === 1) {

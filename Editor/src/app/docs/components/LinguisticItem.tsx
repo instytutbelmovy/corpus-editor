@@ -105,30 +105,12 @@ export function LinguisticItem({
           onBlur={(e) => {
             const newText = e.currentTarget.textContent || '';
             if (newText !== item.text) {
-              updateDocument(prev => {
-                if (!prev) return prev;
-                const newData = { ...prev };
-                // Find and update item
-                for (const p of newData.paragraphs) {
-                  if (p.id === paragraphId) {
-                    for (const s of p.sentences) {
-                      if (s.id === sentenceId) {
-                        const i = s.sentenceItems[index];
-                        if (i) {
-                          i.linguisticItem.text = newText;
-                        }
-                      }
-                    }
-                  }
-                }
-                return newData;
-              });
-
-              // Snapshot after saving to capture the new state for Redo
-              // Snapshot after saving to capture the new state for Redo
-              // If the word was empty (newly added), we replace the "Add Word" history entry
-              // with this "Add Word + Text" entry, so Undo removes the word entirely.
-              snapshot(item.text === '');
+              if (paragraphId !== undefined && sentenceId !== undefined) {
+                // If the word was empty (newly added), we replace the "Add Word" history entry
+                // with this "Add Word + Text" entry, so Undo removes the word entirely.
+                const replaceHistory = item.text === '';
+                useDocumentStore.getState().updateItemText(paragraphId, sentenceId, index, newText, replaceHistory);
+              }
             }
             // Clear selection on blur
             clearSelectedWord();
