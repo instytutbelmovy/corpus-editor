@@ -86,7 +86,7 @@ static void ConfigureServices(WebApplicationBuilder builder)
     builder.Services.AddSingleton<AwsFilesCache>();
     builder.Services.AddSingleton(new GrammarDb(settings.GrammarDbPath));
 
-    builder.Services.AddHostedService<AwsFilesPurgeService>();
+    builder.Services.AddHostedService<AwsFilesCacheMaintenanceService>();
 
     if (settings.SyncEditorDbWithAws)
         builder.Services.AddHostedService<EditorDbPushingService>(serviceProvider =>

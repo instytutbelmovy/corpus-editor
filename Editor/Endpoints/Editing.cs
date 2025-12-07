@@ -119,7 +119,7 @@ public static class Editing
 
     public static async Task<DocumentEditResponse> EditDocument(int n, DocumentEditRequest request, AwsFilesCache awsFilesCache, GrammarDb grammarDb)
     {
-        var (documentLock, document) = await awsFilesCache.GetFileForWrite(n);
+        var (documentLock, document) = await awsFilesCache.GetFileForWrite(n, markPendingChangesUponCompletion: false);
         using (documentLock)
         {
             var result = EditDocumentCore(document, request, paragraph => MapParagraphToView(paragraph, grammarDb));
@@ -254,7 +254,7 @@ public static class Editing
 
     public static async Task PutMetadata(int id, UpdateMetadataRequest request, AwsFilesCache awsFilesCache)
     {
-        var (documentLock, document) = await awsFilesCache.GetFileForWrite(id);
+        var (documentLock, document) = await awsFilesCache.GetFileForWrite(id, markPendingChangesUponCompletion: true);
         using (documentLock)
         {
             var header = document.Header;
@@ -267,13 +267,12 @@ public static class Editing
                 Style = request.Style,
             };
             awsFilesCache.UpdateHeaderCache(id, document.Header);
-            await awsFilesCache.FlushFile(id);
         }
     }
 
     private static async Task MarkupWord(int documentId, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, AwsFilesCache awsFilesCache, Func<LinguisticItem, LinguisticItem> transform)
     {
-        var (documentLock, document) = await awsFilesCache.GetFileForWrite(documentId);
+        var (documentLock, document) = await awsFilesCache.GetFileForWrite(documentId, markPendingChangesUponCompletion: true);
         using (documentLock)
         {
             var paragraphIndex = paragraphId - 1;
@@ -296,7 +295,6 @@ public static class Editing
             var sentenceItem = sentence.SentenceItems[wordIndex];
             var transformedItem = transform(sentenceItem);
             sentence.SentenceItems[wordIndex] = transformedItem;
-            await awsFilesCache.FlushFile(documentId);
         }
     }
 }

@@ -17,6 +17,7 @@ public class AwsSettings
 
 public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logger)
 {
+    private static readonly TimeSpan UnloadingAge = TimeSpan.FromMinutes(10);
     private readonly AwsSettings _awsSettings = awsSettings;
     private IAmazonS3 _s3Client = null!;
     private ConcurrentDictionary<int, CorpusDocumentHeader> _documentHeaders = null!;
@@ -91,7 +92,7 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
         }
     }
 
-    public async Task<(IDisposable documentLock, CorpusDocument document)> GetFileForWrite(int n)
+    public async Task<(IDisposable documentLock, CorpusDocument document)> GetFileForWrite(int n, bool markPendingChangesUponCompletion)
     {
         await _initialized.Task;
 
@@ -112,7 +113,7 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
         }
 
         document.LastAccessedOn = DateTime.UtcNow;
-        return (new DocumentLockWrapper(documentLock), document.CorpusDocument);
+        return (new DocumentLockWrapper(documentLock, markPendingChangesUponCompletion ? document : null), document.CorpusDocument);
     }
 
     public async Task<CorpusDocumentHeader> ReloadFile(int n)
@@ -176,10 +177,16 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
         if (!_documents.TryGetValue(n, out var document))
             throw new InvalidOperationException($"File {n} is not present in the cache");
 
-        var objectKey = $"{document.CorpusDocument.Header.N}.verti";
-        await WriteDocumentToS3(objectKey, document.CorpusDocument);
+        await FlushFile(document.CorpusDocument);
+    }
 
-        _documentHeaders[n].PercentCompletion = document.CorpusDocument.ComputeCompletion();
+    private async Task FlushFile(CorpusDocument document)
+    {
+        var id = document.Header.N;
+        var objectKey = $"{id}.verti";
+        await WriteDocumentToS3(objectKey, document);
+
+        _documentHeaders[id].PercentCompletion = document.ComputeCompletion();
     }
 
     public async ValueTask<ICollection<CorpusDocumentHeader>> GetAllDocumentHeaders()
@@ -205,7 +212,7 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
     public async Task AddFile(CorpusDocument corpusDocument)
     {
         await _initialized.Task;
-        var documentLock = GetDocumentLock(corpusDocument.Header.N);
+        var documentLock = GetDocumentLock(corpusDocument.Header.N, ensureExistence: false);
         await documentLock.WaitAsync();
         try
         {
@@ -229,8 +236,10 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
         }
     }
 
-    private SemaphoreSlim GetDocumentLock(int n)
+    private SemaphoreSlim GetDocumentLock(int n, bool ensureExistence = true)
     {
+        if (!_documentHeaders.ContainsKey(n))
+            throw new NotFoundException("Document not found");
         return _documentsLocks.GetOrAdd(n, _ => new SemaphoreSlim(1, 1));
     }
 
@@ -361,17 +370,25 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
         }
     }
 
-    public void PurgeFilesOlderThan(TimeSpan age)
+    public async Task UploadPendingAndPurgeCache()
     {
         if (!_initialized.Task.IsCompleted) return;
 
-        var horizon = DateTime.UtcNow - age;
+        var horizon = DateTime.UtcNow - UnloadingAge;
         foreach (var (id, documentsLock) in _documentsLocks)
         {
-            if (!documentsLock.Wait(0)) continue;
+            await documentsLock.WaitAsync();
             try
             {
-                if (_documents.TryGetValue(id, out var document) && document.LastAccessedOn < horizon)
+                if (!_documents.TryGetValue(id, out var document))
+                    continue;
+                if (document.HasPendingChanges)
+                {
+                    _logger?.LogInformation("Flushing document {n}", id);
+                    await FlushFile(document.CorpusDocument);
+                    document.HasPendingChanges = false;
+                }
+                if (document.LastAccessedOn < horizon)
                     _documents.TryRemove(id, out _);
             }
             finally
@@ -385,14 +402,18 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
     {
         public required CorpusDocument CorpusDocument { get; init; }
         public required DateTime LastAccessedOn { get; set; }
+        public bool HasPendingChanges { get; set; }
     }
 
-    private class DocumentLockWrapper(SemaphoreSlim semaphore) : IDisposable
+    private class DocumentLockWrapper(SemaphoreSlim semaphore, Document? document) : IDisposable
     {
         private SemaphoreSlim? _semaphore = semaphore;
+        private Document? _document = document;
 
         public void Dispose()
         {
+            _document?.HasPendingChanges = true;
+            _document = null;
             _semaphore?.Release();
             _semaphore = null;
         }
