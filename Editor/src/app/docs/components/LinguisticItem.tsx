@@ -1,4 +1,8 @@
 import { LinguisticItem as LinguisticItemType } from '../types';
+import { useState, useRef, useEffect } from 'react';
+import { useDocumentStore } from '../store';
+import { useUIStore } from '../uiStore';
+import { DeleteMenu } from './DeleteMenu';
 
 interface LinguisticItemProps {
   item: LinguisticItemType;
@@ -6,6 +10,9 @@ interface LinguisticItemProps {
   isCurrentlyEditing: boolean;
   isPendingSave: boolean;
   onWordClick: (item: LinguisticItemType) => void;
+  isStructureEditingMode: boolean;
+  paragraphId?: number;
+  sentenceId?: number;
 }
 
 export function LinguisticItem({
@@ -14,14 +21,48 @@ export function LinguisticItem({
   isCurrentlyEditing,
   isPendingSave,
   onWordClick,
+  isStructureEditingMode,
+  paragraphId,
+  sentenceId,
 }: LinguisticItemProps) {
+  const { deleteItem, documentData, snapshot, updateDocument } = useDocumentStore();
+  const spanRef = useRef<HTMLSpanElement>(null);
+  const { selectedWord, clearSelectedWord } = useUIStore();
+
+  // Focus logic
+  useEffect(() => {
+    if (isStructureEditingMode && isCurrentlyEditing && spanRef.current) {
+      spanRef.current.focus();
+    }
+  }, [isStructureEditingMode, isCurrentlyEditing]);
   const isResolved = item.metadata?.resolvedOn;
   const isWord = item.type === 1;
   const isPunctuation = item.type === 2;
   const isLineBreak = item.type === 4;
 
   if (isLineBreak) {
-    return <br key={`${item.text}-${Math.random()}`} />;
+    if (isStructureEditingMode) {
+      return (
+        <>
+          <span key={`${item.text}-${index}`} className="relative group/linebreak inline-block">
+            <span className="text-gray-400 select-none mx-1 cursor-pointer hover:text-red-500">
+              ↵
+            </span>
+            <DeleteMenu
+              groupHoverClass="group-hover/linebreak:flex"
+              label="Прыбраць перанос"
+              onDelete={() => {
+                if (paragraphId !== undefined && sentenceId !== undefined) {
+                  deleteItem(paragraphId, sentenceId, index);
+                }
+              }}
+            />
+          </span>
+          <br />
+        </>
+      );
+    }
+    return <br key={`${item.text}-${index}`} />;
   }
 
   const baseClasses = 'inline-block rounded text-sm';
@@ -29,7 +70,10 @@ export function LinguisticItem({
   // Вызначаем класы для фону
   let backgroundClasses = 'bg-transparent';
   if (isWord) {
-    if (isPendingSave) {
+    if (isStructureEditingMode) {
+      // У рэжыме рэдагаваньня структуры не паказваем аранжавы фон
+      backgroundClasses = 'bg-transparent';
+    } else if (isPendingSave) {
       // Калі слова захоўваецца - сіні фон з анімацыяй
       backgroundClasses = 'animate-pulse bg-blue-200';
     } else if (isResolved) {
@@ -43,10 +87,67 @@ export function LinguisticItem({
 
   const editingClasses = isCurrentlyEditing ? 'ring-2 ring-blue-400' : '';
 
+  // Punctuation styling
+  let punctuationClasses = isPunctuation ? 'text-amber-700' : '';
+
+  const [isDeleteHovered, setIsDeleteHovered] = useState(false);
+
+  if (isStructureEditingMode) {
+    return (
+      <span className="relative group/item inline-block">
+        <span
+          key={`${item.text}-${index}`}
+          className={`${baseClasses} ${backgroundClasses} ${isPunctuation ? 'bg-transparent' : ''} ${punctuationClasses} ${isWord ? 'cursor-text hover:bg-blue-50' : 'cursor-text'} ${editingClasses} ${isDeleteHovered ? '!bg-red-100' : ''} px-[1px] min-w-[1px] min-h-[1.5em] align-middle`}
+          title={isWord && item.lemma ? item.lemma : undefined}
+          ref={spanRef}
+          contentEditable
+          suppressContentEditableWarning
+          onBlur={(e) => {
+            const newText = e.currentTarget.textContent || '';
+            if (newText !== item.text) {
+              if (paragraphId !== undefined && sentenceId !== undefined) {
+                // If the word was empty (newly added), we replace the "Add Word" history entry
+                // with this "Add Word + Text" entry, so Undo removes the word entirely.
+                const replaceHistory = item.text === '';
+                useDocumentStore.getState().updateItemText(paragraphId, sentenceId, index, newText, replaceHistory);
+              }
+            }
+            // Clear selection on blur
+            clearSelectedWord();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              e.currentTarget.blur();
+            }
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+        >
+          {item.text}
+        </span>
+
+        {/* Delete button */}
+        <DeleteMenu
+          groupHoverClass="group-hover/item:flex"
+          label="Выдаліць"
+          onDelete={() => {
+            if (paragraphId !== undefined && sentenceId !== undefined) {
+              deleteItem(paragraphId, sentenceId, index);
+            }
+          }}
+          onMouseEnter={() => setIsDeleteHovered(true)}
+          onMouseLeave={() => setIsDeleteHovered(false)}
+        />
+      </span>
+    );
+  }
+
   return (
     <span
       key={`${item.text}-${index}`}
-      className={`${baseClasses} ${backgroundClasses} ${isPunctuation ? 'bg-transparent' : ''} ${isWord ? 'cursor-pointer hover:bg-blue-100 transition-colors' : ''} ${editingClasses}`}
+      className={`${baseClasses} ${backgroundClasses} ${isPunctuation ? 'bg-transparent' : ''} ${punctuationClasses} ${isWord ? 'cursor-pointer hover:bg-blue-100 transition-colors' : ''} ${editingClasses}`}
       title={isWord && item.lemma ? item.lemma : undefined}
       onClick={isWord ? () => onWordClick(item) : undefined}
     >

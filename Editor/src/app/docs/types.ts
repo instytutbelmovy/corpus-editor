@@ -24,6 +24,12 @@ export interface Metadata {
   errorType?: LinguisticErrorType;
 }
 
+export enum SentenceItemType {
+  Word = 1,
+  Punctuation = 2,
+  LineBreak = 4,
+}
+
 export interface LinguisticItem {
   paradigmFormId: ParadigmFormId | null;
   lemma: string | null;
@@ -31,7 +37,7 @@ export interface LinguisticItem {
   comment: string;
   metadata: Metadata | null;
   text: string;
-  type: number; // 1 = Word, 2 = Punctuation, 4 = LineBreak
+  type: SentenceItemType;
   glueNext: boolean;
 }
 
@@ -84,4 +90,20 @@ export interface SelectedWord {
   wordIndex: number;
   item: LinguisticItem;
   options: GrammarInfo[];
+}
+export enum OperationType {
+  Delete = -1,
+  Update = 0,
+  Create = 1,
+}
+
+export interface ParagraphOperation {
+  paragraphId: number;
+  operationType: OperationType;
+  replacementSentences: LinguisticItem[][] | null;
+  concurrencyStamp?: string | null;
+}
+
+export interface DocumentEditResponse {
+  editedParagraphs: Paragraph[];
 }

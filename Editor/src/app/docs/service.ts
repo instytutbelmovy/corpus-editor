@@ -1,4 +1,4 @@
-import { DocumentData, ParadigmFormId, GrammarInfo, DocumentHeader } from './types';
+import { DocumentData, ParadigmFormId, GrammarInfo, DocumentHeader, ParagraphOperation, DocumentEditResponse } from './types';
 import { ApiClient } from '@/app/apiClient';
 
 interface CreateDocumentData {
@@ -186,6 +186,16 @@ export class DocumentService {
     if (response.error) {
       throw new Error(response.error);
     }
+  }
+
+  async saveDocument(documentId: number, operations: ParagraphOperation[]): Promise<DocumentEditResponse> {
+    const url = `/registry-files/${documentId}/edit`;
+    const response = await this.apiClient.post<DocumentEditResponse>(url, { operations });
+
+    if (response.error) {
+      throw new Error(response.error);
+    }
+    return response.data!;
   }
 }
 

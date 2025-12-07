@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { EditorUserCreateDto, FormErrors } from '../types';
 import { Roles, getRoleName } from '@/app/auth/types';
+import { BUTTON_STYLES } from '@/app/docs/styles';
 
 interface UserFormProps {
   initialData: EditorUserCreateDto;
@@ -97,9 +98,8 @@ export function UserForm({
                 required
                 value={formData.userName}
                 onChange={handleChange('userName')}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.userName ? 'border-red-300' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.userName ? 'border-red-300' : 'border-gray-300'
+                  }`}
                 placeholder="Увядзіце імя карыстальніка"
               />
               {errors.userName && (
@@ -119,9 +119,8 @@ export function UserForm({
                 required
                 value={formData.email}
                 onChange={handleChange('email')}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.email ? 'border-red-300' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.email ? 'border-red-300' : 'border-gray-300'
+                  }`}
                 placeholder="Увядзіце email"
               />
               {errors.email && (
@@ -140,9 +139,8 @@ export function UserForm({
                 required
                 value={formData.role}
                 onChange={handleChange('role')}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.role ? 'border-red-300' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.role ? 'border-red-300' : 'border-gray-300'
+                  }`}
               >
                 {roleOptions.map(option => (
                   <option key={option.value} value={option.value}>
@@ -160,14 +158,14 @@ export function UserForm({
               <button
                 type="button"
                 onClick={onCancel}
-                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className={`px-4 py-2 rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${BUTTON_STYLES.secondary}`}
               >
                 Скасаваць
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`px-4 py-2 rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${BUTTON_STYLES.primary}`}
               >
                 {isSubmitting ? loadingButtonText : submitButtonText}
               </button>
