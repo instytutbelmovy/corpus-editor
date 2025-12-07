@@ -10,7 +10,7 @@
 Спатрэбяцца dotnet sdk 10 і nodejs 22.
 1. Трэба сканвэртаваць файлы граматычнае базы.
    Узяць іх можна тут https://github.com/Belarus/GrammarDB/tree/master/data
-   `GrammarDbConverter> dotnet run -- path-to-GrammarDb-data ../Editor.files/grammar.db`
+   `GrammarDbConverter> dotnet run -- path-to-GrammarDb-data ../Editor/files/grammar.db`
    Альбо можна адразу сам файл вынік папрасіць у мяне.
 2. Трэба мець ключы для доступу да s3 кошыку з файламі verti (Aws:SecretAccessKey). Ключы можна ўзяць у мяне, альбо можна выкарыстоўваць які ўласны кошык замест ibm-editor-dev і свае ключы.
    А яшчэ, калі дасылаць мэйлы патрэбны ключ мэйл сэрвісу (Email:ApiKey).

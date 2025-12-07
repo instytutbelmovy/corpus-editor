@@ -161,7 +161,7 @@ public class GrammarDbConverter
                 var paradigmInfo = new ParadigmInfo(
                     ParadigmId: paradigmId,
                     VariantId: variantId,
-                    Lemma: lemma,
+                    Lemma: Normalizer.NormalizeTypographicStress(lemma),
                     ParadigmTag: effectiveTag,
                     Meaning: paradigmMeaning
                 );

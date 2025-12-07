@@ -240,7 +240,7 @@ public static class Editing
                 SentenceItems = s.SentenceItems.Select(si => new LinguisticItemView(
                     si,
                     si.Type == SentenceItemType.Word
-                        ? grammarDb.LookupWord(si.Text, pickCustomWords: true).Select(x => x with { Lemma = Normalizer.NormalizeTypographicStress(x.Lemma) })
+                        ? grammarDb.LookupWord(si.Text, pickCustomWords: true)
                         : []
                 ))
             })
