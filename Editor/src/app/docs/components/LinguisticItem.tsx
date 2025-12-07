@@ -119,6 +119,19 @@ export function LinguisticItem({
             if (e.key === 'Enter') {
               e.preventDefault();
               e.currentTarget.blur();
+            } else if (e.key === '+' && isWord) {
+              e.preventDefault();
+              const selection = window.getSelection();
+              if (selection && selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                const textNode = document.createTextNode('\u0301');
+                range.deleteContents();
+                range.insertNode(textNode);
+                range.setStartAfter(textNode);
+                range.setEndAfter(textNode);
+                selection.removeAllRanges();
+                selection.addRange(range);
+              }
             }
           }}
           onClick={(e) => {

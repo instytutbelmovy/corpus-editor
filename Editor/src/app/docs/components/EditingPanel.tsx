@@ -456,7 +456,7 @@ export function EditingPanel({
                   <input
                     type="text"
                     value={editText}
-                    onChange={e => setEditText(e.target.value)}
+                    onChange={e => setEditText(e.target.value.replace(/\+/g, '\u0301'))}
                     className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Увядзіце новы тэкст"
                     autoFocus
