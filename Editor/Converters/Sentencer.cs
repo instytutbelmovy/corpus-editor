@@ -36,6 +36,8 @@ public static class Sentencer
                 case TokenType.AlphaNumeric:
                 case TokenType.NonAlphaNumeric:
                 {
+                    if (string.IsNullOrEmpty(token.Text))
+                        continue;
                     if (nextGlueable)
                         currentSentence[^1] = currentSentence[^1] with { GlueNext = true };
                     currentSentence.Add(new SentenceItem(token.Text, token.Type == TokenType.AlphaNumeric ? SentenceItemType.Word : SentenceItemType.Punctuation));
