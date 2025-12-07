@@ -62,7 +62,7 @@ export function LinguisticItem({
         </>
       );
     }
-    return <br key={`${item.text}-${Math.random()}`} />;
+    return <br key={`${item.text}-${index}`} />;
   }
 
   const baseClasses = 'inline-block rounded text-sm';
