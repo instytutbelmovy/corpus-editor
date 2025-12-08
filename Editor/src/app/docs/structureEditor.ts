@@ -2,7 +2,6 @@ import {
   DocumentData,
   Paragraph,
   Sentence,
-  LinguisticItem,
   SentenceItem,
   ParagraphOperation,
   OperationType,

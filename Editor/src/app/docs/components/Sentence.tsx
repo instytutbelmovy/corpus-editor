@@ -73,7 +73,6 @@ export function Sentence({
           isPendingSave = pendingSaves.has(wordKey);
         }
 
-        const isWord = currentItem.type === 1;
         const isPunctuation = currentItem.type === 2;
         const isNextPunctuation = nextItem?.type === 2;
         const canGlue = (isPunctuation || isNextPunctuation) && nextItem;
@@ -156,7 +155,7 @@ export function Sentence({
                 className="px-2 py-1 text-xs hover:bg-gray-100 rounded text-left text-red-600"
                 onClick={() => joinSentence(paragraphId, sentence.id)}
               >
-                Аб'яднаць сказы
+                Аб&apos;яднаць сказы
               </button>
             </div>
           </div>

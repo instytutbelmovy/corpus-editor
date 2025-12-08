@@ -66,7 +66,7 @@ function ParagraphBoundary({ paragraphId }: { paragraphId: number }) {
             onMouseLeave={() => setIsMergeHovered(false)}
             onClick={() => joinParagraph(paragraphId)}
           >
-            Аб'яднаць абзацы
+            Аб&apos;яднаць абзацы
           </button>
         </div>
       </div>

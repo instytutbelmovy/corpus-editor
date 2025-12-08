@@ -25,9 +25,10 @@ export function LinguisticItem({
   paragraphId,
   sentenceId,
 }: LinguisticItemProps) {
-  const { deleteItem, documentData, snapshot, updateDocument } = useDocumentStore();
+  const { deleteItem } = useDocumentStore();
   const spanRef = useRef<HTMLSpanElement>(null);
-  const { selectedWord, clearSelectedWord } = useUIStore();
+  const { clearSelectedWord } = useUIStore();
+  const [isDeleteHovered, setIsDeleteHovered] = useState(false);
 
   // Focus logic
   useEffect(() => {
@@ -88,9 +89,8 @@ export function LinguisticItem({
   const editingClasses = isCurrentlyEditing ? 'ring-2 ring-blue-400' : '';
 
   // Punctuation styling
-  let punctuationClasses = isPunctuation ? 'text-amber-700' : '';
+  const punctuationClasses = isPunctuation ? 'text-amber-700' : '';
 
-  const [isDeleteHovered, setIsDeleteHovered] = useState(false);
 
   if (isStructureEditingMode) {
     return (

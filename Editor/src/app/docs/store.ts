@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { DocumentData, DocumentHeader, ParagraphOperation, OperationType, Paragraph, Sentence, SentenceItem } from './types';
+import { DocumentData, DocumentHeader, ParagraphOperation, OperationType, Sentence, SentenceItem } from './types';
 import { DocumentService } from './service';
 import { StructureEditor, EditResult } from './structureEditor';
 import { useUIStore } from './uiStore';
@@ -423,7 +423,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   updateItemText: (pId: number, sId: number, itemIdx: number, text: string, replaceHistory = false) => {
     const { documentData } = get();
     if (!documentData) return;
-    const result = (StructureEditor as any).updateItemText(documentData, pId, sId, itemIdx, text);
+    const result = StructureEditor.updateItemText(documentData, pId, sId, itemIdx, text);
     get()._applyEdit(result, replaceHistory);
   },
 
