@@ -10,6 +10,7 @@ public static class Normalizer
     public const string CorrectApostrophe = "\u02bc";
     public const string AllApostrophes = CorrectApostrophe + "'\u2019";
     public const string Dash = "-";
+    public const string Vowels = "аеёіоуыэюяАЕЁІОУЫЭЮЯ";
 
     private static readonly Dictionary<char, char> GrammarSearchAggressiveNormalize;
     private static readonly Dictionary<char, char> GrammarSearchLightNormalize;
@@ -76,6 +77,8 @@ public static class Normalizer
     public static bool IsApostrophe(char ch) => AllApostrophes.Contains(ch);
     
     public static bool IsLetter(char ch) => char.IsLetter(ch) || char.IsDigit(ch);
+    
+    public static bool IsVowel(char ch) => Vowels.Contains(ch);
 
     private static string NormalizeWith(string word, Dictionary<char, char> mapping)
     {
