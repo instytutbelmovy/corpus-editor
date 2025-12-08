@@ -33,7 +33,7 @@
     <PackageReference Include="VersOne.Epub" Version="3.3.4" />
   </ItemGroup>
 
-  <Target Name="GenerateVersionFile" BeforeTargets="BeforeBuild">
+  <Target Name="GenerateVersionFile" BeforeTargets="PrepareForBuild;ResolveStaticWebAssetsInputs">
     <PropertyGroup>
       <VersionFileDir>$(MSBuildProjectDirectory)\wwwroot</VersionFileDir>
       <VersionFilePath>$(VersionFileDir)\version.json</VersionFilePath>
