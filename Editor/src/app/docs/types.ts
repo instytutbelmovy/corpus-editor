@@ -74,6 +74,7 @@ export interface DocumentHeader {
   url: string | null;
   type: string;
   style: string;
+  corpus?: string;
   percentCompletion: number;
 }
 

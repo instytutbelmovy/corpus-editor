@@ -8,6 +8,7 @@ public static class Registry
     {
         var group = builder.MapGroup("/api/registry-files");
         group.MapGet("/", GetAllFiles).Viewer();
+        group.MapGet("/corpora", GetAllCorpora).Viewer();
         group.MapPost("/", UploadFile).Editor();
         group.MapGet("/{n:int}/download", DownloadFile).Viewer();
         group.MapPost("/refresh", ReloadFilesList).Admin();
@@ -17,6 +18,12 @@ public static class Registry
     public static ValueTask<ICollection<CorpusDocumentHeader>> GetAllFiles(AwsFilesCache awsFilesCache)
     {
         return awsFilesCache.GetAllDocumentHeaders();
+    }
+
+    public static async Task<IEnumerable<string>> GetAllCorpora(AwsFilesCache awsFilesCache)
+    {
+        var headers = await awsFilesCache.GetAllDocumentHeaders();
+        return headers.Where(x => x.Corpus != null).Select(x => x.Corpus!).Distinct();
     }
 
     private static async Task<IResult> UploadFile(HttpRequest request, GrammarDb grammarDb, AwsFilesCache awsFilesCache)
@@ -35,6 +42,7 @@ public static class Registry
         var publicationDate = form["publicationDate"].ToString();
         var textType = form["textType"].ToString();
         var style = form["style"].ToString();
+        var corpus = form["corpus"].ToString();
 
         var extension = Path.GetExtension(file.FileName);
         var reader = extension switch
@@ -56,7 +64,7 @@ public static class Registry
         }).ToList();
 
         var percentCompletion = CorpusDocument.ComputeCompletion(paragraphs);
-        var header = new CorpusDocumentHeader(n, title, null, null, publicationDate, url, textType, style)
+        var header = new CorpusDocumentHeader(n, title, null, null, publicationDate, url, textType, style, corpus)
         {
             PercentCompletion = percentCompletion,
         };

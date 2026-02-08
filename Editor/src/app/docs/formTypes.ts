@@ -4,6 +4,7 @@ export interface BaseDocumentFormData {
   publicationDate?: string;
   textType: 'вусны' | 'пісьмовы';
   style?: 'публіцыстычны' | 'мастацкі' | 'афіцыйна-справавы' | 'навуковы' | 'гутарковы';
+  corpus?: string;
 }
 
 export interface NewDocumentFormData extends BaseDocumentFormData {

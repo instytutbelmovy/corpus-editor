@@ -8,6 +8,7 @@ interface CreateDocumentData {
   publicationDate?: string;
   textType: 'вусны' | 'пісьмовы';
   style?: 'публіцыстычны' | 'мастацкі' | 'афіцыйна-справавы' | 'навуковы' | 'гутарковы';
+  corpus?: string;
   file: File;
 }
 
@@ -36,6 +37,7 @@ export class DocumentService {
     if (documentData.publicationDate) formData.append('publicationDate', documentData.publicationDate);
     formData.append('textType', documentData.textType);
     if (documentData.style) formData.append('style', documentData.style);
+    if (documentData.corpus) formData.append('corpus', documentData.corpus);
     formData.append('file', documentData.file);
 
     const response = await this.apiClient.postFormData('/registry-files', formData);

@@ -17,7 +17,8 @@ export default function EditMetadata() {
     url: '',
     publicationDate: undefined,
     textType: 'пісьмовы',
-    style: undefined
+    style: undefined,
+    corpus: undefined
   });
 
   useEffect(() => {
@@ -36,7 +37,8 @@ export default function EditMetadata() {
           url: data.url || '',
           publicationDate: data.publicationDate || '',
           textType: (data.type as 'вусны' | 'пісьмовы') || 'пісьмовы',
-          style: data.style as 'публіцыстычны' | 'мастацкі' | 'афіцыйна-справавы' | 'навуковы' | 'гутарковы' | undefined
+          style: data.style as 'публіцыстычны' | 'мастацкі' | 'афіцыйна-справавы' | 'навуковы' | 'гутарковы' | undefined,
+          corpus: data.corpus || undefined
         });
       } catch (error) {
         setErrors({ fetch: error instanceof Error ? error.message : 'Невядомая памылка' });
@@ -64,7 +66,8 @@ export default function EditMetadata() {
         url: data.url || null,
         publicationDate: data.publicationDate || null,
         type: data.textType,
-        style: data.style || ''
+        style: data.style || '',
+        corpus: data.corpus || undefined
       });
 
       router.push('/');

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   BaseDocumentFormData,
   NewDocumentFormData,
@@ -37,6 +37,20 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
   subtitle
 }: DocumentFormProps<T>) {
   const [formData, setFormData] = useState<T>(initialData);
+  const [corpora, setCorpora] = useState<string[]>([]);
+  const [corpusDropdownOpen, setCorpusDropdownOpen] = useState(false);
+  const corpusRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (corpusRef.current && !corpusRef.current.contains(event.target as Node)) {
+        setCorpusDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleInputChange = (field: keyof BaseDocumentFormData, value: string | number | undefined) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -55,6 +69,13 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
       delete newErrors.file;
     }
   };
+
+  useEffect(() => {
+    fetch('/api/registry-files/corpora')
+      .then(res => res.json())
+      .then(data => setCorpora(data))
+      .catch(err => console.error('Failed to fetch corpora:', err));
+  }, []);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -248,6 +269,41 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
               </select>
             </div>
 
+            {/* Корпус */}
+            <div ref={corpusRef} className="relative">
+              <label htmlFor="corpus" className="block text-sm font-medium text-gray-700 mb-2">
+                Корпус
+              </label>
+              <input
+                type="text"
+                id="corpus"
+                value={formData.corpus || ''}
+                onChange={(e) => handleInputChange('corpus', e.target.value)}
+                onFocus={() => setCorpusDropdownOpen(true)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Выберыце або ўвядзіце корпус"
+                autoComplete="off"
+              />
+              {corpusDropdownOpen && corpora.length > 0 && (
+                <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                  {corpora
+                    .filter(option => !formData.corpus || option.toLowerCase().includes((formData.corpus || '').toLowerCase()))
+                    .map((option) => (
+                      <li
+                        key={option}
+                        onClick={() => {
+                          handleInputChange('corpus', option);
+                          setCorpusDropdownOpen(false);
+                        }}
+                        className="px-3 py-2 cursor-pointer hover:bg-blue-50 text-sm text-gray-700"
+                      >
+                        {option}
+                      </li>
+                    ))}
+                </ul>
+              )}
+            </div>
+
             {/* Файл */}
             {showFileUpload && (
               <div>
@@ -326,4 +382,4 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
       </div>
     </div>
   );
-} 
+}

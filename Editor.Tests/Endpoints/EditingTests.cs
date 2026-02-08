@@ -365,7 +365,7 @@ public class EditingTests
             .ToList();
 
         return new CorpusDocument(
-            new CorpusDocumentHeader(1, "Title", "Author", "Language", "Date", "Url", "Type", "Style"),
+            new CorpusDocumentHeader(1, "Title", "Author", "Language", "Date", "Url", "Type", "Style", "Corpus"),
             paragraphs
         );
     }

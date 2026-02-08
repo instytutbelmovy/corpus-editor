@@ -287,7 +287,8 @@ public static class VertiIO
             PublicationDate: docXml.Attribute("publication_date")?.Value,
             Url: docXml.Attribute("url")?.Value,
             Type: docXml.Attribute("type")?.Value,
-            Style: docXml.Attribute("style")?.Value
+            Style: docXml.Attribute("style")?.Value,
+            Corpus: docXml.Attribute("corpus")?.Value
         )
         {
             PercentCompletion = int.TryParse(docXml.Attribute("percent_completion")?.Value, out var percentCompletion) ? percentCompletion : null
@@ -313,6 +314,8 @@ public static class VertiIO
             docElement.SetAttributeValue("type", header.Type);
         if (header.Style != null)
             docElement.SetAttributeValue("style", header.Style);
+        if (header.Corpus != null)
+            docElement.SetAttributeValue("corpus", header.Corpus);
         if (header.PercentCompletion != null)
             docElement.SetAttributeValue("percent_completion", header.PercentCompletion);
 

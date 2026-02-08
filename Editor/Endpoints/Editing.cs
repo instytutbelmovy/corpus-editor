@@ -265,6 +265,7 @@ public static class Editing
                 PublicationDate = request.PublicationDate,
                 Type = request.Type,
                 Style = request.Style,
+                Corpus = request.Corpus,
             };
             awsFilesCache.UpdateHeaderCache(id, document.Header);
         }
@@ -326,7 +327,8 @@ public record UpdateMetadataRequest(
     string? Url,
     string? PublicationDate,
     string? Type,
-    string? Style
+    string? Style,
+    string? Corpus
 );
 
 public record DocumentEditRequest(List<ParagraphOperation> Operations);
