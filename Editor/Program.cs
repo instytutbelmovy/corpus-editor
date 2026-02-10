@@ -34,12 +34,13 @@ static void ConfigureServices(WebApplicationBuilder builder)
     builder.Configuration.Bind("Sentry", sentrySettings);
     sentrySettings.Environment = builder.Environment.IsProduction() ? "production" : "development";
     builder.Services.AddSingleton(sentrySettings);
-    builder.WebHost.UseSentry(o =>
-    {
-        o.Dsn = sentrySettings.Dsn;
-        o.Release = sentrySettings.Version;
-        o.Environment = sentrySettings.Environment;
-    });
+    if (!builder.Environment.IsDevelopment())
+        builder.WebHost.UseSentry(o =>
+        {
+            o.Dsn = sentrySettings.Dsn;
+            o.Release = sentrySettings.Version;
+            o.Environment = sentrySettings.Environment;
+        });
 
     builder.WebHost.UseStaticWebAssets();
 

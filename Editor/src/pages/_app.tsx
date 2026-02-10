@@ -174,10 +174,12 @@ export default function App({ Component, pageProps }: AppProps) {
 }
 
 function initializeSentry(dsn: string, environment: string, version: string): void {
-  Sentry.init({
-    dsn: dsn,
-    sendDefaultPii: false,
-    environment: environment,
-    release: version
-  });
-};
+  if (environment != 'development') {
+    Sentry.init({
+      dsn: dsn,
+      sendDefaultPii: false,
+      environment: environment,
+      release: version
+    });
+  }
+}
