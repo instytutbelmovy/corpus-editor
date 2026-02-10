@@ -238,7 +238,7 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
 
     private SemaphoreSlim GetDocumentLock(int n, bool ensureExistence = true)
     {
-        if (!_documentHeaders.ContainsKey(n))
+        if (ensureExistence && !_documentHeaders.ContainsKey(n))
             throw new NotFoundException("Document not found");
         return _documentsLocks.GetOrAdd(n, _ => new SemaphoreSlim(1, 1));
     }
