@@ -38,14 +38,27 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
 }: DocumentFormProps<T>) {
   const [formData, setFormData] = useState<T>(initialData);
   const [corpora, setCorpora] = useState<string[]>([]);
+  const [types, setTypes] = useState<string[]>([]);
+  const [styles, setStyles] = useState<string[]>([]);
   const [corpusDropdownOpen, setCorpusDropdownOpen] = useState(false);
+  const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
+  const [styleDropdownOpen, setStyleDropdownOpen] = useState(false);
   const corpusRef = useRef<HTMLDivElement>(null);
+  const typeRef = useRef<HTMLDivElement>(null);
+  const styleRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (corpusRef.current && !corpusRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (corpusRef.current && !corpusRef.current.contains(target)) {
         setCorpusDropdownOpen(false);
+      }
+      if (typeRef.current && !typeRef.current.contains(target)) {
+        setTypeDropdownOpen(false);
+      }
+      if (styleRef.current && !styleRef.current.contains(target)) {
+        setStyleDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -75,6 +88,16 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
       .then(res => res.json())
       .then(data => setCorpora(data))
       .catch(err => console.error('Failed to fetch corpora:', err));
+
+    fetch('/api/registry-files/types')
+      .then(res => res.json())
+      .then(data => setTypes(data))
+      .catch(err => console.error('Failed to fetch types:', err));
+
+    fetch('/api/registry-files/styles')
+      .then(res => res.json())
+      .then(data => setStyles(data))
+      .catch(err => console.error('Failed to fetch styles:', err));
   }, []);
 
   const validateForm = (): boolean => {
@@ -229,44 +252,70 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
             </div>
 
             {/* Тып тэксту */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div ref={typeRef} className="relative">
+              <label htmlFor="textType" className="block text-sm font-medium text-gray-700 mb-2">
                 Тып тэксту *
               </label>
-              <div className="space-y-2">
-                {textTypeOptions.map((option) => (
-                  <label key={option.value} className="flex items-center">
-                    <input
-                      type="radio"
-                      name="textType"
-                      value={option.value}
-                      checked={formData.textType === option.value}
-                      onChange={(e) => handleInputChange('textType', e.target.value as 'вусны' | 'пісьмовы')}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">{option.label}</span>
-                  </label>
-                ))}
-              </div>
+              <input
+                type="text"
+                id="textType"
+                value={formData.textType || ''}
+                onChange={(e) => handleInputChange('textType', e.target.value)}
+                onFocus={() => setTypeDropdownOpen(true)}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.textType ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                placeholder="Выберыце або ўвядзіце тып тэксту"
+                autoComplete="off"
+              />
+              {typeDropdownOpen && (types.length > 0 || textTypeOptions.length > 0) && (
+                <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                  {Array.from(new Set([...textTypeOptions.map(o => o.value), ...types])).map((option) => (
+                    <li
+                      key={option}
+                      onClick={() => {
+                        handleInputChange('textType', option);
+                        setTypeDropdownOpen(false);
+                      }}
+                      className="px-3 py-2 cursor-pointer hover:bg-blue-50 text-sm text-gray-700"
+                    >
+                      {option}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             {/* Стыль */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div ref={styleRef} className="relative">
+              <label htmlFor="style" className="block text-sm font-medium text-gray-700 mb-2">
                 Стыль
               </label>
-              <select
+              <input
+                type="text"
+                id="style"
                 value={formData.style || ''}
-                onChange={(e) => handleInputChange('style', e.target.value || undefined)}
+                onChange={(e) => handleInputChange('style', e.target.value)}
+                onFocus={() => setStyleDropdownOpen(true)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Выберыце стыль</option>
-                {styleOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                placeholder="Выберыце або ўвядзіце стыль"
+                autoComplete="off"
+              />
+              {styleDropdownOpen && (styles.length > 0 || styleOptions.length > 0) && (
+                <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                  {Array.from(new Set([...styleOptions.map(o => o.value), ...styles])).map((option) => (
+                    <li
+                      key={option}
+                      onClick={() => {
+                        handleInputChange('style', option);
+                        setStyleDropdownOpen(false);
+                      }}
+                      className="px-3 py-2 cursor-pointer hover:bg-blue-50 text-sm text-gray-700"
+                    >
+                      {option}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             {/* Корпус */}
@@ -287,7 +336,6 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
               {corpusDropdownOpen && corpora.length > 0 && (
                 <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
                   {corpora
-                    .filter(option => !formData.corpus || option.toLowerCase().includes((formData.corpus || '').toLowerCase()))
                     .map((option) => (
                       <li
                         key={option}

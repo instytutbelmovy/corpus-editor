@@ -26,17 +26,16 @@ export default function NewDocument() {
       return;
     }
 
+    if (!data.file) {
+      return;
+    }
+
     setLoading(true);
 
     try {
       await documentService.createDocument({
-        n: data.n,
-        title: data.title,
-        url: data.url,
-        publicationDate: data.publicationDate,
-        textType: data.textType,
-        style: data.style,
-        file: data.file!
+        ...data,
+        file: data.file
       });
 
       router.push('/');

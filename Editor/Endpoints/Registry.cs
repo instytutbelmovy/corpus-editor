@@ -8,6 +8,8 @@ public static class Registry
     {
         var group = builder.MapGroup("/api/registry-files");
         group.MapGet("/", GetAllFiles).Viewer();
+        group.MapGet("/types", GetAllTypes).Viewer();
+        group.MapGet("/styles", GetAllStyles).Viewer();
         group.MapGet("/corpora", GetAllCorpora).Viewer();
         group.MapPost("/", UploadFile).Editor();
         group.MapGet("/{n:int}/download", DownloadFile).Viewer();
@@ -20,10 +22,22 @@ public static class Registry
         return awsFilesCache.GetAllDocumentHeaders();
     }
 
+    public static async Task<IEnumerable<string>> GetAllTypes(AwsFilesCache awsFilesCache)
+    {
+        var headers = await awsFilesCache.GetAllDocumentHeaders();
+        return headers.Where(x => !string.IsNullOrWhiteSpace(x.Type)).Select(x => x.Type!).Distinct();
+    }
+
+    public static async Task<IEnumerable<string>> GetAllStyles(AwsFilesCache awsFilesCache)
+    {
+        var headers = await awsFilesCache.GetAllDocumentHeaders();
+        return headers.Where(x => !string.IsNullOrWhiteSpace(x.Style)).Select(x => x.Style!).Distinct();
+    }
+
     public static async Task<IEnumerable<string>> GetAllCorpora(AwsFilesCache awsFilesCache)
     {
         var headers = await awsFilesCache.GetAllDocumentHeaders();
-        return headers.Where(x => x.Corpus != null).Select(x => x.Corpus!).Distinct();
+        return headers.Where(x => !string.IsNullOrWhiteSpace(x.Corpus)).Select(x => x.Corpus!).Distinct();
     }
 
     private static async Task<IResult> UploadFile(HttpRequest request, GrammarDb grammarDb, AwsFilesCache awsFilesCache)

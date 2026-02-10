@@ -2,8 +2,8 @@ export interface BaseDocumentFormData {
   title: string;
   url?: string;
   publicationDate?: string;
-  textType: 'вусны' | 'пісьмовы';
-  style?: 'публіцыстычны' | 'мастацкі' | 'афіцыйна-справавы' | 'навуковы' | 'гутарковы';
+  textType: string;
+  style?: string;
   corpus?: string;
 }
 
