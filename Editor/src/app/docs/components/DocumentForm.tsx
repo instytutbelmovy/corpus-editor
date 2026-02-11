@@ -3,9 +3,7 @@ import {
   BaseDocumentFormData,
   NewDocumentFormData,
   MetadataFormData,
-  FormErrors,
-  textTypeOptions,
-  styleOptions
+  FormErrors
 } from '../formTypes';
 import { BUTTON_STYLES } from '../styles';
 
@@ -28,7 +26,7 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
   onSubmit,
   onCancel,
   isSubmitting,
-  errors,
+  errors: externalErrors,
   showFileUpload = false,
   showDocumentId = false,
   submitButtonText,
@@ -37,6 +35,7 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
   subtitle
 }: DocumentFormProps<T>) {
   const [formData, setFormData] = useState<T>(initialData);
+  const [validationErrors, setValidationErrors] = useState<FormErrors>({});
   const [corpora, setCorpora] = useState<string[]>([]);
   const [types, setTypes] = useState<string[]>([]);
   const [styles, setStyles] = useState<string[]>([]);
@@ -67,19 +66,25 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
 
   const handleInputChange = (field: keyof BaseDocumentFormData, value: string | number | undefined) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) {
+    if (validationErrors[field]) {
       // Clear error when user starts typing
-      const newErrors = { ...errors };
-      delete newErrors[field];
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
     }
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
     setFormData(prev => ({ ...prev, file }));
-    if (errors.file) {
-      const newErrors = { ...errors };
-      delete newErrors.file;
+    if (validationErrors.file) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.file;
+        return newErrors;
+      });
     }
   };
 
@@ -115,14 +120,15 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
       if (!formData.file) {
         newErrors.file = 'Выберыце файл для загрузкі';
       } else {
-        const allowedTypes = ['.docx', '.txt', '.epub'];
+        const allowedTypes = ['.docx', '.odt', '.txt', '.epub'];
         const fileExtension = formData.file.name.toLowerCase().substring(formData.file.name.lastIndexOf('.'));
         if (!allowedTypes.includes(fileExtension)) {
-          newErrors.file = 'Падтрымліваюцца толькі файлы .docx, .txt, .epub';
+          newErrors.file = 'Падтрымліваюцца толькі файлы .docx, .odt, .txt, .epub';
         }
       }
     }
 
+    setValidationErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -135,6 +141,8 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
 
     await onSubmit(formData);
   };
+
+  const errors = { ...externalErrors, ...validationErrors };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -253,27 +261,27 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
 
             {/* Тып тэксту */}
             <div ref={typeRef} className="relative">
-              <label htmlFor="textType" className="block text-sm font-medium text-gray-700 mb-2">
-                Тып тэксту *
+              <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-2">
+                Тып тэксту
               </label>
               <input
                 type="text"
-                id="textType"
-                value={formData.textType || ''}
-                onChange={(e) => handleInputChange('textType', e.target.value)}
+                id="type"
+                value={formData.type || ''}
+                onChange={(e) => handleInputChange('type', e.target.value)}
                 onFocus={() => setTypeDropdownOpen(true)}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.textType ? 'border-red-300' : 'border-gray-300'
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.type ? 'border-red-300' : 'border-gray-300'
                   }`}
                 placeholder="Выберыце або ўвядзіце тып тэксту"
                 autoComplete="off"
               />
-              {typeDropdownOpen && (types.length > 0 || textTypeOptions.length > 0) && (
+              {typeDropdownOpen && (types.length > 0) && (
                 <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                  {Array.from(new Set([...textTypeOptions.map(o => o.value), ...types])).map((option) => (
+                  {Array.from(new Set(types)).map((option) => (
                     <li
                       key={option}
                       onClick={() => {
-                        handleInputChange('textType', option);
+                        handleInputChange('type', option);
                         setTypeDropdownOpen(false);
                       }}
                       className="px-3 py-2 cursor-pointer hover:bg-blue-50 text-sm text-gray-700"
@@ -300,9 +308,9 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
                 placeholder="Выберыце або ўвядзіце стыль"
                 autoComplete="off"
               />
-              {styleDropdownOpen && (styles.length > 0 || styleOptions.length > 0) && (
+              {styleDropdownOpen && (styles.length > 0) && (
                 <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                  {Array.from(new Set([...styleOptions.map(o => o.value), ...styles])).map((option) => (
+                  {Array.from(new Set(styles)).map((option) => (
                     <li
                       key={option}
                       onClick={() => {
@@ -385,13 +393,13 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
                           name="file-upload"
                           type="file"
                           className="sr-only"
-                          accept=".docx,.txt,.epub"
+                          accept=".docx,.odt,.txt,.epub"
                           onChange={handleFileChange}
                         />
                       </label>
                       <p className="pl-1">або перацягніце</p>
                     </div>
-                    <p className="text-xs text-gray-500">DOCX, TXT, EPUB да 10MB</p>
+                    <p className="text-xs text-gray-500">DOCX, ODT, TXT, EPUB да 10MB</p>
                   </div>
                 </div>
                 {'file' in formData && formData.file && (

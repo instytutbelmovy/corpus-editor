@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using Amazon;
 using Amazon.S3;
 using System.IO.Pipelines;
@@ -217,7 +217,7 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
         try
         {
             if (_documentHeaders.ContainsKey(corpusDocument.Header.N))
-                throw new InvalidOperationException($"File with ID {corpusDocument.Header.N} already exists in the cache");
+                throw new BusinessException($"Дакумэнт з нумарам {corpusDocument.Header.N} ужо існуе");
 
             var objectKey = $"{corpusDocument.Header.N}.verti";
             await WriteDocumentToS3(objectKey, corpusDocument);

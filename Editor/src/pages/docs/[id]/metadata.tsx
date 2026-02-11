@@ -16,7 +16,7 @@ export default function EditMetadata() {
     title: '',
     url: '',
     publicationDate: undefined,
-    textType: 'пісьмовы',
+    type: 'пісьмовы',
     style: undefined,
     corpus: undefined
   });
@@ -32,14 +32,7 @@ export default function EditMetadata() {
       try {
         const data = await documentService.fetchDocumentMetadata(Number(id));
         setDocumentInfo({ n: data.n, percentCompletion: data.percentCompletion });
-        setInitialData({
-          title: data.title || '',
-          url: data.url || '',
-          publicationDate: data.publicationDate || '',
-          textType: (data.type as 'вусны' | 'пісьмовы') || 'пісьмовы',
-          style: data.style as 'публіцыстычны' | 'мастацкі' | 'афіцыйна-справавы' | 'навуковы' | 'гутарковы' | undefined,
-          corpus: data.corpus || undefined
-        });
+        setInitialData(data);
       } catch (error) {
         setErrors({ fetch: error instanceof Error ? error.message : 'Невядомая памылка' });
       } finally {
@@ -61,14 +54,7 @@ export default function EditMetadata() {
     setSaving(true);
 
     try {
-      await documentService.updateMetadata(Number(id), {
-        title: data.title,
-        url: data.url || null,
-        publicationDate: data.publicationDate || null,
-        type: data.textType,
-        style: data.style || '',
-        corpus: data.corpus || undefined
-      });
+      await documentService.updateMetadata(Number(id), data);
 
       router.push('/');
     } catch (error) {

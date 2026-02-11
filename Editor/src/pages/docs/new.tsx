@@ -15,7 +15,7 @@ export default function NewDocument() {
     title: '',
     url: '',
     publicationDate: '',
-    textType: 'пісьмовы',
+    type: undefined,
     style: undefined,
     file: null
   };

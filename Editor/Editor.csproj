@@ -47,6 +47,10 @@
     <MakeDir Directories="$(VersionFileDir)" Condition="!Exists('$(VersionFileDir)')" />
 
     <WriteLinesToFile File="$(VersionFilePath)" Lines='{"version": "$(GitCommitHash)", "buildDate": "$(BuildDate)"}' Overwrite="true" />
+
+    <ItemGroup>
+      <Content Include="$(VersionFilePath)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
   </Target>
 
 </Project>

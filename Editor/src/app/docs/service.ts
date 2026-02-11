@@ -6,8 +6,8 @@ interface CreateDocumentData {
   title: string;
   url?: string;
   publicationDate?: string;
-  textType: 'вусны' | 'пісьмовы';
-  style?: 'публіцыстычны' | 'мастацкі' | 'афіцыйна-справавы' | 'навуковы' | 'гутарковы';
+  type?: string;
+  style?: string;
   corpus?: string;
   file: File;
 }
@@ -35,7 +35,7 @@ export class DocumentService {
     formData.append('title', documentData.title);
     if (documentData.url) formData.append('url', documentData.url);
     if (documentData.publicationDate) formData.append('publicationDate', documentData.publicationDate);
-    formData.append('textType', documentData.textType);
+    if (documentData.type) formData.append('type', documentData.type);
     if (documentData.style) formData.append('style', documentData.style);
     if (documentData.corpus) formData.append('corpus', documentData.corpus);
     formData.append('file', documentData.file);

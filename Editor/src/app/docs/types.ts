@@ -68,12 +68,12 @@ export interface Paragraph {
 export interface DocumentHeader {
   n: number;
   title: string;
-  author: string | null;
-  language: string | null;
-  publicationDate: string | null;
-  url: string | null;
-  type: string;
-  style: string;
+  author?: string;
+  language?: string;
+  publicationDate?: string;
+  url?: string;
+  type?: string;
+  style?: string;
   corpus?: string;
   percentCompletion: number;
 }

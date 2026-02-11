@@ -54,7 +54,7 @@ public static class Registry
         var title = form["title"].ToString();
         var url = form["url"].ToString();
         var publicationDate = form["publicationDate"].ToString();
-        var textType = form["textType"].ToString();
+        var type = form["type"].ToString();
         var style = form["style"].ToString();
         var corpus = form["corpus"].ToString();
 
@@ -64,6 +64,7 @@ public static class Registry
             ".txt" => (IDocumentReader)new TxtReader(),
             ".docx" => new DocxReader(),
             ".epub" => new EpubReader(),
+            ".odt" => new OdtReader(),
             _ => throw new NotSupportedException($"Unsupported file type: {extension}")
         };
         await using var stream = file.OpenReadStream();
@@ -78,7 +79,7 @@ public static class Registry
         }).ToList();
 
         var percentCompletion = CorpusDocument.ComputeCompletion(paragraphs);
-        var header = new CorpusDocumentHeader(n, title, null, null, publicationDate, url, textType, style, corpus)
+        var header = new CorpusDocumentHeader(n, title, null, null, publicationDate, url, type, style, corpus)
         {
             PercentCompletion = percentCompletion,
         };
