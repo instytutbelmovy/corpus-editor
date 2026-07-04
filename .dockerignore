@@ -10,11 +10,12 @@ obj/
 *.log
 
 # Node.js
-src/node_modules/
-src/.next/
-src/npm-debug.log*
-src/yarn-debug.log*
-src/yarn-error.log*
+Editor.UI/node_modules/
+Editor.UI/.next/
+Editor.UI/out/
+Editor.UI/npm-debug.log*
+Editor.UI/yarn-debug.log*
+Editor.UI/yarn-error.log*
 
 # IDE
 .vscode/

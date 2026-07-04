@@ -8,37 +8,37 @@ A web editor for linguistic markup of a Belarusian text corpus. Editors open doc
 
 ## Repository layout (current)
 
-- `Editor/` — backend ASP.NET Core app. Everything except `Editor/src`.
-- `Editor/src/` — frontend Next.js/React SPA (its own npm project; excluded from the .csproj compile).
+- `Editor/` — backend ASP.NET Core app.
+- `Editor.UI/` — frontend Next.js/React SPA (top-level, its own npm project; not part of `Editor.sln`).
 - `Editor.Tests/` — xUnit tests for the backend (sibling of `Editor/`, referenced by `Editor.sln`).
 - `GrammarDbConverter/` — CLI that converts the Belarusian GrammarDB XML files into a SQLite `grammar.db`. Links a few source files directly from `Editor/Linguistics/`.
 - `Editor.sln` — includes `Editor`, `Editor.Tests`, `GrammarDbConverter`.
 - `Editor/files/` — local `Editor.db` (user/document data) and `grammar.db` (grammar lookup); gitignored data.
-- `Dockerfile` — multi-stage build targeting `linux-musl-x64`.
+- `Dockerfile` — multi-stage build (Node → dotnet SDK → aspnet runtime) targeting `linux-musl-x64`.
 
-> A restructure is planned: move `Editor/src` out to a top-level `Editor.UI/`, split the backend into separate `Services`, `Domain`, and `DB` C# projects, and migrate from SQLite to Postgres. Treat the current structure as the starting point, not the intended design.
+> A restructure is planned: split the backend into separate `Services`, `Domain`, and `DB` C# projects, and migrate from SQLite to Postgres. (The frontend has already been moved out to a top-level `Editor.UI/`.) Treat the current structure as the starting point, not the intended design.
 
 ## Build & run
 
-Frontend must be built before the backend serves it in non-dev mode: `next build` (prod config) exports a static site to `Editor/wwwroot`, which the backend serves.
+For local development the frontend and backend run as **separate** processes — the frontend dev server proxies `/api/*` to the backend; nothing is built into `wwwroot`. The `wwwroot` bundle is only produced for production, by the `Dockerfile` (which builds the FE static export and copies it into `Editor/wwwroot` before the backend build).
 
 ```bash
 # 1. Build grammar.db (one-time; or obtain the file directly)
 cd GrammarDbConverter && dotnet run -- path-to-GrammarDB-data ../Editor/files/grammar.db
 
-# 2. Frontend
-cd Editor/src && npm install && npm run build   # exports to ../wwwroot
-
-# 3. Backend (serves wwwroot + /api) — default http://localhost:5087
+# 2. Backend — default http://localhost:5087
 cd Editor && dotnet run
+
+# 3. Frontend dev server — http://localhost:3000, proxies /api/* to :5087
+cd Editor.UI && npm install && npm run dev
 ```
 
-Frontend-focused dev: run the backend separately, then `cd Editor/src && npm run dev` and use http://localhost:3000. In dev, `next.config.ts` proxies `/api/*` to `http://localhost:5087`. In prod it does a static `output: 'export'` to `../wwwroot`.
+Production single-image build: `docker build -t <tag> .` from the repo root (builds the FE static export into `Editor/wwwroot`, then the backend). Frontend specifics — dev/prod config, architecture, conventions — are in `Editor.UI/CLAUDE.md`.
 
 ## Tests / lint
 
 - Backend: `dotnet test` (from repo root, or against `Editor.Tests/Editor.Tests.csproj`). Single test: `dotnet test --filter "FullyQualifiedName~TokenizerTests"`.
-- Frontend: `cd Editor/src && npm run test` (Jest). `npm run lint` (next/eslint), `npm run format` (prettier).
+- Frontend: see `Editor.UI/CLAUDE.md` (Jest / eslint / prettier).
 
 ## Configuration & secrets
 
@@ -66,4 +66,4 @@ Dapper.AOT is enabled (`[module: DapperAot]`) — Dapper queries are source-gene
 
 ## Frontend architecture
 
-Next.js 15 (React 19, TypeScript, Tailwind v4, Zustand). Uses both the `app/` directory (feature code/components/hooks/services) and `pages/` (routes: `index`, `sign-in`, `docs`, `users`, password reset). The document editor lives in `src/app/docs/` — `store.ts`/`uiStore.ts` (Zustand), `service.ts`/`wordEditingService.ts` (API calls), `structureEditor.ts`, and `components/` + `hooks/` for the interactive per-word markup UI. API access goes through `src/app/apiClient.ts` and `src/app/services/`.
+See `Editor.UI/CLAUDE.md`. In short: Next.js 15 (React 19, TypeScript, Tailwind v4, Zustand) static-exported SPA; `pages/` holds routes, `app/` holds feature code, and the document editor lives in `Editor.UI/app/docs/`.
