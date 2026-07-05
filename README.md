@@ -1,6 +1,6 @@
 
 # Што тут агулам ёсьць
-- Унутры тэчкі Editor бэкэнд рэдактара на dotnet.
+- Унутры тэчкі Editor.Api бэкэнд рэдактара на dotnet.
 - Editor.UI франтэнд рэдактара на React/Next.js.
 - GrammarDbConverter - маленькая прыблуда сканвэртаваць xml файлы граматычнай базы ў sqlite для працы бэкэнда.
 - Editor.Tests гэта юніт тэсты для бэкэнда рэдактара
@@ -10,7 +10,7 @@
 Спатрэбяцца dotnet sdk 10 і nodejs 22.
 1. Трэба сканвэртаваць файлы граматычнае базы.
    Узяць іх можна тут https://github.com/Belarus/GrammarDB/tree/master/data
-   `GrammarDbConverter> dotnet run -- path-to-GrammarDb-data ../Editor/files/grammar.db`
+   `GrammarDbConverter> dotnet run -- path-to-GrammarDb-data ../Editor.Api/files/grammar.db`
    Альбо можна адразу сам файл вынік папрасіць у мяне.
 2. Трэба мець ключы для доступу да s3 кошыку з файламі verti (Aws:SecretAccessKey). Ключы можна ўзяць у мяне, альбо можна выкарыстоўваць які ўласны кошык замест ibm-editor-dev і свае ключы.
    А яшчэ, калі дасылаць мэйлы патрэбны ключ мэйл сэрвісу (Email:ApiKey).
@@ -22,7 +22,7 @@
 Бэкэнд і франтэнд запускаюцца двума асобнымі працэсамі. У рэжыме распрацоўкі франт нікуды ў wwwroot ня зьбіраецца — ён абслугоўваецца ўласным dev-сэрвэрам next, а запросы да /api перасылаюцца на бэкэнд.
 
 ## Бэкэнд
-`Editor> dotnet run`. Па дэфолту дасяжны на http://localhost:5087.
+`Editor.Api> dotnet run`. Па дэфолту дасяжны на http://localhost:5087.
 
 ## Франтэнд
 `Editor.UI> npm run dev`, і даступацца да яго праз http://localhost:3000.

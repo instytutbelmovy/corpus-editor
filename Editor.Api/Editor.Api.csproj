@@ -7,7 +7,6 @@
     <InvariantGlobalization>true</InvariantGlobalization>
     <PublishAot>false</PublishAot>
     <RuntimeIdentifiers>linux-musl-x64</RuntimeIdentifiers>
-    <InterceptorsPreviewNamespaces>$(InterceptorsPreviewNamespaces);Dapper.AOT</InterceptorsPreviewNamespaces>
   </PropertyGroup>
 
   <ItemGroup>
@@ -18,15 +17,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AWSSDK.S3" Version="4.0.6.10" />
-    <PackageReference Include="Dapper" Version="2.1.66" />
-    <PackageReference Include="Dapper.AOT" Version="1.0.48" />
-    <PackageReference Include="FluentValidation" Version="12.0.0" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.8" />
-    <PackageReference Include="DocumentFormat.OpenXml" Version="3.3.0" />
-    <PackageReference Include="HtmlAgilityPack" Version="1.12.2" />
-    <PackageReference Include="Sentry.AspNetCore" Version="5.14.1" />
-    <PackageReference Include="VersOne.Epub" Version="3.3.4" />
+    <ProjectReference Include="..\Editor.DB\Editor.DB.csproj" />
+    <ProjectReference Include="..\Editor.Domain\Editor.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.S3" Version="4.0.100.2" />
+    <PackageReference Include="FluentValidation" Version="12.1.1" />
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.12.4" />
+    <PackageReference Include="Sentry.AspNetCore" Version="6.6.0" />
+    <PackageReference Include="VersOne.Epub" Version="3.3.6" />
   </ItemGroup>
 
   <Target Name="GenerateVersionFile" BeforeTargets="PrepareForBuild;ResolveStaticWebAssetsInputs">
@@ -42,7 +43,7 @@
 
     <MakeDir Directories="$(VersionFileDir)" Condition="!Exists('$(VersionFileDir)')" />
 
-    <WriteLinesToFile File="$(VersionFilePath)" Lines='{"version": "$(GitCommitHash)", "buildDate": "$(BuildDate)"}' Overwrite="true" />
+    <WriteLinesToFile File="$(VersionFilePath)" Lines="{&quot;version&quot;: &quot;$(GitCommitHash)&quot;, &quot;buildDate&quot;: &quot;$(BuildDate)&quot;}" Overwrite="true" />
 
     <ItemGroup>
       <Content Include="$(VersionFilePath)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

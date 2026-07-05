@@ -5,13 +5,7 @@ namespace Editor;
 public class EditorUser : IdentityUser
 {
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public int Role { get; set; }
-    /// <summary> Duplicated because Dapper AOT doesn't yet support Enum mapping it seems </summary>
-    public Roles RoleEnum
-    {
-        get => (Roles)Role;
-        set => Role = (int)value;
-    }
+    public Roles Role { get; set; }
 }
 
 public enum Roles

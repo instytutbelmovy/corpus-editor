@@ -18,9 +18,9 @@ RUN apk add --no-cache git
 
 WORKDIR /app
 COPY . ./
-COPY --from=fe-build /app/Editor.UI/out/ ./Editor/wwwroot/
+COPY --from=fe-build /app/Editor.UI/out/ ./Editor.Api/wwwroot/
 
-WORKDIR /app/Editor
+WORKDIR /app/Editor.Api
 RUN dotnet restore Editor.csproj
 RUN dotnet publish Editor.csproj -c Release -r linux-musl-x64 -o out --no-restore
 
@@ -40,8 +40,7 @@ RUN addgroup -g 1001 -S appgroup && \
 WORKDIR /app
 
 # Капіруем збудаваны праект
-COPY --from=be-build /app/Editor/out ./
-COPY Editor/files/grammar.db ./files/grammar.db
+COPY --from=be-build /app/Editor.Api/out ./
 RUN chown -R appuser:appgroup /app
 
 USER appuser

@@ -19,7 +19,7 @@ npm run format   # prettier --write .
 npm run test     # jest (test:watch, test:coverage also available)
 ```
 
-- **Dev vs prod split** lives in `next.config.ts`: dev uses `rewrites` to proxy `/api/*` to the backend; prod does `output: 'export'` (static, to `./out`) with `trailingSlash: true`. The Dockerfile copies `./out` into `Editor/wwwroot`. Because of the static export, **there is no Node server in prod** — no `getServerSideProps`, no API routes, no server components doing runtime work. Keep everything client-side.
+- **Dev vs prod split** lives in `next.config.ts`: dev uses `rewrites` to proxy `/api/*` to the backend; prod does `output: 'export'` (static, to `./out`) with `trailingSlash: true`. The Dockerfile copies `./out` into `Editor.Api/wwwroot`. Because of the static export, **there is no Node server in prod** — no `getServerSideProps`, no API routes, no server components doing runtime work. Keep everything client-side.
 - Path alias: `@/*` maps to the `Editor.UI/` root (e.g. `@/app/apiClient`, `@/utils/urlValidation`).
 
 ## Architecture

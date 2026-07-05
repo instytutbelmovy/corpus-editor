@@ -18,11 +18,10 @@ public class AwsSettings
 public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logger)
 {
     private static readonly TimeSpan UnloadingAge = TimeSpan.FromMinutes(10);
-    private readonly AwsSettings _awsSettings = awsSettings;
     private IAmazonS3 _s3Client = null!;
     private ConcurrentDictionary<int, CorpusDocumentHeader> _documentHeaders = null!;
-    private ConcurrentDictionary<int, SemaphoreSlim> _documentsLocks = new();
-    private ConcurrentDictionary<int, Document> _documents = new();
+    private readonly ConcurrentDictionary<int, SemaphoreSlim> _documentsLocks = new();
+    private readonly ConcurrentDictionary<int, Document> _documents = new();
     private TaskCompletionSource _initialized = new();
     private readonly ILogger? _logger = logger;
 
@@ -31,9 +30,9 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
         if (_s3Client != null)
             throw new InvalidOperationException($"{nameof(AwsFilesCache)} is already initialized");
 
-        _s3Client = new AmazonS3Client(_awsSettings.AccessKeyId, _awsSettings.SecretAccessKey, RegionEndpoint.GetBySystemName(_awsSettings.Region));
+        _s3Client = new AmazonS3Client(awsSettings.AccessKeyId, awsSettings.SecretAccessKey, RegionEndpoint.GetBySystemName(awsSettings.Region));
 
-        _logger?.LogInformation("Initializing AWS Files Cache with bucket: {BucketName}", _awsSettings.BucketName);
+        _logger?.LogInformation("Initializing AWS Files Cache with bucket: {BucketName}", awsSettings.BucketName);
         Task.Factory.StartNew(ReadAwsFilesList);
     }
 
@@ -43,7 +42,7 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
             return;
         _initialized = new();
         
-        _logger?.LogInformation("Re-initializing AWS Files Cache with bucket: {BucketName}", _awsSettings.BucketName);
+        _logger?.LogInformation("Re-initializing AWS Files Cache with bucket: {BucketName}", awsSettings.BucketName);
         await ReadAwsFilesList();
         var removedDocuments = _documentsLocks.Keys.Except(_documentHeaders.Keys).ToList();
         foreach (var id in removedDocuments)
@@ -154,7 +153,7 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
         {
             var getRequest = new GetObjectRequest
             {
-                BucketName = _awsSettings.BucketName,
+                BucketName = awsSettings.BucketName,
                 Key = objectKey,
             };
 
@@ -251,7 +250,7 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
         {
             var listRequest = new ListObjectsV2Request
             {
-                BucketName = _awsSettings.BucketName,
+                BucketName = awsSettings.BucketName,
                 Prefix = "",
                 MaxKeys = 1000,
             };
@@ -267,7 +266,7 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
                     {
                         var getRequest = new GetObjectRequest
                         {
-                            BucketName = _awsSettings.BucketName,
+                            BucketName = awsSettings.BucketName,
                             Key = s3Object.Key,
                         };
 
@@ -320,7 +319,7 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
         {
             var getRequest = new GetObjectRequest
             {
-                BucketName = _awsSettings.BucketName,
+                BucketName = awsSettings.BucketName,
                 Key = objectKey,
             };
 
@@ -360,7 +359,7 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
             });
 
             var transferUtility = new TransferUtility(_s3Client);
-            await transferUtility.UploadAsync(pipe.Reader.AsStream(), _awsSettings.BucketName, objectKey);
+            await transferUtility.UploadAsync(pipe.Reader.AsStream(), awsSettings.BucketName, objectKey);
 
             await uploadTask;
         }

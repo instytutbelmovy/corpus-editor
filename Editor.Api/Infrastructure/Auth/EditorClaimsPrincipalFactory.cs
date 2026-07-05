@@ -17,7 +17,7 @@ public class EditorClaimsPrincipalFactory : IUserClaimsPrincipalFactory<EditorUs
             new(UserIdClaimType, user.Id),
             new(NameClaimType, user.UserName),
             new(EmailClaimType, user.Email),
-            new(RoleClaimType, ((int)user.RoleEnum).ToString()),
+            new(RoleClaimType, ((int)user.Role).ToString()),
         };
 
         var identity = new ClaimsIdentity(claims, IdentityConstants.ApplicationScheme);

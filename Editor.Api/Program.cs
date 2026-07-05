@@ -1,14 +1,10 @@
-using Dapper;
 using Editor;
-using Editor.Migrations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Rewrite;
-using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Net;
 using System.Text;
-
-[module: DapperAot]
 
 
 Console.OutputEncoding = Encoding.UTF8;
@@ -44,17 +40,11 @@ static void ConfigureServices(WebApplicationBuilder builder)
 
     builder.WebHost.UseStaticWebAssets();
 
-    var settings = new Settings();
-    builder.Configuration.Bind("Settings", settings);
-    builder.Services.AddSingleton(settings);
-
     var awsSettings = new AwsSettings();
     builder.Configuration.Bind("Aws", awsSettings);
     builder.Services.AddSingleton(awsSettings);
     if (string.IsNullOrEmpty(awsSettings.AccessKeyId) || string.IsNullOrEmpty(awsSettings.SecretAccessKey))
         throw new InvalidOperationException("AWS credentials are not configured. Please set 'AwsSettings:AccessKeyId' and 'AwsSettings:SecretAccessKey' in the configuration.");
-
-    builder.Services.AddSingleton(typeof(IDbSynchronizer), settings.SyncEditorDbWithAws ? typeof(DbSynchronizer) : typeof(NullDbSynchronizer));
 
     builder.Services.ConfigureHttpJsonOptions(options =>
     {
@@ -65,10 +55,24 @@ static void ConfigureServices(WebApplicationBuilder builder)
         options.SerializerOptions.TypeInfoResolverChain.Insert(4, AdministrationJsonSerializerContext.Default);
     });
 
-    var dbConnectionString = $"Data Source={settings.EditorDbPath}";
-    var editorUserStore = new EditorUserStore(dbConnectionString);
-    builder.Services.AddSingleton(editorUserStore);
-    builder.Services.AddSingleton<IUserStore<EditorUser>>(editorUserStore);
+    var editorConnectionString = builder.Configuration.GetConnectionString("EditorDb");
+    if (string.IsNullOrEmpty(editorConnectionString))
+        throw new InvalidOperationException("Editor database is not configured. Please set 'ConnectionStrings:EditorDb' in the configuration.");
+    var grammarConnectionString = builder.Configuration.GetConnectionString("GrammarDb");
+    if (string.IsNullOrEmpty(grammarConnectionString))
+        throw new InvalidOperationException("Grammar database is not configured. Please set 'ConnectionStrings:GrammarDb' in the configuration.");
+
+    builder.Services.AddPooledDbContextFactory<EditorDbContext>(options =>
+        options.UseNpgsql(editorConnectionString).UseSnakeCaseNamingConvention());
+    builder.Services.AddPooledDbContextFactory<GrammarDbContext>(options =>
+        options.UseNpgsql(grammarConnectionString).UseSnakeCaseNamingConvention()
+            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
+
+    builder.Services.AddSingleton<IUserRepository, UserRepository>();
+    builder.Services.AddSingleton<IGrammarRepository, GrammarRepository>();
+
+    builder.Services.AddSingleton<EditorUserStore>();
+    builder.Services.AddSingleton<IUserStore<EditorUser>>(serviceProvider => serviceProvider.GetRequiredService<EditorUserStore>());
 
     var emailSettings = new EmailSettings();
     builder.Configuration.Bind("Email", emailSettings);
@@ -85,13 +89,9 @@ static void ConfigureServices(WebApplicationBuilder builder)
     builder.Services.AddValidatorsFromAssemblyContaining<SignInRequest>();
 
     builder.Services.AddSingleton<AwsFilesCache>();
-    builder.Services.AddSingleton(new GrammarDb(settings.GrammarDbPath));
+    builder.Services.AddSingleton<GrammarDb>();
 
     builder.Services.AddHostedService<AwsFilesCacheMaintenanceService>();
-
-    if (settings.SyncEditorDbWithAws)
-        builder.Services.AddHostedService<EditorDbPushingService>(serviceProvider =>
-            new EditorDbPushingService(settings.EditorDbPath, serviceProvider.GetRequiredService<IDbSynchronizer>(), serviceProvider.GetLoggerFor(nameof(EditorDbPushingService))));
 }
 
 static void ConfigureIdentity(WebApplicationBuilder builder)
@@ -135,11 +135,14 @@ static void ConfigureIdentity(WebApplicationBuilder builder)
 
 static void ConfigurePipeline(WebApplication app)
 {
-    var dbSynchronizer = app.Services.GetRequiredService<IDbSynchronizer>();
-    var editorDbPath = app.Services.GetRequiredService<Settings>().EditorDbPath;
-    dbSynchronizer.Fetch(editorDbPath).Wait();
-    var dbConnectionString = $"Data Source={editorDbPath}";
-    InitDatabase(dbConnectionString);
+    // Міграцыі абедзвюх баз ужываюцца аўтаматычна пры старце дадатку
+    using (var editorDb = app.Services.GetRequiredService<IDbContextFactory<EditorDbContext>>().CreateDbContext())
+        editorDb.Database.Migrate();
+    using (var grammarDb = app.Services.GetRequiredService<IDbContextFactory<GrammarDbContext>>().CreateDbContext())
+        grammarDb.Database.Migrate();
+
+    if (!app.Services.GetRequiredService<IGrammarRepository>().HasData())
+        throw new InvalidOperationException("Grammar database is empty or missing. Run GrammarDbConverter first.");
 
     app.Services.InitLoggerFor(nameof(ExceptionMiddleware), ExceptionMiddleware.InitializeLogging);
     app.Services.InitLoggerFor(nameof(VertiIO), VertiIO.InitializeLogging);
@@ -161,18 +164,4 @@ static void ConfigurePipeline(WebApplication app)
 
     app.Services.GetRequiredService<IHostApplicationLifetime>()
         .ApplicationStarted.Register(() => app.Services.CheckValidators());
-}
-
-static void InitDatabase(string connectionString)
-{
-    var connectionStringBuilder = new SqliteConnectionStringBuilder(connectionString);
-    var dataSource = connectionStringBuilder.DataSource;
-
-    var directory = Path.GetDirectoryName(dataSource);
-    if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
-        Directory.CreateDirectory(directory);
-
-    using var connection = new SqliteConnection(connectionString);
-    connection.Open();
-    Migrator.Migrate(connection);
 }

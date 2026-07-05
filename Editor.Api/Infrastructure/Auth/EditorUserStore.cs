@@ -1,63 +1,40 @@
-using Dapper;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Data.Sqlite;
 
 namespace Editor;
 
-public class EditorUserStore : IUserStore<EditorUser>, IUserPasswordStore<EditorUser>, IUserEmailStore<EditorUser>, IUserLockoutStore<EditorUser>, IUserSecurityStampStore<EditorUser>
+public class EditorUserStore(IUserRepository userRepository) : IUserStore<EditorUser>, IUserPasswordStore<EditorUser>, IUserEmailStore<EditorUser>, IUserLockoutStore<EditorUser>, IUserSecurityStampStore<EditorUser>
 {
-    private readonly string _connectionString;
     private readonly IdentityErrorDescriber ErrorDescriber = new();
 
-    public EditorUserStore(string connectionString)
-    {
-        _connectionString = connectionString;
-    }
-
-    public Task<IdentityResult> CreateAsync(EditorUser user, CancellationToken cancellationToken = default)
+    public async Task<IdentityResult> CreateAsync(EditorUser user, CancellationToken cancellationToken = default)
     {
         user.Id = Guid.NewGuid().ToString();
         user.ConcurrencyStamp = Guid.NewGuid().ToString();
 
-        using var connection = new SqliteConnection(_connectionString);
+        await userRepository.CreateAsync(user, cancellationToken);
 
-        connection.Execute(@"
-            INSERT INTO AspNetUsers (Id, UserName, NormalizedUserName, Email, NormalizedEmail,
-                EmailConfirmed, PasswordHash, SecurityStamp, ConcurrencyStamp, CreatedAt, Role)
-            VALUES (@Id, @UserName, @NormalizedUserName, @Email, @NormalizedEmail,
-                @EmailConfirmed, @PasswordHash, @SecurityStamp, @ConcurrencyStamp, @CreatedAt, @Role)",
-            user);
-
-        return Task.FromResult(IdentityResult.Success);
+        return IdentityResult.Success;
     }
 
-    public Task<IdentityResult> DeleteAsync(EditorUser user, CancellationToken cancellationToken = default)
+    public async Task<IdentityResult> DeleteAsync(EditorUser user, CancellationToken cancellationToken = default)
     {
-        using var connection = new SqliteConnection(_connectionString);
-        connection.Execute("DELETE FROM AspNetUsers WHERE Id = @Id", new { user.Id });
-        return Task.FromResult(IdentityResult.Success);
+        await userRepository.DeleteAsync(user.Id, cancellationToken);
+        return IdentityResult.Success;
     }
 
     public void Dispose()
     {
-        // Connection is managed externally
+        // Nothing to dispose
     }
 
     public Task<EditorUser?> FindByIdAsync(string userId, CancellationToken cancellationToken = default)
     {
-        using var connection = new SqliteConnection(_connectionString);
-        var user = connection.QuerySingleOrDefault<EditorUser>(
-            "SELECT * FROM AspNetUsers WHERE Id = @Id", new { Id = userId });
-        return Task.FromResult(user);
+        return userRepository.FindByIdAsync(userId, cancellationToken);
     }
 
     public Task<EditorUser?> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken = default)
     {
-        using var connection = new SqliteConnection(_connectionString);
-        var user = connection.QuerySingleOrDefault<EditorUser>(
-            "SELECT * FROM AspNetUsers WHERE NormalizedUserName = @NormalizedUserName",
-            new { NormalizedUserName = normalizedUserName });
-        return Task.FromResult(user);
+        return userRepository.FindByNameAsync(normalizedUserName, cancellationToken);
     }
 
     public Task<string?> GetNormalizedUserNameAsync(EditorUser user, CancellationToken cancellationToken = default)
@@ -87,34 +64,13 @@ public class EditorUserStore : IUserStore<EditorUser>, IUserPasswordStore<Editor
         return Task.CompletedTask;
     }
 
-    public Task<IdentityResult> UpdateAsync(EditorUser user, CancellationToken cancellationToken = default)
+    public async Task<IdentityResult> UpdateAsync(EditorUser user, CancellationToken cancellationToken = default)
     {
-        using var connection = new SqliteConnection(_connectionString);
+        var updated = await userRepository.UpdateAsync(user, cancellationToken);
 
-        var resultConcurrencyStamp = connection.ExecuteScalar<string>(@"
-            UPDATE AspNetUsers
-            SET UserName = @UserName,
-                NormalizedUserName = @NormalizedUserName,
-                Email = @Email,
-                NormalizedEmail = @NormalizedEmail,
-                EmailConfirmed = @EmailConfirmed,
-                PasswordHash = @PasswordHash,
-                SecurityStamp = @SecurityStamp,
-                ConcurrencyStamp = @NewConcurrencyStamp,
-                LockoutEnd = @LockoutEnd,
-                LockoutEnabled = @LockoutEnabled,
-                AccessFailedCount = @AccessFailedCount,
-                CreatedAt = @CreatedAt,
-                Role = @Role
-            WHERE Id = @Id and ConcurrencyStamp = @ConcurrencyStamp;
-
-            SELECT CASE WHEN changes() = 0 THEN @ConcurrencyStamp ELSE @NewConcurrencyStamp END", new UpdateUser(user));
-
-        if (resultConcurrencyStamp == user.ConcurrencyStamp)
-            return Task.FromResult(IdentityResult.Failed(ErrorDescriber.ConcurrencyFailure()));
-
-        user.ConcurrencyStamp = resultConcurrencyStamp;
-        return Task.FromResult(IdentityResult.Success);
+        return updated
+            ? IdentityResult.Success
+            : IdentityResult.Failed(ErrorDescriber.ConcurrencyFailure());
     }
 
     public Task<string?> GetPasswordHashAsync(EditorUser user, CancellationToken cancellationToken = default)
@@ -135,11 +91,7 @@ public class EditorUserStore : IUserStore<EditorUser>, IUserPasswordStore<Editor
 
     public Task<EditorUser?> FindByEmailAsync(string normalizedEmail, CancellationToken cancellationToken = default)
     {
-        using var connection = new SqliteConnection(_connectionString);
-        var user = connection.QuerySingleOrDefault<EditorUser>(
-            "SELECT * FROM AspNetUsers WHERE NormalizedEmail = @NormalizedEmail",
-            new { NormalizedEmail = normalizedEmail });
-        return Task.FromResult(user);
+        return userRepository.FindByEmailAsync(normalizedEmail, cancellationToken);
     }
 
     public Task<string?> GetEmailAsync(EditorUser user, CancellationToken cancellationToken = default)
@@ -173,41 +125,6 @@ public class EditorUserStore : IUserStore<EditorUser>, IUserPasswordStore<Editor
     {
         user.NormalizedEmail = normalizedEmail;
         return Task.CompletedTask;
-    }
-
-    public bool HasUsers()
-    {
-        using var connection = new SqliteConnection(_connectionString);
-        var count = connection.ExecuteScalar<int?>("SELECT 1 FROM AspNetUsers LIMIT 1");
-        return count != null;
-    }
-
-    /// <summary> Needs to be public or AOT Dapper explodes </summary>
-    public class UpdateUser : EditorUser
-    {
-        public UpdateUser(EditorUser user)
-        {
-            // clone all properties
-            Id = user.Id;
-            UserName = user.UserName;
-            NormalizedUserName = user.NormalizedUserName;
-            Email = user.Email;
-            NormalizedEmail = user.NormalizedEmail;
-            EmailConfirmed = user.EmailConfirmed;
-            PasswordHash = user.PasswordHash;
-            SecurityStamp = user.SecurityStamp;
-            ConcurrencyStamp = user.ConcurrencyStamp;
-            PhoneNumber = user.PhoneNumber;
-            PhoneNumberConfirmed = user.PhoneNumberConfirmed;
-            TwoFactorEnabled = user.TwoFactorEnabled;
-            LockoutEnd = user.LockoutEnd;
-            LockoutEnabled = user.LockoutEnabled;
-            AccessFailedCount = user.AccessFailedCount;
-            CreatedAt = user.CreatedAt;
-            Role = user.Role;
-        }
-
-        public string NewConcurrencyStamp { get; set; } = Guid.NewGuid().ToString();
     }
 
     public Task<DateTimeOffset?> GetLockoutEndDateAsync(EditorUser user, CancellationToken cancellationToken)
@@ -264,11 +181,5 @@ public class EditorUserStore : IUserStore<EditorUser>, IUserPasswordStore<Editor
         if (user == null)
             throw new ArgumentNullException(nameof(user));
         return Task.FromResult(user.SecurityStamp);
-    }
-
-    public List<EditorUser> GetAllUsers()
-    {
-        using var connection = new SqliteConnection(_connectionString);
-        return connection.Query<EditorUser>("SELECT * FROM AspNetUsers").AsList();
     }
 }

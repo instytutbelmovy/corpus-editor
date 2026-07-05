@@ -15,15 +15,15 @@ public static class Users
         group.MapPost("/{id}/invite", InviteUser).Validate<InviteUserRequest>().Admin();
     }
 
-    private static IEnumerable<EditorUserDto> GetAllUsers(
-        EditorUserStore editorUserStore)
+    private static async Task<IEnumerable<EditorUserDto>> GetAllUsers(
+        IUserRepository userRepository)
     {
-        var users = editorUserStore.GetAllUsers();
+        var users = await userRepository.GetAllUsersAsync();
         return users.Select(user => new EditorUserDto(
             user.Id,
             user.UserName!,
             user.Email!,
-            user.RoleEnum
+            user.Role
         ));
     }
 
@@ -46,7 +46,7 @@ public static class Users
             UserName = request.UserName,
             Email = request.Email,
             EmailConfirmed = true,
-            RoleEnum = request.Role,
+            Role = request.Role,
             CreatedAt = DateTime.UtcNow,
         };
 
@@ -59,7 +59,7 @@ public static class Users
             user.Id,
             user.UserName,
             user.Email,
-            user.RoleEnum
+            user.Role
         );
     }
 
@@ -90,7 +90,7 @@ public static class Users
 
         user.UserName = request.UserName;
         user.Email = request.Email;
-        user.RoleEnum = request.Role;
+        user.Role = request.Role;
 
         var result = await userManager.UpdateAsync(user);
         if (!result.Succeeded)
@@ -100,7 +100,7 @@ public static class Users
             user.Id,
             user.UserName!,
             user.Email!,
-            user.RoleEnum
+            user.Role
         );
     }
 
@@ -141,7 +141,7 @@ public static class Users
         if (user == null)
             throw new NotFoundException("Карыстальнік ня знойдзены");
 
-        if (user.RoleEnum == Roles.None)
+        if (user.Role == Roles.None)
             throw new BadRequestException("Карыстальнік не мае ролі і не можа быць запрошаны");
 
         var baseUrl = $"{httpContextAccessor.HttpContext!.Request.Scheme}://{httpContextAccessor.HttpContext.Request.Host}";

@@ -21,7 +21,7 @@ public static class Auth
         [FromBody] SignInRequest request,
         UserManager<EditorUser> userManager,
         SignInManager<EditorUser> signInManager,
-        EditorUserStore editorUserStore,
+        IUserRepository userRepository,
         ReCaptchaService reCaptchaService,
         IHttpContextAccessor httpContextAccessor)
     {
@@ -30,7 +30,7 @@ public static class Auth
         var user = await userManager.FindByEmailAsync(request.Email);
         if (user == null)
         {
-            var hasUsersAtAll = editorUserStore.HasUsers();
+            var hasUsersAtAll = await userRepository.HasUsersAsync();
             if (hasUsersAtAll)
                 throw new UnauthorizedException();
 
@@ -40,7 +40,7 @@ public static class Auth
                 UserName = request.Email,
                 Email = request.Email,
                 EmailConfirmed = true,
-                RoleEnum = Roles.Admin,
+                Role = Roles.Admin,
                 CreatedAt = DateTime.UtcNow,
             };
             var createResult = await userManager.CreateAsync(user, request.Password);
@@ -48,12 +48,12 @@ public static class Auth
                 throw new BadRequestException("Не ўдалося стварыць першага карыстальніка: " + string.Join(", ", createResult.Errors.Select(e => e.Description)));
         }
 
-        if (user.RoleEnum == Roles.None)
+        if (user.Role == Roles.None)
             throw new UnauthorizedException();
 
         var result = await signInManager.PasswordSignInAsync(user, request.Password, isPersistent: true, lockoutOnFailure: true);
         if (result.Succeeded)
-            return new WhoAmIResponse(user.Id, user.RoleEnum);
+            return new WhoAmIResponse(user.Id, user.Role);
 
         if (result.IsLockedOut)
             throw new UnauthorizedException("Карыстальнік часова заблякаваны, паспрабуйце пасьля");
@@ -87,7 +87,7 @@ public static class Auth
         await CheckReCaptcha(reCaptchaService, httpContextAccessor, request.ReCaptchaToken);
 
         var user = await userManager.FindByEmailAsync(request.Email);
-        if (user == null || user.RoleEnum == Roles.None)
+        if (user == null || user.Role == Roles.None)
         {
             await Task.Delay(500 + Random.Shared.Next(500));
             return; // Не раскрываем, ці існуе карыстальнік
