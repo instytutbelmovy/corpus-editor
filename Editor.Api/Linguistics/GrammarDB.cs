@@ -11,11 +11,7 @@ public class GrammarDb(IGrammarRepository grammarRepository)
         var normalizedWord = Normalizer.GrammarDbAggressiveNormalize(word);
 
         var results = grammarRepository.LookupByNormalizedForm(normalizedWord)
-            .Select(match => new GrammarInfo(
-                ParadigmFormId: new ParadigmFormId(match.ParadigmId, match.VariantId, match.FormTag),
-                LinguisticTag: new LinguisticTag(match.EffectiveTag, match.FormTag),
-                Lemma: match.Lemma,
-                Meaning: match.Meaning))
+            .Select(ToGrammarInfo)
             .ToList();
 
         if (pickCustomWords && _customWords.TryGetValue(normalizedWord, out var customWordResults))
@@ -23,6 +19,39 @@ public class GrammarDb(IGrammarRepository grammarRepository)
 
         return results;
     }
+
+    /// <summary> Пакетны пошук: адзін зварот да базы на ўсе словы, вынік па кожным зыходным слове </summary>
+    public Dictionary<string, List<GrammarInfo>> LookupWords(IReadOnlyCollection<string> words, bool pickCustomWords = true)
+    {
+        // Нармалізуем кожнае унікальнае слова адзін раз
+        var normalizedByWord = new Dictionary<string, string>();
+        foreach (var word in words)
+            if (!normalizedByWord.ContainsKey(word))
+                normalizedByWord[word] = Normalizer.GrammarDbAggressiveNormalize(word);
+
+        var matchesByNormalized = grammarRepository.LookupByNormalizedForms(normalizedByWord.Values.ToArray());
+
+        var result = new Dictionary<string, List<GrammarInfo>>(normalizedByWord.Count);
+        foreach (var (word, normalizedWord) in normalizedByWord)
+        {
+            var infos = matchesByNormalized.TryGetValue(normalizedWord, out var matches)
+                ? matches.Select(ToGrammarInfo).ToList()
+                : [];
+
+            if (pickCustomWords && _customWords.TryGetValue(normalizedWord, out var customWordResults))
+                infos.AddRange(customWordResults.Select(x => x.Key));
+
+            result[word] = infos;
+        }
+
+        return result;
+    }
+
+    private static GrammarInfo ToGrammarInfo(FormMatch match) => new(
+        ParadigmFormId: new ParadigmFormId(match.ParadigmId, match.VariantId, match.FormTag),
+        LinguisticTag: new LinguisticTag(match.EffectiveTag, match.FormTag),
+        Lemma: match.Lemma,
+        Meaning: match.Meaning);
 
     public (string, LinguisticTag) GetLemmaAndLinguisticTag(ParadigmFormId paradigmFormId)
     {
@@ -34,11 +63,12 @@ public class GrammarDb(IGrammarRepository grammarRepository)
         return (lemma, new LinguisticTag(effectiveTag, paradigmFormId.FormTag));
     }
 
-    public (ParadigmFormId?, string?, LinguisticTag?) InferGrammarInfo(string word)
-    {
-        var grammarInfoList = LookupWord(word);
+    public (ParadigmFormId?, string?, LinguisticTag?) InferGrammarInfo(string word) =>
+        InferGrammarInfo(LookupWord(word));
 
-        if (!grammarInfoList.Any())
+    public (ParadigmFormId?, string?, LinguisticTag?) InferGrammarInfo(List<GrammarInfo> grammarInfoList)
+    {
+        if (grammarInfoList.Count == 0)
             return (null, null, null);
 
         if (grammarInfoList.Count == 1)

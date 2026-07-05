@@ -14,6 +14,9 @@ public interface IGrammarRepository
     /// <summary> Усе кандыдаты (парадыгма, варыянт, тэг формы) для нармалізаванай формы — адзін запыт </summary>
     IReadOnlyList<FormMatch> LookupByNormalizedForm(string normalizedForm);
 
+    /// <summary> Кандыдаты для мноства нармалізаваных формаў адразу — пакетна, каб пазьбегнуць N зваротаў да базы </summary>
+    IReadOnlyDictionary<string, IReadOnlyList<FormMatch>> LookupByNormalizedForms(IReadOnlyCollection<string> normalizedForms);
+
     /// <summary> Лема і эфэктыўны тэг аднаго варыянту; null калі парадыгма/варыянт ня знойдзены </summary>
     (string Lemma, string EffectiveTag)? GetVariant(int paradigmId, string? variantId);
 

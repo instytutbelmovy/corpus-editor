@@ -70,11 +70,20 @@ public static class Registry
         await using var stream = file.OpenReadStream();
         var paragraphs = DocumentConverter.GetParagraphs(stream, reader);
 
+        // Адзін пакетны пошук на ўвесь дакумэнт замест запыту на кожнае слова
+        var allWords = paragraphs
+            .SelectMany(p => p.Sentences)
+            .SelectMany(s => s.SentenceItems)
+            .Where(x => x.Type == SentenceItemType.Word)
+            .Select(x => x.Text)
+            .ToList();
+        var lookups = grammarDb.LookupWords(allWords, pickCustomWords: true);
+
         paragraphs = paragraphs.Select(p => p with
         {
             Sentences = p.Sentences.Select(s => s with
             {
-                SentenceItems = s.SentenceItems.Select(x => FillObviousGrammar(x, grammarDb)).ToList(),
+                SentenceItems = s.SentenceItems.Select(x => FillObviousGrammar(x, lookups)).ToList(),
             }).ToList(),
         }).ToList();
 
@@ -90,12 +99,13 @@ public static class Registry
         return Results.Ok();
 
 
-        static LinguisticItem FillObviousGrammar(LinguisticItem item, GrammarDb grammarDb)
+        LinguisticItem FillObviousGrammar(LinguisticItem item, IReadOnlyDictionary<string, List<GrammarInfo>> wordLookups)
         {
             if (item.Type != SentenceItemType.Word)
                 return item;
 
-            var (paradigmFormId, lemma, linguisticTag) = grammarDb.InferGrammarInfo(item.Text);
+            var candidates = wordLookups.TryGetValue(item.Text, out var c) ? c : [];
+            var (paradigmFormId, lemma, linguisticTag) = grammarDb.InferGrammarInfo(candidates);
             return item with
             {
                 ParadigmFormId = paradigmFormId,

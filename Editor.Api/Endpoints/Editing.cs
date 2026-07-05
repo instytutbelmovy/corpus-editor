@@ -27,12 +27,14 @@ public static class Editing
                 foreach (var sentenceItem in sentence.SentenceItems)
                     if (sentenceItem is { LinguisticTag: not null, ParadigmFormId: null })
                         grammarDb.AddCustomWord(sentenceItem.Text, new GrammarInfo(null, sentenceItem.LinguisticTag, sentenceItem.Lemma, null));
+        var pageParagraphs = corpusDocument.Paragraphs
+            .SkipWhile(x => x.Id <= skipUpToId)
+            .Take(take)
+            .ToList();
+        var options = LookupParagraphWords(pageParagraphs, grammarDb);
         return new CorpusDocumentView(
             corpusDocument.Header,
-            corpusDocument.Paragraphs
-                .SkipWhile(x => x.Id <= skipUpToId)
-                .Take(take)
-                .Select(p => MapParagraphToView(p, grammarDb)));
+            pageParagraphs.Select(p => MapParagraphToView(p, options)));
     }
 
     public static async Task PutParadigmFormId(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] ParadigmFormId paradigmFormId, GrammarDb grammarDb, AwsFilesCache awsFilesCache)
@@ -122,7 +124,8 @@ public static class Editing
         var (documentLock, document) = await awsFilesCache.GetFileForWrite(n, markPendingChangesUponCompletion: false);
         using (documentLock)
         {
-            var result = EditDocumentCore(document, request, paragraph => MapParagraphToView(paragraph, grammarDb));
+            var result = EditDocumentCore(document, request,
+                paragraph => MapParagraphToView(paragraph, LookupParagraphWords([paragraph], grammarDb)));
 
             await awsFilesCache.FlushFile(n);
             return result;
@@ -231,7 +234,7 @@ public static class Editing
         return result;
     }
 
-    private static ParagraphView MapParagraphToView(Paragraph p, GrammarDb grammarDb)
+    private static ParagraphView MapParagraphToView(Paragraph p, IReadOnlyDictionary<string, List<GrammarInfo>> options)
     {
         return new ParagraphView(p)
         {
@@ -239,12 +242,24 @@ public static class Editing
             {
                 SentenceItems = s.SentenceItems.Select(si => new LinguisticItemView(
                     si,
-                    si.Type == SentenceItemType.Word
-                        ? grammarDb.LookupWord(si.Text, pickCustomWords: true)
+                    si.Type == SentenceItemType.Word && options.TryGetValue(si.Text, out var wordOptions)
+                        ? wordOptions
                         : []
                 ))
             })
         };
+    }
+
+    /// <summary> Збор словаў абзацаў і адзін пакетны пошук граматыкі на ўсе іх </summary>
+    private static Dictionary<string, List<GrammarInfo>> LookupParagraphWords(IEnumerable<Paragraph> paragraphs, GrammarDb grammarDb)
+    {
+        var words = paragraphs
+            .SelectMany(p => p.Sentences)
+            .SelectMany(s => s.SentenceItems)
+            .Where(si => si.Type == SentenceItemType.Word)
+            .Select(si => si.Text)
+            .ToList();
+        return grammarDb.LookupWords(words, pickCustomWords: true);
     }
 
     public static ValueTask<CorpusDocumentHeader> GetMetadata(int id, AwsFilesCache awsFilesCache)
