@@ -26,8 +26,7 @@ return;
 
 static void ConfigureServices(WebApplicationBuilder builder)
 {
-    var sentrySettings = new SentrySettings();
-    builder.Configuration.Bind("Sentry", sentrySettings);
+    var sentrySettings = builder.RegisterSettings<SentrySettings>("Sentry");
     sentrySettings.Environment = builder.Environment.IsProduction() ? "production" : "development";
     builder.Services.AddSingleton(sentrySettings);
     if (!builder.Environment.IsDevelopment())
@@ -40,9 +39,7 @@ static void ConfigureServices(WebApplicationBuilder builder)
 
     builder.WebHost.UseStaticWebAssets();
 
-    var awsSettings = new AwsSettings();
-    builder.Configuration.Bind("Aws", awsSettings);
-    builder.Services.AddSingleton(awsSettings);
+    var awsSettings = builder.RegisterSettings<AwsSettings>("Aws");
     if (string.IsNullOrEmpty(awsSettings.AccessKeyId) || string.IsNullOrEmpty(awsSettings.SecretAccessKey))
         throw new InvalidOperationException("AWS credentials are not configured. Please set 'AwsSettings:AccessKeyId' and 'AwsSettings:SecretAccessKey' in the configuration.");
 
@@ -74,16 +71,12 @@ static void ConfigureServices(WebApplicationBuilder builder)
     builder.Services.AddSingleton<EditorUserStore>();
     builder.Services.AddSingleton<IUserStore<EditorUser>>(serviceProvider => serviceProvider.GetRequiredService<EditorUserStore>());
 
-    var emailSettings = new EmailSettings();
-    builder.Configuration.Bind("Email", emailSettings);
-    builder.Services.AddSingleton(emailSettings);
+    var emailSettings = builder.RegisterSettings<EmailSettings>("Email");
     if (string.IsNullOrEmpty(emailSettings.Domain) || string.IsNullOrEmpty(emailSettings.ApiKey))
         throw new InvalidOperationException("Email SMTP settings are not configured. Please set 'EmailSettings:SmtpHost' and 'EmailSettings:SmtpPort' in the configuration.");
     builder.Services.AddHttpClient<EmailService>();
 
-    var reCaptchaSettings = new ReCaptchaSettings();
-    builder.Configuration.Bind("ReCaptcha", reCaptchaSettings);
-    builder.Services.AddSingleton(reCaptchaSettings);
+    builder.RegisterSettings<ReCaptchaSettings>("ReCaptcha");
     builder.Services.AddHttpClient<ReCaptchaService>();
 
     builder.Services.AddValidatorsFromAssemblyContaining<SignInRequest>();

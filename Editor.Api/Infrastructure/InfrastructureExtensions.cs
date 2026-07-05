@@ -14,4 +14,12 @@ public static class InfrastructureExtensions
         init(logger);
         return serviceProvider;
     }
+
+    public static T RegisterSettings<T>(this WebApplicationBuilder builder, string sectionName) where T : class, new()
+    {
+        var settings = new T();
+        builder.Configuration.Bind(sectionName, settings);
+        builder.Services.AddSingleton(settings);
+        return settings;
+    }
 }
