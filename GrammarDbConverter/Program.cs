@@ -165,8 +165,8 @@ public class GrammarDbConverter
                 await writer.WriteNullAsync();
             else
                 await writer.WriteAsync(paradigm.Meaning, NpgsqlDbType.Text);
-            // Дэфолтныя опцыі сэрыялізацыі — менавіта так Npgsql чытае jsonb POCO у GrammarRepository
-            await writer.WriteAsync(JsonSerializer.Serialize(paradigm.Variants), NpgsqlDbType.Jsonb);
+            // Той жа крыніцагенэраваны кантэкст, які GrammarDbContext выкарыстоўвае для дэсерыялізацыі
+            await writer.WriteAsync(JsonSerializer.Serialize(paradigm.Variants, GrammarJsonSerializerContext.Default.ListParadigmVariant), NpgsqlDbType.Jsonb);
         }
 
         await writer.CompleteAsync();

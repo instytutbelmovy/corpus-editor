@@ -358,6 +358,54 @@ public class EditingTests
         }
     }
 
+    [Fact]
+    public void EditDocumentCore_SwapsParagraphsListAtomically()
+    {
+        var document = CreateDocument(paragraphCount: 3);
+        var originalParagraphs = document.Paragraphs;
+        var request = new DocumentEditRequest([
+            new()
+            {
+                ParagraphId = 2,
+                OperationType = OperationType.Create,
+                ReplacementSentences = [[new LinguisticItem("word", SentenceItemType.Word)]]
+            }
+        ]);
+
+        Editing.EditDocumentCore(document, request, _mapParagraphToView);
+
+        // Concurrent readers hold the old list; it must be left untouched and replaced wholesale
+        Assert.NotSame(originalParagraphs, document.Paragraphs);
+        Assert.Equal(3, originalParagraphs.Count);
+        Assert.Equal(4, document.Paragraphs.Count);
+    }
+
+    [Fact]
+    public void EditDocumentCore_LeavesDocumentUntouched_WhenValidationFails()
+    {
+        var document = CreateDocument(paragraphCount: 3);
+        var originalParagraphs = document.Paragraphs;
+        var request = new DocumentEditRequest([
+            new()
+            {
+                ParagraphId = 1,
+                OperationType = OperationType.Create,
+                ReplacementSentences = [[new LinguisticItem("word", SentenceItemType.Word)]]
+            },
+            new()
+            {
+                ParagraphId = 3,
+                OperationType = OperationType.Delete,
+                ConcurrencyStamp = Guid.NewGuid() // Mismatch
+            },
+        ]);
+
+        Assert.Throws<ConflictException>(() => Editing.EditDocumentCore(document, request, _mapParagraphToView));
+
+        Assert.Same(originalParagraphs, document.Paragraphs);
+        Assert.Equal(3, document.Paragraphs.Count);
+    }
+
     private static CorpusDocument CreateDocument(int paragraphCount)
     {
         var paragraphs = Enumerable.Range(1, paragraphCount)

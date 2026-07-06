@@ -10,7 +10,15 @@ public class AwsFilesCacheMaintenanceService(AwsFilesCache awsFilesCache, ILogge
         {
             await Task.Delay(_checkInterval, stoppingToken);
             logger.LogTrace("Purging aws files cache");
-            await awsFilesCache.UploadPendingAndPurgeCache();
+            try
+            {
+                await awsFilesCache.UploadPendingAndPurgeCache();
+            }
+            catch (Exception ex)
+            {
+                // An unhandled exception here would stop the whole host (BackgroundServiceExceptionBehavior.StopHost)
+                logger.LogError(ex, "Error flushing/purging the files cache");
+            }
         }
     }
 

@@ -1,63 +1,170 @@
-﻿using System.Collections.Concurrent;
-using Amazon;
-using Amazon.S3;
-using System.IO.Pipelines;
-using Amazon.S3.Model;
-using Amazon.S3.Transfer;
+using System.Collections.Concurrent;
 
 namespace Editor;
 
-public class AwsSettings
-{
-    public string AccessKeyId { get; set; } = null!;
-    public string SecretAccessKey { get; set; } = null!;
-    public string Region { get; set; } = null!;
-    public string BucketName { get; set; } = null!;
-}
-
-public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logger)
+public class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache>? logger)
 {
     private static readonly TimeSpan UnloadingAge = TimeSpan.FromMinutes(10);
-    private IAmazonS3 _s3Client = null!;
-    private ConcurrentDictionary<int, CorpusDocumentHeader> _documentHeaders = null!;
+    private readonly ConcurrentDictionary<int, CorpusDocumentHeader> _documentHeaders = new();
     private readonly ConcurrentDictionary<int, SemaphoreSlim> _documentsLocks = new();
     private readonly ConcurrentDictionary<int, Document> _documents = new();
-    private TaskCompletionSource _initialized = new();
+    private readonly SemaphoreSlim _reloadLock = new(1, 1);
+    /// <summary> Single-shot; replaced only under <see cref="_reloadLock"/>, and only when the previous initialization faulted. </summary>
+    private TaskCompletionSource _initialized = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private int _initializeStarted;
     private readonly ILogger? _logger = logger;
 
     public void Initialize()
     {
-        if (_s3Client != null)
+        if (Interlocked.Exchange(ref _initializeStarted, 1) != 0)
             throw new InvalidOperationException($"{nameof(AwsFilesCache)} is already initialized");
 
-        _s3Client = new AmazonS3Client(awsSettings.AccessKeyId, awsSettings.SecretAccessKey, RegionEndpoint.GetBySystemName(awsSettings.Region));
+        _logger?.LogInformation("Initializing files cache");
+        _ = Task.Run(() => RunInitialization(_initialized));
+    }
 
-        _logger?.LogInformation("Initializing AWS Files Cache with bucket: {BucketName}", awsSettings.BucketName);
-        Task.Factory.StartNew(ReadAwsFilesList);
+    private async Task RunInitialization(TaskCompletionSource initialized)
+    {
+        try
+        {
+            await ReadFilesList();
+            initialized.TrySetResult();
+            _logger?.LogInformation("Initialized files cache");
+        }
+        catch (Exception ex)
+        {
+            // A faulted TCS makes every awaiting request fail loudly instead of hanging; ReloadFilesList can retry
+            _logger?.LogCritical(ex, "Files cache initialization failed");
+            initialized.TrySetException(ex);
+        }
     }
 
     public async Task ReloadFilesList()
     {
-        if (!_initialized.Task.IsCompleted)
-            return;
-        _initialized = new();
-        
-        _logger?.LogInformation("Re-initializing AWS Files Cache with bucket: {BucketName}", awsSettings.BucketName);
-        await ReadAwsFilesList();
-        var removedDocuments = _documentsLocks.Keys.Except(_documentHeaders.Keys).ToList();
-        foreach (var id in removedDocuments)
+        await _reloadLock.WaitAsync();
+        try
         {
-            _documentsLocks.TryRemove(id, out _);
-            _documents.TryRemove(id, out _);
+            if (_initialized.Task.IsFaulted)
+            {
+                _logger?.LogInformation("Re-initializing files cache after failed initialization");
+                _initialized = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                await RunInitialization(_initialized);
+                await _initialized.Task;
+                return;
+            }
+
+            await _initialized.Task;
+
+            _logger?.LogInformation("Re-reading files list");
+            // Flush pending edits first so the headers re-read below can't be clobbered by a later flush
+            await UploadPendingAndPurgeCache();
+            var listedIds = await ReadFilesList();
+
+            var removedDocuments = _documentHeaders.Keys.Except(listedIds).ToList();
+            foreach (var id in removedDocuments)
+            {
+                var documentLock = _documentsLocks.GetOrAdd(id, _ => new SemaphoreSlim(1, 1));
+                await documentLock.WaitAsync();
+                try
+                {
+                    // The listing may predate a concurrent upload — only drop documents actually gone from storage
+                    if (await storage.Exists($"{id}.verti"))
+                        continue;
+                    _documentHeaders.TryRemove(id, out _);
+                    if (_documents.TryRemove(id, out var evicted) && evicted.HasPendingChanges)
+                        _logger?.LogWarning("Discarding pending changes of document {n}: it was removed from storage", id);
+                }
+                finally
+                {
+                    documentLock.Release();
+                }
+            }
+        }
+        finally
+        {
+            _reloadLock.Release();
         }
     }
 
-    private async Task ReadAwsFilesList()
+    /// <summary> Reads all document headers from storage and merges them into the header cache. Returns the document ids present in storage. </summary>
+    private async Task<HashSet<int>> ReadFilesList()
     {
-        var documentHeaders = await GetDocumentHeadersFromS3();
-        _documentHeaders = new ConcurrentDictionary<int, CorpusDocumentHeader>(documentHeaders.ToDictionary(x => x.N));
-        _initialized.SetResult();
-        _logger?.LogInformation("Initialized AWS Files Cache");
+        var keys = await storage.ListKeys(".verti");
+        var listedIds = new HashSet<int>();
+        foreach (var key in keys)
+        {
+            try
+            {
+                var header = await ReadDocumentHeader(key);
+                if (header == null)
+                    continue;
+                if (!listedIds.Add(header.N))
+                {
+                    _logger?.LogError("Duplicate document number {n} in storage file {Key}; keeping the previously read one", header.N, key);
+                    continue;
+                }
+
+                _documentHeaders[header.N] = header;
+            }
+            catch (Exception ex)
+            {
+                // Log error but continue with other files
+                _logger?.LogError(ex, $"Error reading file {key}");
+            }
+        }
+
+        return listedIds;
+    }
+
+    private async Task<CorpusDocumentHeader?> ReadDocumentHeader(string key)
+    {
+        await using var stream = await storage.OpenRead(key);
+        using var reader = new StreamReader(stream);
+
+        string? line;
+        while ((line = await reader.ReadLineAsync()) != null)
+        {
+            if (line.StartsWith("<!--")) continue;
+
+            if (VertiIO.TryReadHeader(line, out var header))
+            {
+                if (header.PercentCompletion == null)
+                    await BackfillPercentCompletion(header, reader);
+                return header;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary> Legacy file without completion in the header: compute it and persist the file, without clobbering a concurrently edited document. </summary>
+    private async Task BackfillPercentCompletion(CorpusDocumentHeader header, StreamReader reader)
+    {
+        var documentLock = _documentsLocks.GetOrAdd(header.N, _ => new SemaphoreSlim(1, 1));
+        await documentLock.WaitAsync();
+        try
+        {
+            if (_documents.TryGetValue(header.N, out var cached))
+            {
+                // The cached copy is newer than what our reader sees — compute from it and flush it
+                cached.CorpusDocument.Header.PercentCompletion = cached.CorpusDocument.ComputeCompletion();
+                header.PercentCompletion = cached.CorpusDocument.Header.PercentCompletion;
+                await storage.Write($"{header.N}.verti", cached.CorpusDocument);
+                cached.HasPendingChanges = false;
+            }
+            else
+            {
+                // ffs, now need to get the full document, compute completion, and update on storage
+                var document = await VertiIO.ReadDocument(reader);
+                header.PercentCompletion = document.ComputeCompletion();
+                document = document with { Header = header, };
+                await storage.Write($"{header.N}.verti", document);
+            }
+        }
+        finally
+        {
+            documentLock.Release();
+        }
     }
 
     public async Task<CorpusDocument> GetFileForRead(int n)
@@ -68,21 +175,7 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
         await documentLock.WaitAsync();
         try
         {
-            if (!_documents.TryGetValue(n, out var document))
-            {
-                var objectKey = $"{n}.verti";
-                var corpusDocument = await ReadDocumentFromS3(objectKey);
-                var rewriteCorpusDocument = CorpusDocument.CheckIdsAndConcurrencyStamps(corpusDocument);
-                if (rewriteCorpusDocument != null)
-                {
-                    await WriteDocumentToS3(objectKey, rewriteCorpusDocument);
-                    corpusDocument = rewriteCorpusDocument;
-                }
-
-                _documents[n] = document = new Document { CorpusDocument = corpusDocument, LastAccessedOn = DateTime.UtcNow };
-            }
-
-            document.LastAccessedOn = DateTime.UtcNow;
+            var document = await GetOrLoadDocument(n);
             return document.CorpusDocument;
         }
         finally
@@ -97,14 +190,30 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
 
         var documentLock = GetDocumentLock(n);
         await documentLock.WaitAsync();
+        try
+        {
+            var document = await GetOrLoadDocument(n);
+            return (new DocumentLockWrapper(documentLock, markPendingChangesUponCompletion ? document : null), document.CorpusDocument);
+        }
+        catch
+        {
+            // The lock is handed over to the wrapper only on success — a failed load must not keep it forever
+            documentLock.Release();
+            throw;
+        }
+    }
+
+    /// <summary> Only to be called while holding the document's lock. </summary>
+    private async Task<Document> GetOrLoadDocument(int n)
+    {
         if (!_documents.TryGetValue(n, out var document))
         {
             var objectKey = $"{n}.verti";
-            var corpusDocument = await ReadDocumentFromS3(objectKey);
+            var corpusDocument = await ReadDocument(objectKey);
             var rewriteCorpusDocument = CorpusDocument.CheckIdsAndConcurrencyStamps(corpusDocument);
             if (rewriteCorpusDocument != null)
             {
-                await WriteDocumentToS3(objectKey, rewriteCorpusDocument);
+                await storage.Write(objectKey, rewriteCorpusDocument);
                 corpusDocument = rewriteCorpusDocument;
             }
 
@@ -112,7 +221,14 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
         }
 
         document.LastAccessedOn = DateTime.UtcNow;
-        return (new DocumentLockWrapper(documentLock, markPendingChangesUponCompletion ? document : null), document.CorpusDocument);
+        return document;
+    }
+
+    private async Task<CorpusDocument> ReadDocument(string objectKey)
+    {
+        await using var stream = await storage.OpenRead(objectKey);
+        using var reader = new StreamReader(stream);
+        return await VertiIO.ReadDocument(reader);
     }
 
     public async Task<CorpusDocumentHeader> ReloadFile(int n)
@@ -124,16 +240,20 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
         try
         {
             var objectKey = $"{n}.verti";
-            var corpusDocument = await ReadDocumentFromS3(objectKey);
+            var corpusDocument = await ReadDocument(objectKey);
             var rewriteCorpusDocument = CorpusDocument.CheckIdsAndConcurrencyStamps(corpusDocument);
             if (rewriteCorpusDocument != null)
             {
-                await WriteDocumentToS3(objectKey, rewriteCorpusDocument);
+                await storage.Write(objectKey, rewriteCorpusDocument);
                 corpusDocument = rewriteCorpusDocument;
             }
 
-            if (_documents.ContainsKey(n))
+            if (_documents.TryGetValue(n, out var cached))
+            {
+                if (cached.HasPendingChanges)
+                    _logger?.LogWarning("Discarding pending changes of document {n} on reload", n);
                 _documents[n] = new Document { CorpusDocument = corpusDocument, LastAccessedOn = DateTime.UtcNow };
+            }
             _documentHeaders[n] = corpusDocument.Header;
 
             return corpusDocument.Header;
@@ -148,26 +268,25 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
     {
         await _initialized.Task;
 
-        var objectKey = $"{n}.verti";
+        var documentLock = GetDocumentLock(n);
+        await documentLock.WaitAsync();
         try
         {
-            var getRequest = new GetObjectRequest
+            if (_documents.TryGetValue(n, out var document))
             {
-                BucketName = awsSettings.BucketName,
-                Key = objectKey,
-            };
+                // Serve the cached copy so the download includes changes not yet flushed to storage
+                var stream = new MemoryStream();
+                await VertiIO.WriteDocument(stream, document.CorpusDocument);
+                stream.Position = 0;
+                return stream;
+            }
+        }
+        finally
+        {
+            documentLock.Release();
+        }
 
-            var response = await _s3Client.GetObjectAsync(getRequest);
-            return response.ResponseStream;
-        }
-        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            throw new FileNotFoundException($"File {objectKey} not found in S3");
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException($"Error reading file from S3: {ex.Message}", ex);
-        }
+        return await storage.OpenRead($"{n}.verti");
     }
 
     /// <summary> Only to be called within a write lock obtained from GetFileForWrite. </summary>
@@ -176,16 +295,26 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
         if (!_documents.TryGetValue(n, out var document))
             throw new InvalidOperationException($"File {n} is not present in the cache");
 
-        await FlushFile(document.CorpusDocument);
+        try
+        {
+            await FlushFile(document.CorpusDocument);
+            document.HasPendingChanges = false;
+        }
+        catch
+        {
+            // The caller has already applied its changes in memory — make sure the maintenance cycle retries the upload
+            document.HasPendingChanges = true;
+            throw;
+        }
     }
 
     private async Task FlushFile(CorpusDocument document)
     {
         var id = document.Header.N;
-        var objectKey = $"{id}.verti";
-        await WriteDocumentToS3(objectKey, document);
+        await storage.Write($"{id}.verti", document);
 
-        _documentHeaders[id].PercentCompletion = document.ComputeCompletion();
+        if (_documentHeaders.TryGetValue(id, out var header))
+            header.PercentCompletion = document.ComputeCompletion();
     }
 
     public async ValueTask<ICollection<CorpusDocumentHeader>> GetAllDocumentHeaders()
@@ -218,8 +347,7 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
             if (_documentHeaders.ContainsKey(corpusDocument.Header.N))
                 throw new BusinessException($"Дакумэнт з нумарам {corpusDocument.Header.N} ужо існуе");
 
-            var objectKey = $"{corpusDocument.Header.N}.verti";
-            await WriteDocumentToS3(objectKey, corpusDocument);
+            await storage.Write($"{corpusDocument.Header.N}.verti", corpusDocument);
 
             var document = new Document
             {
@@ -242,136 +370,9 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
         return _documentsLocks.GetOrAdd(n, _ => new SemaphoreSlim(1, 1));
     }
 
-    private async Task<List<CorpusDocumentHeader>> GetDocumentHeadersFromS3()
-    {
-        var headers = new List<CorpusDocumentHeader>();
-
-        try
-        {
-            var listRequest = new ListObjectsV2Request
-            {
-                BucketName = awsSettings.BucketName,
-                Prefix = "",
-                MaxKeys = 1000,
-            };
-
-            ListObjectsV2Response listResponse;
-            do
-            {
-                listResponse = await _s3Client.ListObjectsV2Async(listRequest);
-
-                foreach (var s3Object in listResponse.S3Objects.Where(obj => obj.Key.EndsWith(".verti")))
-                {
-                    try
-                    {
-                        var getRequest = new GetObjectRequest
-                        {
-                            BucketName = awsSettings.BucketName,
-                            Key = s3Object.Key,
-                        };
-
-                        using var response = await _s3Client.GetObjectAsync(getRequest);
-                        using var reader = new StreamReader(response.ResponseStream);
-
-                        string? line;
-                        while ((line = await reader.ReadLineAsync()) != null)
-                        {
-                            if (line.StartsWith("<!--")) continue;
-
-                            if (VertiIO.TryReadHeader(line, out var header))
-                            {
-                                if (header.PercentCompletion == null)
-                                {
-                                    // ffs, now need to get full document, compute completion, and update on s3
-                                    var document = await VertiIO.ReadDocument(reader);
-                                    header.PercentCompletion = document.ComputeCompletion();
-                                    document = document with { Header = header, };
-                                    var objectKey = $"{header.N}.verti";
-                                    await WriteDocumentToS3(objectKey, document);
-                                }
-                                headers.Add(header);
-                                break;
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        // Log error but continue with other files
-                        _logger?.LogError(ex, $"Error reading file {s3Object.Key}");
-                    }
-                }
-
-                listRequest.ContinuationToken = listResponse.NextContinuationToken;
-            } while (listResponse.IsTruncated == true);
-
-        }
-        catch (Exception ex)
-        {
-            _logger?.LogCritical(ex, "Error listing objects from S3");
-        }
-
-        return headers;
-    }
-
-    private async Task<CorpusDocument> ReadDocumentFromS3(string objectKey)
-    {
-        try
-        {
-            var getRequest = new GetObjectRequest
-            {
-                BucketName = awsSettings.BucketName,
-                Key = objectKey,
-            };
-
-            using var response = await _s3Client.GetObjectAsync(getRequest);
-            await using var stream = response.ResponseStream;
-            using var reader = new StreamReader(stream);
-
-            return await VertiIO.ReadDocument(reader);
-        }
-        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            throw new FileNotFoundException($"File {objectKey} not found in S3");
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException($"Error reading document from S3: {ex.Message}", ex);
-        }
-    }
-
-    private async Task WriteDocumentToS3(string objectKey, CorpusDocument document)
-    {
-        try
-        {
-            var pipe = new Pipe();
-            var uploadTask = Task.Run(async () =>
-            {
-                try
-                {
-                    await using var stream = pipe.Writer.AsStream(leaveOpen: true);
-                    await VertiIO.WriteDocument(stream, document);
-                    await pipe.Writer.CompleteAsync();
-                }
-                catch (Exception ex)
-                {
-                    await pipe.Writer.CompleteAsync(ex);
-                }
-            });
-
-            var transferUtility = new TransferUtility(_s3Client);
-            await transferUtility.UploadAsync(pipe.Reader.AsStream(), awsSettings.BucketName, objectKey);
-
-            await uploadTask;
-        }
-        catch (Exception ex)
-        {
-            throw new InvalidOperationException($"Error writing document to S3: {ex.Message}", ex);
-        }
-    }
-
     public async Task UploadPendingAndPurgeCache()
     {
-        if (!_initialized.Task.IsCompleted) return;
+        if (!_initialized.Task.IsCompletedSuccessfully) return;
 
         var horizon = DateTime.UtcNow - UnloadingAge;
         foreach (var (id, documentsLock) in _documentsLocks)
@@ -389,6 +390,11 @@ public class AwsFilesCache(AwsSettings awsSettings, ILogger<AwsFilesCache>? logg
                 }
                 if (document.LastAccessedOn < horizon)
                     _documents.TryRemove(id, out _);
+            }
+            catch (Exception ex)
+            {
+                // A failed flush must not block the other documents; the changes stay pending for the next cycle
+                _logger?.LogError(ex, "Error flushing document {n}", id);
             }
             finally
             {

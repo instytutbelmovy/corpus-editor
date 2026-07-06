@@ -22,12 +22,14 @@ public static class Editing
     public static async Task<CorpusDocumentView> GetDocument(int n, GrammarDb grammarDb, AwsFilesCache awsFilesCache, int skipUpToId = 0, int take = 20)
     {
         var corpusDocument = await awsFilesCache.GetFileForRead(n);
-        foreach (var paragraph in corpusDocument.Paragraphs)
+        // Single snapshot of the list — a concurrent edit swaps the reference, but never mutates it
+        var paragraphs = corpusDocument.Paragraphs;
+        foreach (var paragraph in paragraphs)
             foreach (var sentence in paragraph.Sentences)
                 foreach (var sentenceItem in sentence.SentenceItems)
                     if (sentenceItem is { LinguisticTag: not null, ParadigmFormId: null })
                         grammarDb.AddCustomWord(sentenceItem.Text, new GrammarInfo(null, sentenceItem.LinguisticTag, sentenceItem.Lemma, null));
-        var pageParagraphs = corpusDocument.Paragraphs
+        var pageParagraphs = paragraphs
             .SkipWhile(x => x.Id <= skipUpToId)
             .Take(take)
             .ToList();
@@ -134,8 +136,12 @@ public static class Editing
 
     public static DocumentEditResponse EditDocumentCore(CorpusDocument document, DocumentEditRequest request, Func<Paragraph, ParagraphView> mapParagraphToView)
     {
+        // Edits are applied to a copy of the list and swapped in atomically at the end, so concurrent
+        // readers never see a half-edited document and a failed request leaves it untouched
+        var paragraphs = new List<Paragraph>(document.Paragraphs);
+
         // Validation Phase
-        var ongoingParagraphsCount = document.Paragraphs.Count;
+        var ongoingParagraphsCount = paragraphs.Count;
         foreach (var paragraphOperation in request.Operations)
         {
             if (paragraphOperation.OperationType == OperationType.Create)
@@ -152,9 +158,9 @@ public static class Editing
             {
                 if (ongoingParagraphsCount < paragraphOperation.ParagraphId)
                     throw new NotFoundException();
-                var idShift = ongoingParagraphsCount - document.Paragraphs.Count;
+                var idShift = ongoingParagraphsCount - paragraphs.Count;
                 var paragraphIndex = paragraphOperation.ParagraphId - 1 - idShift;
-                if (document.Paragraphs[paragraphIndex].ConcurrencyStamp != paragraphOperation.ConcurrencyStamp)
+                if (paragraphs[paragraphIndex].ConcurrencyStamp != paragraphOperation.ConcurrencyStamp)
                     throw new ConflictException();
             }
 
@@ -187,17 +193,17 @@ public static class Editing
                     Sentences: newSentences
                 );
 
-                document.Paragraphs.Insert(operation.ParagraphId - 1, newParagraph);
+                paragraphs.Insert(operation.ParagraphId - 1, newParagraph);
 
                 editedParagraphs.Add(mapParagraphToView(newParagraph));
             }
             else if (operation.OperationType == OperationType.Delete)
             {
-                document.Paragraphs.RemoveAt(operation.ParagraphId - 1);
+                paragraphs.RemoveAt(operation.ParagraphId - 1);
             }
             else if (operation.OperationType == OperationType.Update)
             {
-                var paragraph = document.Paragraphs[operation.ParagraphId - 1];
+                var paragraph = paragraphs[operation.ParagraphId - 1];
 
                 var newSentences = new List<Sentence>(operation.ReplacementSentences!.Count);
                 foreach (var sentence in operation.ReplacementSentences)
@@ -210,7 +216,7 @@ public static class Editing
                 }
 
                 paragraph = new Paragraph(operation.ParagraphId, Guid.NewGuid(), newSentences);
-                document.Paragraphs[operation.ParagraphId - 1] = paragraph;
+                paragraphs[operation.ParagraphId - 1] = paragraph;
                 editedParagraphs.Add(mapParagraphToView(paragraph));
             }
 
@@ -221,14 +227,14 @@ public static class Editing
                 nextTouchedParagraphId = nextOperation.ParagraphId;
             }
             else
-                nextTouchedParagraphId = document.Paragraphs.Count + 1;
+                nextTouchedParagraphId = paragraphs.Count + 1;
 
             var updateIdsFrom = operation.OperationType == OperationType.Delete ? operation.ParagraphId - 1 : operation.ParagraphId;
             for (var p = updateIdsFrom; p < nextTouchedParagraphId - 1; p++)
-                document.Paragraphs[p] = document.Paragraphs[p] with { Id = p + 1 };
+                paragraphs[p] = paragraphs[p] with { Id = p + 1 };
         }
 
-
+        document.Paragraphs = paragraphs;
 
         var result = new DocumentEditResponse(editedParagraphs);
         return result;

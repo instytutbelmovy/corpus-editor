@@ -81,6 +81,7 @@ static void ConfigureServices(WebApplicationBuilder builder)
 
     builder.Services.AddValidatorsFromAssemblyContaining<SignInRequest>();
 
+    builder.Services.AddSingleton<ICorpusStorage, S3CorpusStorage>();
     builder.Services.AddSingleton<AwsFilesCache>();
     builder.Services.AddSingleton<GrammarDb>();
 
@@ -133,9 +134,6 @@ static void ConfigurePipeline(WebApplication app)
         editorDb.Database.Migrate();
     using (var grammarDb = app.Services.GetRequiredService<IDbContextFactory<GrammarDbContext>>().CreateDbContext())
         grammarDb.Database.Migrate();
-
-    if (!app.Services.GetRequiredService<IGrammarRepository>().HasData())
-        throw new InvalidOperationException("Grammar database is empty or missing. Run GrammarDbConverter first.");
 
     app.Services.InitLoggerFor(nameof(ExceptionMiddleware), ExceptionMiddleware.InitializeLogging);
     app.Services.InitLoggerFor(nameof(VertiIO), VertiIO.InitializeLogging);
