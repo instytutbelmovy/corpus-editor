@@ -311,7 +311,7 @@ public static class Editing
                 throw new ConflictException();
 
             // Should I make word indexes 1-based for consistency? Yes.
-            if (wordIndex < 0 || sentence.SentenceItems.Count < wordIndex)
+            if (wordIndex < 0 || sentence.SentenceItems.Count <= wordIndex)
                 throw new NotFoundException();
 
             var sentenceItem = sentence.SentenceItems[wordIndex];

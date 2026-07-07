@@ -1,10 +1,12 @@
 using Editor;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Net;
 using System.Text;
+using System.Threading.RateLimiting;
 
 
 Console.OutputEncoding = Encoding.UTF8;
@@ -38,6 +40,10 @@ static void ConfigureServices(WebApplicationBuilder builder)
         });
 
     builder.WebHost.UseStaticWebAssets();
+
+    var appSettings = builder.RegisterSettings<AppSettings>("App");
+    if (!builder.Environment.IsDevelopment() && string.IsNullOrEmpty(appSettings.BaseUrl))
+        throw new InvalidOperationException("Public base URL is not configured. Please set 'App:BaseUrl' in the configuration.");
 
     var awsSettings = builder.RegisterSettings<AwsSettings>("Aws");
     if (string.IsNullOrEmpty(awsSettings.AccessKeyId) || string.IsNullOrEmpty(awsSettings.SecretAccessKey))
@@ -86,6 +92,33 @@ static void ConfigureServices(WebApplicationBuilder builder)
     builder.Services.AddSingleton<GrammarDb>();
 
     builder.Services.AddHostedService<AwsFilesCacheMaintenanceService>();
+
+    // Behind a TLS-terminating reverse proxy, honour X-Forwarded-For/Proto so downstream code sees the
+    // real client IP (reCAPTCHA remoteip, rate limiting) and scheme (HTTPS redirection).
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.KnownIPNetworks.Clear();
+        options.KnownProxies.Clear();
+
+        // Only trust X-Forwarded-* from these proxy networks (comma-separated CIDRs, e.g.
+        // "10.0.0.0/8, 172.16.0.0/12"). When empty, no source filtering is applied and all hops are
+        // trusted — set this in production to the reverse-proxy subnet(s).
+        var knownNetworks = builder.Configuration["ForwardedHeaders:KnownNetworks"];
+        if (!string.IsNullOrWhiteSpace(knownNetworks))
+            foreach (var cidr in knownNetworks.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                options.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(cidr));
+    });
+
+    // Per-IP throttling for the sensitive anonymous auth endpoints (complements per-account lockout).
+    builder.Services.AddRateLimiter(options =>
+    {
+        options.RejectionStatusCode = (int)HttpStatusCode.TooManyRequests;
+        options.AddPolicy(RateLimitPolicies.Auth, context =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(5), QueueLimit = 0 }));
+    });
 }
 
 static void ConfigureIdentity(WebApplicationBuilder builder)
@@ -95,6 +128,11 @@ static void ConfigureIdentity(WebApplicationBuilder builder)
         .AddCookie(IdentityConstants.ApplicationScheme, options =>
         {
             options.Cookie.HttpOnly = true;
+            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            options.Cookie.SameSite = SameSiteMode.Lax;
+            // Binds ExpireTimeSpan + SlidingExpiration from the 'Identity:Cookie' section, which was
+            // previously declared in appsettings.json but never applied.
+            builder.Configuration.Bind("Identity:Cookie", options);
             options.Events.OnRedirectToLogin = context =>
             {
                 context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
@@ -139,12 +177,21 @@ static void ConfigurePipeline(WebApplication app)
     app.Services.InitLoggerFor(nameof(VertiIO), VertiIO.InitializeLogging);
     app.Services.GetRequiredService<AwsFilesCache>().Initialize();
 
+    // Must run first so scheme/client-IP are correct behind the reverse proxy.
+    app.UseForwardedHeaders();
+    if (!app.Environment.IsDevelopment())
+    {
+        app.UseHsts();
+    }
+    app.Use(SecurityHeadersMiddleware.Handle);
+
     app.UseRewriter(new RewriteOptions()
         .Add(context => SpaUrlRewrites.DoRewrite(context, app.Services)));
     app.MapStaticAssets();
     app.Use(ExceptionMiddleware.HandleException);
     app.UseAuthentication();
     app.UseAuthorization();
+    app.UseRateLimiter();
     app.MapRegistry();
     app.MapEditing();
     app.MapAuth();

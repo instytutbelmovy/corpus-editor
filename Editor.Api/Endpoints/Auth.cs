@@ -9,11 +9,11 @@ public static class Auth
     public static void MapAuth(this IEndpointRouteBuilder builder)
     {
         var group = builder.MapGroup("/api/auth");
-        group.MapPost("/sign-in", SignIn).Validate<SignInRequest>();
+        group.MapPost("/sign-in", SignIn).Validate<SignInRequest>().RateLimited();
         group.MapPost("/sign-out", SignOut);
         group.MapGet("/who-am-i", WhoAmI);
-        group.MapPost("/forgot-password", ForgotPassword).Validate<ForgotPasswordRequest>();
-        group.MapPost("/reset-password", ResetPassword).Validate<ResetPasswordRequest>();
+        group.MapPost("/forgot-password", ForgotPassword).Validate<ForgotPasswordRequest>().RateLimited();
+        group.MapPost("/reset-password", ResetPassword).Validate<ResetPasswordRequest>().RateLimited();
         group.MapGet("/config", GetConfig);
     }
 
@@ -82,7 +82,8 @@ public static class Auth
         UserManager<EditorUser> userManager,
         EmailService emailService,
         IHttpContextAccessor httpContextAccessor,
-        ReCaptchaService reCaptchaService)
+        ReCaptchaService reCaptchaService,
+        AppSettings appSettings)
     {
         await CheckReCaptcha(reCaptchaService, httpContextAccessor, request.ReCaptchaToken);
 
@@ -94,8 +95,7 @@ public static class Auth
         }
 
         var token = await userManager.GeneratePasswordResetTokenAsync(user);
-        var baseUrl = $"{httpContextAccessor.HttpContext!.Request.Scheme}://{httpContextAccessor.HttpContext.Request.Host}";
-        var resetUrl = $"{baseUrl}/reset-password?email={Uri.EscapeDataString(user.Email!)}&token={Uri.EscapeDataString(token)}";
+        var resetUrl = $"{appSettings.BaseUrl}/reset-password?email={Uri.EscapeDataString(user.Email!)}&token={Uri.EscapeDataString(token)}";
 
         await emailService.SendAsync(new EmailMessage
         {
@@ -116,7 +116,12 @@ public static class Auth
 
         var user = await userManager.FindByEmailAsync(request.Email);
         if (user == null)
-            throw new NotFoundException();
+        {
+            // Do not disclose whether the account exists: return the same generic failure an invalid
+            // token yields, with matching timing jitter (cf. ForgotPassword).
+            await Task.Delay(500 + Random.Shared.Next(500));
+            throw new BadRequestException("Няправільны ці пратэрмінаваны токен");
+        }
 
         var result = await userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
         if (!result.Succeeded)

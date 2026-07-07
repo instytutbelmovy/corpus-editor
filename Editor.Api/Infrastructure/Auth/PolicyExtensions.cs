@@ -14,4 +14,12 @@ public static class PolicyExtensions
 
     public static TBuilder Admin<TBuilder>(this TBuilder builder) where TBuilder : IEndpointConventionBuilder
         => builder.RequireAuthorization(AdminPolicy);
+
+    public static TBuilder RateLimited<TBuilder>(this TBuilder builder) where TBuilder : IEndpointConventionBuilder
+        => builder.RequireRateLimiting(RateLimitPolicies.Auth);
+}
+
+public static class RateLimitPolicies
+{
+    public const string Auth = "auth";
 }

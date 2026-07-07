@@ -1,0 +1,32 @@
+namespace Editor;
+
+/// <summary>
+/// Adds baseline security response headers to every response. Registered early in the pipeline
+/// (before the SPA static assets) so both API responses and SPA files carry the headers.
+/// </summary>
+public static class SecurityHeadersMiddleware
+{
+    // reCAPTCHA needs google.com/gstatic.com (script + frame); the FE Sentry DSN posts to the
+    // sentry.io ingest host (connect-src). style-src allows 'unsafe-inline' because the exported
+    // Next.js SPA ships inline styles — tighten to nonces/hashes if the export is later reworked.
+    private const string ContentSecurityPolicy =
+        "default-src 'self'; " +
+        "base-uri 'self'; " +
+        "object-src 'none'; " +
+        "frame-ancestors 'none'; " +
+        "img-src 'self' data:; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        "script-src 'self' https://www.google.com https://www.gstatic.com; " +
+        "frame-src https://www.google.com; " +
+        "connect-src 'self' https://*.ingest.de.sentry.io";
+
+    public static Task Handle(HttpContext context, Func<Task> next)
+    {
+        var headers = context.Response.Headers;
+        headers["X-Content-Type-Options"] = "nosniff";
+        headers["X-Frame-Options"] = "DENY";
+        headers["Referrer-Policy"] = "no-referrer";
+        headers["Content-Security-Policy"] = ContentSecurityPolicy;
+        return next();
+    }
+}

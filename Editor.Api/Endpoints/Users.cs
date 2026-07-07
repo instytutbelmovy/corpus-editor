@@ -135,7 +135,8 @@ public static class Users
         [FromBody] InviteUserRequest request,
         UserManager<EditorUser> userManager,
         EmailService emailService,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        AppSettings appSettings)
     {
         var user = await userManager.FindByIdAsync(request.UserId);
         if (user == null)
@@ -144,8 +145,7 @@ public static class Users
         if (user.Role == Roles.None)
             throw new BadRequestException("Карыстальнік не мае ролі і не можа быць запрошаны");
 
-        var baseUrl = $"{httpContextAccessor.HttpContext!.Request.Scheme}://{httpContextAccessor.HttpContext.Request.Host}";
-        var resetUrl = $"{baseUrl}/forgot-password?email={Uri.EscapeDataString(user.Email!)}";
+        var resetUrl = $"{appSettings.BaseUrl}/forgot-password?email={Uri.EscapeDataString(user.Email!)}";
 
         var currentUser = await userManager.FindByIdAsync(httpContextAccessor.HttpContext.User.GetUserId()!);
 
