@@ -33,7 +33,7 @@ public static class Editing
             .SkipWhile(x => x.Id <= skipUpToId)
             .Take(take)
             .ToList();
-        var options = LookupParagraphWords(pageParagraphs, grammarDb);
+        var options = await LookupParagraphWords(pageParagraphs, grammarDb);
         return new CorpusDocumentView(
             corpusDocument.Header,
             pageParagraphs.Select(p => MapParagraphToView(p, options)));
@@ -45,10 +45,9 @@ public static class Editing
             throw new BadRequestException();
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var (lemma, linguisticTag) = await grammarDb.GetLemmaAndLinguisticTagAsync(paradigmFormId);
         await MarkupWord(n, paragraphId, paragraphStamp, sentenceId, sentenceStamp, wordIndex, awsFilesCache, sentenceItem =>
-        {
-            var (lemma, linguisticTag) = grammarDb.GetLemmaAndLinguisticTag(paradigmFormId);
-            return sentenceItem with
+            sentenceItem with
             {
                 ParadigmFormId = paradigmFormId,
                 Lemma = lemma,
@@ -56,8 +55,7 @@ public static class Editing
                 Metadata = sentenceItem.Metadata == null
                     ? new LinguisticItemMetadata(null, today)
                     : sentenceItem.Metadata with { ResolvedOn = today },
-            };
-        });
+            });
     }
 
     public static async Task PutLemmaTags(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] LemmaTag lemmaTag, AwsFilesCache awsFilesCache)
@@ -94,7 +92,7 @@ public static class Editing
                 : si.Metadata with { ResolvedOn = null },
         });
 
-        return grammarDb.LookupWord(text, pickCustomWords: true);
+        return await grammarDb.LookupWordAsync(text, pickCustomWords: true);
     }
 
     public static async Task PutComment(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] string comment, AwsFilesCache awsFilesCache)
@@ -126,8 +124,18 @@ public static class Editing
         var (documentLock, document) = await awsFilesCache.GetFileForWrite(n, markPendingChangesUponCompletion: false);
         using (documentLock)
         {
+            // Адзін пакетны пошук граматыкі загадзя, каб мапэр абзацаў застаўся сынхронным
+            var words = request.Operations
+                .Where(op => op.ReplacementSentences != null)
+                .SelectMany(op => op.ReplacementSentences!)
+                .SelectMany(sentence => sentence)
+                .Where(si => si.Type == SentenceItemType.Word)
+                .Select(si => si.Text)
+                .ToList();
+            var options = await grammarDb.LookupWordsAsync(words, pickCustomWords: true);
+
             var result = EditDocumentCore(document, request,
-                paragraph => MapParagraphToView(paragraph, LookupParagraphWords([paragraph], grammarDb)));
+                paragraph => MapParagraphToView(paragraph, options));
 
             await awsFilesCache.FlushFile(n);
             return result;
@@ -257,7 +265,7 @@ public static class Editing
     }
 
     /// <summary> Збор словаў абзацаў і адзін пакетны пошук граматыкі на ўсе іх </summary>
-    private static Dictionary<string, List<GrammarInfo>> LookupParagraphWords(IEnumerable<Paragraph> paragraphs, GrammarDb grammarDb)
+    private static async Task<Dictionary<string, List<GrammarInfo>>> LookupParagraphWords(IEnumerable<Paragraph> paragraphs, GrammarDb grammarDb)
     {
         var words = paragraphs
             .SelectMany(p => p.Sentences)
@@ -265,7 +273,7 @@ public static class Editing
             .Where(si => si.Type == SentenceItemType.Word)
             .Select(si => si.Text)
             .ToList();
-        return grammarDb.LookupWords(words, pickCustomWords: true);
+        return await grammarDb.LookupWordsAsync(words, pickCustomWords: true);
     }
 
     public static ValueTask<CorpusDocumentHeader> GetMetadata(int id, AwsFilesCache awsFilesCache)

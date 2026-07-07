@@ -6,11 +6,12 @@ public class GrammarDb(IGrammarRepository grammarRepository)
 {
     private readonly ConcurrentDictionary<string, ConcurrentDictionary<GrammarInfo, byte>> _customWords = new();
 
-    public List<GrammarInfo> LookupWord(string word, bool pickCustomWords = true)
+    public async Task<List<GrammarInfo>> LookupWordAsync(string word, bool pickCustomWords = true, CancellationToken cancellationToken = default)
     {
         var normalizedWord = Normalizer.GrammarDbAggressiveNormalize(word);
 
-        var results = grammarRepository.LookupByNormalizedForm(normalizedWord)
+        var matches = await grammarRepository.LookupByNormalizedFormAsync(normalizedWord, cancellationToken);
+        var results = matches
             .Select(ToGrammarInfo)
             .ToList();
 
@@ -21,7 +22,7 @@ public class GrammarDb(IGrammarRepository grammarRepository)
     }
 
     /// <summary> Пакетны пошук: адзін зварот да базы на ўсе словы, вынік па кожным зыходным слове </summary>
-    public Dictionary<string, List<GrammarInfo>> LookupWords(IReadOnlyCollection<string> words, bool pickCustomWords = true)
+    public async Task<Dictionary<string, List<GrammarInfo>>> LookupWordsAsync(IReadOnlyCollection<string> words, bool pickCustomWords = true, CancellationToken cancellationToken = default)
     {
         // Нармалізуем кожнае унікальнае слова адзін раз
         var normalizedByWord = new Dictionary<string, string>();
@@ -29,7 +30,7 @@ public class GrammarDb(IGrammarRepository grammarRepository)
             if (!normalizedByWord.ContainsKey(word))
                 normalizedByWord[word] = Normalizer.GrammarDbAggressiveNormalize(word);
 
-        var matchesByNormalized = grammarRepository.LookupByNormalizedForms(normalizedByWord.Values.ToArray());
+        var matchesByNormalized = await grammarRepository.LookupByNormalizedFormsAsync(normalizedByWord.Values.ToArray(), cancellationToken);
 
         var result = new Dictionary<string, List<GrammarInfo>>(normalizedByWord.Count);
         foreach (var (word, normalizedWord) in normalizedByWord)
@@ -53,9 +54,9 @@ public class GrammarDb(IGrammarRepository grammarRepository)
         Lemma: match.Lemma,
         Meaning: match.Meaning);
 
-    public (string, LinguisticTag) GetLemmaAndLinguisticTag(ParadigmFormId paradigmFormId)
+    public async Task<(string, LinguisticTag)> GetLemmaAndLinguisticTagAsync(ParadigmFormId paradigmFormId, CancellationToken cancellationToken = default)
     {
-        var variant = grammarRepository.GetVariant(paradigmFormId.ParadigmId, paradigmFormId.VariantId);
+        var variant = await grammarRepository.GetVariantAsync(paradigmFormId.ParadigmId, paradigmFormId.VariantId, cancellationToken);
         if (variant == null)
             throw new NotFoundException("Paradigm Form Id not found");
 
@@ -63,8 +64,8 @@ public class GrammarDb(IGrammarRepository grammarRepository)
         return (lemma, new LinguisticTag(effectiveTag, paradigmFormId.FormTag));
     }
 
-    public (ParadigmFormId?, string?, LinguisticTag?) InferGrammarInfo(string word) =>
-        InferGrammarInfo(LookupWord(word));
+    public async Task<(ParadigmFormId?, string?, LinguisticTag?)> InferGrammarInfoAsync(string word, CancellationToken cancellationToken = default) =>
+        InferGrammarInfo(await LookupWordAsync(word, cancellationToken: cancellationToken));
 
     public (ParadigmFormId?, string?, LinguisticTag?) InferGrammarInfo(List<GrammarInfo> grammarInfoList)
     {

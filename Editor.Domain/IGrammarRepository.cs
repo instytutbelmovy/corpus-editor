@@ -12,14 +12,14 @@ public record FormMatch(
 public interface IGrammarRepository
 {
     /// <summary> Усе кандыдаты (парадыгма, варыянт, тэг формы) для нармалізаванай формы — адзін запыт </summary>
-    IReadOnlyList<FormMatch> LookupByNormalizedForm(string normalizedForm);
+    Task<IReadOnlyList<FormMatch>> LookupByNormalizedFormAsync(string normalizedForm, CancellationToken cancellationToken = default);
 
     /// <summary> Кандыдаты для мноства нармалізаваных формаў адразу — пакетна, каб пазьбегнуць N зваротаў да базы </summary>
-    IReadOnlyDictionary<string, IReadOnlyList<FormMatch>> LookupByNormalizedForms(IReadOnlyCollection<string> normalizedForms);
+    Task<IReadOnlyDictionary<string, IReadOnlyList<FormMatch>>> LookupByNormalizedFormsAsync(IReadOnlyCollection<string> normalizedForms, CancellationToken cancellationToken = default);
 
     /// <summary> Лема і эфэктыўны тэг аднаго варыянту; null калі парадыгма/варыянт ня знойдзены </summary>
-    (string Lemma, string EffectiveTag)? GetVariant(int paradigmId, string? variantId);
+    Task<(string Lemma, string EffectiveTag)?> GetVariantAsync(int paradigmId, string? variantId, CancellationToken cancellationToken = default);
 
     /// <summary> Ці запоўненая ГрамБаза (праверка пры старце) </summary>
-    bool HasData();
+    Task<bool> HasDataAsync(CancellationToken cancellationToken = default);
 }

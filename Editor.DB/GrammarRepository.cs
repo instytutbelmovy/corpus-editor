@@ -8,15 +8,15 @@ public class GrammarRepository(IDbContextFactory<GrammarDbContext> contextFactor
     /// <summary> Колькі нармалізаваных формаў пытаць за адзін запыт, каб масівы параметраў не раслі бязьмежна </summary>
     private const int LookupBatchSize = 500;
 
-    public IReadOnlyList<FormMatch> LookupByNormalizedForm(string normalizedForm)
+    public async Task<IReadOnlyList<FormMatch>> LookupByNormalizedFormAsync(string normalizedForm, CancellationToken cancellationToken = default)
     {
-        using var db = contextFactory.CreateDbContext();
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
 
-        var rows = (from form in db.Forms
-                    join paradigm in db.Paradigms on form.ParadigmId equals paradigm.ParadigmId
-                    where form.NormalizedForm == normalizedForm
-                    select new { form.ParadigmId, form.VariantId, form.FormTag, paradigm.Meaning, paradigm.Variants })
-            .ToList();
+        var rows = await (from form in db.Forms
+                          join paradigm in db.Paradigms on form.ParadigmId equals paradigm.ParadigmId
+                          where form.NormalizedForm == normalizedForm
+                          select new { form.ParadigmId, form.VariantId, form.FormTag, paradigm.Meaning, paradigm.Variants })
+            .ToListAsync(cancellationToken);
 
         var results = new List<FormMatch>(rows.Count);
         foreach (var row in rows)
@@ -29,7 +29,7 @@ public class GrammarRepository(IDbContextFactory<GrammarDbContext> contextFactor
         return results;
     }
 
-    public IReadOnlyDictionary<string, IReadOnlyList<FormMatch>> LookupByNormalizedForms(IReadOnlyCollection<string> normalizedForms)
+    public async Task<IReadOnlyDictionary<string, IReadOnlyList<FormMatch>>> LookupByNormalizedFormsAsync(IReadOnlyCollection<string> normalizedForms, CancellationToken cancellationToken = default)
     {
         var result = new Dictionary<string, List<FormMatch>>();
         if (normalizedForms.Count == 0)
@@ -37,7 +37,7 @@ public class GrammarRepository(IDbContextFactory<GrammarDbContext> contextFactor
 
         var distinct = normalizedForms.Distinct().ToArray();
 
-        using var db = contextFactory.CreateDbContext();
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
 
         // Разьбіваем на порцыі, каб масіў у `= ANY(...)` не рос бязьмежна на вялікіх дакумэнтах
         for (var offset = 0; offset < distinct.Length; offset += LookupBatchSize)
@@ -45,19 +45,19 @@ public class GrammarRepository(IDbContextFactory<GrammarDbContext> contextFactor
             var chunk = distinct[offset..Math.Min(offset + LookupBatchSize, distinct.Length)];
 
             // Запыт 1: усе радкі зваротнага індэксу для формаў гэтай порцыі
-            var formRows = db.Forms
+            var formRows = await db.Forms
                 .Where(f => chunk.Contains(f.NormalizedForm))
                 .Select(f => new { f.NormalizedForm, f.ParadigmId, f.VariantId, f.FormTag })
-                .ToList();
+                .ToListAsync(cancellationToken);
 
             if (formRows.Count == 0)
                 continue;
 
             // Запыт 2: кожная патрэбная парадыгма (з jsonb-варыянтамі) толькі адзін раз
             var paradigmIds = formRows.Select(r => r.ParadigmId).Distinct().ToArray();
-            var paradigms = db.Paradigms
+            var paradigms = await db.Paradigms
                 .Where(p => paradigmIds.Contains(p.ParadigmId))
-                .ToDictionary(p => p.ParadigmId);
+                .ToDictionaryAsync(p => p.ParadigmId, cancellationToken);
 
             foreach (var row in formRows)
             {
@@ -74,23 +74,23 @@ public class GrammarRepository(IDbContextFactory<GrammarDbContext> contextFactor
         return result.ToDictionary(kv => kv.Key, kv => (IReadOnlyList<FormMatch>)kv.Value);
     }
 
-    public (string Lemma, string EffectiveTag)? GetVariant(int paradigmId, string? variantId)
+    public async Task<(string Lemma, string EffectiveTag)?> GetVariantAsync(int paradigmId, string? variantId, CancellationToken cancellationToken = default)
     {
         if (variantId == null)
             return null;
 
-        using var db = contextFactory.CreateDbContext();
-        var paradigm = db.Paradigms.SingleOrDefault(p => p.ParadigmId == paradigmId);
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
+        var paradigm = await db.Paradigms.SingleOrDefaultAsync(p => p.ParadigmId == paradigmId, cancellationToken);
         var variant = paradigm?.Variants.FirstOrDefault(v => v.Id == variantId);
         return variant == null ? null : (variant.Lemma, variant.Tag);
     }
 
-    public bool HasData()
+    public async Task<bool> HasDataAsync(CancellationToken cancellationToken = default)
     {
-        using var db = contextFactory.CreateDbContext();
+        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
         try
         {
-            return db.Paradigms.Any();
+            return await db.Paradigms.AnyAsync(cancellationToken);
         }
         catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.UndefinedTable)
         {

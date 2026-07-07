@@ -15,16 +15,16 @@ public class GrammarDbTests
     });
 
     [Fact]
-    public void LookupWords_MatchesLookupWord_PerWord_AndBatchesInOneCall()
+    public async Task LookupWords_MatchesLookupWord_PerWord_AndBatchesInOneCall()
     {
         var repo = Repo();
         var db = new GrammarDb(repo);
 
-        var batch = db.LookupWords(["кот", "ката", "невядома"]);
+        var batch = await db.LookupWordsAsync(["кот", "ката", "невядома"]);
 
         // Пакетны вынік супадае з паасобным для кожнага слова
-        Assert.Equal(new GrammarDb(Repo()).LookupWord("кот"), batch["кот"]);
-        Assert.Equal(new GrammarDb(Repo()).LookupWord("ката"), batch["ката"]);
+        Assert.Equal(await new GrammarDb(Repo()).LookupWordAsync("кот"), batch["кот"]);
+        Assert.Equal(await new GrammarDb(Repo()).LookupWordAsync("ката"), batch["ката"]);
         Assert.Empty(batch["невядома"]);
 
         // Тры словы — адзін зварот да базы, а не тры
@@ -33,12 +33,12 @@ public class GrammarDbTests
     }
 
     [Fact]
-    public void LookupWords_DedupsRepeatedWords()
+    public async Task LookupWords_DedupsRepeatedWords()
     {
         var repo = Repo();
         var db = new GrammarDb(repo);
 
-        var batch = db.LookupWords(["кот", "кот", "кот"]);
+        var batch = await db.LookupWordsAsync(["кот", "кот", "кот"]);
 
         Assert.Single(batch);
         Assert.Equal([GrammarInfoFor(KotNoun)], batch["кот"]);
@@ -48,39 +48,39 @@ public class GrammarDbTests
     }
 
     [Fact]
-    public void LookupWords_MergesCustomWords()
+    public async Task LookupWords_MergesCustomWords()
     {
         var repo = Repo();
         var db = new GrammarDb(repo);
         var custom = new GrammarInfo(null, new LinguisticTag("NMS", "NMSNN"), "кот", null);
         db.AddCustomWord("кот", custom);
 
-        var batch = db.LookupWords(["кот"]);
+        var batch = await db.LookupWordsAsync(["кот"]);
 
         Assert.Equal([GrammarInfoFor(KotNoun), custom], batch["кот"]);
     }
 
     [Fact]
-    public void LookupWords_SkipsCustomWords_WhenNotRequested()
+    public async Task LookupWords_SkipsCustomWords_WhenNotRequested()
     {
         var repo = Repo();
         var db = new GrammarDb(repo);
         db.AddCustomWord("кот", new GrammarInfo(null, new LinguisticTag("NMS", "NMSNN"), "кот", null));
 
-        var batch = db.LookupWords(["кот"], pickCustomWords: false);
+        var batch = await db.LookupWordsAsync(["кот"], pickCustomWords: false);
 
         Assert.Equal([GrammarInfoFor(KotNoun)], batch["кот"]);
     }
 
     [Fact]
-    public void InferGrammarInfo_List_MatchesStringOverload()
+    public async Task InferGrammarInfo_List_MatchesStringOverload()
     {
         var db = new GrammarDb(Repo());
 
         // Адназначнае слова — вяртаецца адзіны кандыдат
-        Assert.Equal(db.InferGrammarInfo("кот"), db.InferGrammarInfo(db.LookupWord("кот")));
+        Assert.Equal(await db.InferGrammarInfoAsync("кот"), db.InferGrammarInfo(await db.LookupWordAsync("кот")));
         // Неадназначнае — вяртаецца перасячэньне
-        Assert.Equal(db.InferGrammarInfo("ката"), db.InferGrammarInfo(db.LookupWord("ката")));
+        Assert.Equal(await db.InferGrammarInfoAsync("ката"), db.InferGrammarInfo(await db.LookupWordAsync("ката")));
     }
 
     [Fact]
@@ -107,13 +107,13 @@ public class GrammarDbTests
         public int BatchCallCount;
         public readonly List<int> BatchSizes = [];
 
-        public IReadOnlyList<FormMatch> LookupByNormalizedForm(string normalizedForm)
+        public Task<IReadOnlyList<FormMatch>> LookupByNormalizedFormAsync(string normalizedForm, CancellationToken cancellationToken = default)
         {
             SingleCallCount++;
-            return data.TryGetValue(normalizedForm, out var m) ? m : [];
+            return Task.FromResult(data.TryGetValue(normalizedForm, out var m) ? m : []);
         }
 
-        public IReadOnlyDictionary<string, IReadOnlyList<FormMatch>> LookupByNormalizedForms(IReadOnlyCollection<string> normalizedForms)
+        public Task<IReadOnlyDictionary<string, IReadOnlyList<FormMatch>>> LookupByNormalizedFormsAsync(IReadOnlyCollection<string> normalizedForms, CancellationToken cancellationToken = default)
         {
             var distinct = normalizedForms.Distinct().ToArray();
             BatchCallCount++;
@@ -123,11 +123,12 @@ public class GrammarDbTests
             foreach (var f in distinct)
                 if (data.TryGetValue(f, out var m))
                     result[f] = m;
-            return result;
+            return Task.FromResult<IReadOnlyDictionary<string, IReadOnlyList<FormMatch>>>(result);
         }
 
-        public (string Lemma, string EffectiveTag)? GetVariant(int paradigmId, string? variantId) => null;
+        public Task<(string Lemma, string EffectiveTag)?> GetVariantAsync(int paradigmId, string? variantId, CancellationToken cancellationToken = default) =>
+            Task.FromResult<(string Lemma, string EffectiveTag)?>(null);
 
-        public bool HasData() => true;
+        public Task<bool> HasDataAsync(CancellationToken cancellationToken = default) => Task.FromResult(true);
     }
 }
