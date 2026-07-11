@@ -180,9 +180,7 @@ static void ConfigurePipeline(WebApplication app)
     // Must run first so scheme/client-IP are correct behind the reverse proxy.
     app.UseForwardedHeaders();
     if (!app.Environment.IsDevelopment())
-    {
         app.UseHsts();
-    }
     app.Use(SecurityHeadersMiddleware.Handle);
 
     app.UseRewriter(new RewriteOptions()
