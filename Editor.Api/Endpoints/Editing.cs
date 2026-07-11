@@ -24,11 +24,6 @@ public static class Editing
         var corpusDocument = await awsFilesCache.GetFileForRead(n);
         // Single snapshot of the list — a concurrent edit swaps the reference, but never mutates it
         var paragraphs = corpusDocument.Paragraphs;
-        foreach (var paragraph in paragraphs)
-            foreach (var sentence in paragraph.Sentences)
-                foreach (var sentenceItem in sentence.SentenceItems)
-                    if (sentenceItem is { LinguisticTag: not null, ParadigmFormId: null })
-                        grammarDb.AddCustomWord(sentenceItem.Text, new GrammarInfo(null, sentenceItem.LinguisticTag, sentenceItem.Lemma, null));
         var pageParagraphs = paragraphs
             .SkipWhile(x => x.Id <= skipUpToId)
             .Take(take)

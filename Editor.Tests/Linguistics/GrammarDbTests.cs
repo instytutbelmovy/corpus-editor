@@ -48,31 +48,6 @@ public class GrammarDbTests
     }
 
     [Fact]
-    public async Task LookupWords_MergesCustomWords()
-    {
-        var repo = Repo();
-        var db = new GrammarDb(repo);
-        var custom = new GrammarInfo(null, new LinguisticTag("NMS", "NMSNN"), "кот", null);
-        db.AddCustomWord("кот", custom);
-
-        var batch = await db.LookupWords(["кот"]);
-
-        Assert.Equal([GrammarInfoFor(KotNoun), custom], batch["кот"]);
-    }
-
-    [Fact]
-    public async Task LookupWords_SkipsCustomWords_WhenNotRequested()
-    {
-        var repo = Repo();
-        var db = new GrammarDb(repo);
-        db.AddCustomWord("кот", new GrammarInfo(null, new LinguisticTag("NMS", "NMSNN"), "кот", null));
-
-        var batch = await db.LookupWords(["кот"], pickCustomWords: false);
-
-        Assert.Equal([GrammarInfoFor(KotNoun)], batch["кот"]);
-    }
-
-    [Fact]
     public async Task InferGrammarInfo_List_MatchesStringOverload()
     {
         var db = new GrammarDb(Repo());

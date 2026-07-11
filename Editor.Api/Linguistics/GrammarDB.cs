@@ -1,11 +1,7 @@
-using System.Collections.Concurrent;
-
 namespace Editor;
 
 public class GrammarDb(IGrammarRepository grammarRepository)
 {
-    private readonly ConcurrentDictionary<string, ConcurrentDictionary<GrammarInfo, byte>> _customWords = new();
-
     public async Task<List<GrammarInfo>> LookupWord(string word, bool pickCustomWords = true, CancellationToken cancellationToken = default)
     {
         var normalizedWord = Normalizer.GrammarDbAggressiveNormalize(word);
@@ -14,9 +10,6 @@ public class GrammarDb(IGrammarRepository grammarRepository)
         var results = matches
             .Select(ToGrammarInfo)
             .ToList();
-
-        if (pickCustomWords && _customWords.TryGetValue(normalizedWord, out var customWordResults))
-            results.AddRange(customWordResults.Select(x => x.Key));
 
         return results;
     }
@@ -38,9 +31,6 @@ public class GrammarDb(IGrammarRepository grammarRepository)
             var infos = matchesByNormalized.TryGetValue(normalizedWord, out var matches)
                 ? matches.Select(ToGrammarInfo).ToList()
                 : [];
-
-            if (pickCustomWords && _customWords.TryGetValue(normalizedWord, out var customWordResults))
-                infos.AddRange(customWordResults.Select(x => x.Key));
 
             result[word] = infos;
         }
@@ -100,12 +90,5 @@ public class GrammarDb(IGrammarRepository grammarRepository)
 
         // Калі знайшліся зусім розныя варыянты - вяртаем пустыя значэньні
         return (intersectionParadigmFormId, intersectionLemma, intersectionLinguisticTag);
-    }
-
-    public void AddCustomWord(string word, GrammarInfo grammarInfo)
-    {
-        var normalizedWord = Normalizer.GrammarDbAggressiveNormalize(word);
-        var set = _customWords.GetOrAdd(normalizedWord, _ => []);
-        set.TryAdd(grammarInfo, 0);
     }
 }
