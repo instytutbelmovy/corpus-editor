@@ -5,10 +5,9 @@ namespace Editor;
 public class GrammarEditRepository(IDbContextFactory<GrammarDbContext> contextFactory) : IGrammarEditRepository
 {
     // Не інтэрпаляваны радок у самім выкліку Raw (пазьбягаем EF1002); імя паслядоўнасьці — канстанта, не ўвод карыстальніка
-    private static readonly string NextLocalIdSql =
-        $"SELECT nextval('{GrammarIds.LocalParadigmIdSequence}') AS \"Value\"";
+    private const string NextLocalIdSql = $"SELECT nextval('{GrammarIds.LocalParadigmIdSequence}') AS \"Value\"";
 
-    public async Task<int> CreateLocalParadigmAsync(Paradigm paradigm, CancellationToken cancellationToken = default)
+    public async Task<int> CreateLocalParadigm(Paradigm paradigm, CancellationToken cancellationToken = default)
     {
         await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
         await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
@@ -26,7 +25,7 @@ public class GrammarEditRepository(IDbContextFactory<GrammarDbContext> contextFa
         return id;
     }
 
-    public async Task UpdateLocalParadigmAsync(Paradigm paradigm, CancellationToken cancellationToken = default)
+    public async Task UpdateLocalParadigm(Paradigm paradigm, CancellationToken cancellationToken = default)
     {
         EnsureLocal(paradigm.ParadigmId);
         paradigm.Source = ParadigmSource.Local;
@@ -45,7 +44,7 @@ public class GrammarEditRepository(IDbContextFactory<GrammarDbContext> contextFa
         await tx.CommitAsync(cancellationToken);
     }
 
-    public async Task DeleteLocalParadigmAsync(int paradigmId, CancellationToken cancellationToken = default)
+    public async Task DeleteLocalParadigm(int paradigmId, CancellationToken cancellationToken = default)
     {
         EnsureLocal(paradigmId);
 
@@ -59,7 +58,7 @@ public class GrammarEditRepository(IDbContextFactory<GrammarDbContext> contextFa
         await tx.CommitAsync(cancellationToken);
     }
 
-    public async Task HideParadigmAsync(int paradigmId, string? hiddenBy, CancellationToken cancellationToken = default)
+    public async Task HideParadigm(int paradigmId, string? hiddenBy, CancellationToken cancellationToken = default)
     {
         await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
 
@@ -76,13 +75,13 @@ public class GrammarEditRepository(IDbContextFactory<GrammarDbContext> contextFa
         await db.SaveChangesAsync(cancellationToken);
     }
 
-    public async Task UnhideParadigmAsync(int paradigmId, CancellationToken cancellationToken = default)
+    public async Task UnhideParadigm(int paradigmId, CancellationToken cancellationToken = default)
     {
         await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
         await db.HiddenParadigms.Where(h => h.ParadigmId == paradigmId).ExecuteDeleteAsync(cancellationToken);
     }
 
-    public async Task<ParadigmDetail?> GetParadigmAsync(int paradigmId, CancellationToken cancellationToken = default)
+    public async Task<ParadigmDetail?> GetParadigm(int paradigmId, CancellationToken cancellationToken = default)
     {
         await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
         var paradigm = await db.Paradigms.FirstOrDefaultAsync(p => p.ParadigmId == paradigmId, cancellationToken);
@@ -92,7 +91,7 @@ public class GrammarEditRepository(IDbContextFactory<GrammarDbContext> contextFa
         return new ParadigmDetail(paradigm, hidden);
     }
 
-    public async Task<IReadOnlyList<ParadigmSummary>> SearchParadigmsAsync(string lemmaQuery, int limit, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ParadigmSummary>> SearchParadigms(string lemmaQuery, int limit, CancellationToken cancellationToken = default)
     {
         await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
 

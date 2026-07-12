@@ -10,88 +10,85 @@ public static class Grammar
     {
         var group = builder.MapGroup("/api/grammar");
 
-        // Прагляд/пошук/рэдагаваньне ўласных парадыгмаў — роля Editor
         group.MapGet("/paradigms", SearchParadigms).Editor();
         group.MapGet("/paradigms/{id:int}", GetParadigm).Editor();
-        group.MapPost("/paradigms", CreateParadigm).Validate<ParadigmInput>().Editor();
-        group.MapPut("/paradigms/{id:int}", UpdateParadigm).Validate<ParadigmInput>().Editor();
-
-        // Разбуральныя/глябальныя апэрацыі (уплываюць на пошук усіх) — роля Admin
-        group.MapDelete("/paradigms/{id:int}", DeleteParadigm).Admin();
-        group.MapPost("/paradigms/{id:int}/hide", HideParadigm).Admin();
-        group.MapDelete("/paradigms/{id:int}/hide", UnhideParadigm).Admin();
+        group.MapPost("/paradigms", CreateParadigm).Validate<ParadigmCreateVm>().Editor();
+        group.MapPut("/paradigms/{id:int}", UpdateParadigm).Validate<ParadigmCreateVm>().Editor();
+        group.MapDelete("/paradigms/{id:int}", DeleteParadigm).Editor();
+        group.MapPost("/paradigms/{id:int}/hide", HideParadigm).Editor();
+        group.MapDelete("/paradigms/{id:int}/hide", UnhideParadigm).Editor();
     }
 
     private static async Task<List<ParadigmSummaryResponse>> SearchParadigms(
-        [FromQuery] string query, IGrammarEditRepository repo, CancellationToken cancellationToken)
+        [FromQuery] string query, IGrammarEditRepository grammarEditRepository, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(query))
             throw new BadRequestException("Пусты запыт пошуку");
 
-        var results = await repo.SearchParadigmsAsync(query.Trim(), limit: 50, cancellationToken);
+        var results = await grammarEditRepository.SearchParadigms(query.Trim(), limit: 50, cancellationToken);
         return results
             .Select(r => new ParadigmSummaryResponse(r.ParadigmId, r.Lemma, r.Tag, r.Source, r.Hidden))
             .ToList();
     }
 
     private static async Task<ParadigmResponse> GetParadigm(
-        int id, IGrammarEditRepository repo, CancellationToken cancellationToken)
+        int id, IGrammarEditRepository grammarEditRepository, CancellationToken cancellationToken)
     {
-        var detail = await repo.GetParadigmAsync(id, cancellationToken)
+        var detail = await grammarEditRepository.GetParadigm(id, cancellationToken)
             ?? throw new NotFoundException("Парадыгма ня знойдзеная");
-        return ToResponse(detail.Paradigm, detail.Hidden);
+        return ToParadigmResponse(detail.Paradigm, detail.Hidden);
     }
 
     private static async Task<CreatedParadigmResponse> CreateParadigm(
-        [FromBody] ParadigmInput input, IGrammarEditRepository repo, CancellationToken cancellationToken)
+        [FromBody] ParadigmCreateVm createVm, IGrammarEditRepository grammarEditRepository, CancellationToken cancellationToken)
     {
-        var id = await repo.CreateLocalParadigmAsync(ToEntity(input), cancellationToken);
+        var id = await grammarEditRepository.CreateLocalParadigm(ToParadigm(createVm), cancellationToken);
         return new CreatedParadigmResponse(id);
     }
 
     private static async Task<ParadigmResponse> UpdateParadigm(
-        int id, [FromBody] ParadigmInput input, IGrammarEditRepository repo, CancellationToken cancellationToken)
+        int id, [FromBody] ParadigmCreateVm createVm, IGrammarEditRepository grammarEditRepository, CancellationToken cancellationToken)
     {
         if (!GrammarIds.IsLocal(id))
             throw new BadRequestException("Рэдагаваць можна толькі ўласныя (лакальныя) парадыгмы");
 
-        var existing = await repo.GetParadigmAsync(id, cancellationToken)
+        var existing = await grammarEditRepository.GetParadigm(id, cancellationToken)
             ?? throw new NotFoundException("Парадыгма ня знойдзеная");
 
-        var entity = ToEntity(input, id);
-        await repo.UpdateLocalParadigmAsync(entity, cancellationToken);
-        return ToResponse(entity, existing.Hidden);
+        var entity = ToParadigm(createVm, id);
+        await grammarEditRepository.UpdateLocalParadigm(entity, cancellationToken);
+        return ToParadigmResponse(entity, existing.Hidden);
     }
 
     private static async Task DeleteParadigm(
-        int id, IGrammarEditRepository repo, CancellationToken cancellationToken)
+        int id, IGrammarEditRepository grammarEditRepository, CancellationToken cancellationToken)
     {
         if (!GrammarIds.IsLocal(id))
             throw new BadRequestException("Выдаляць можна толькі ўласныя (лакальныя) парадыгмы");
-        await repo.DeleteLocalParadigmAsync(id, cancellationToken);
+        await grammarEditRepository.DeleteLocalParadigm(id, cancellationToken);
     }
 
     private static async Task HideParadigm(
-        int id, ClaimsPrincipal user, IGrammarEditRepository repo, CancellationToken cancellationToken)
-        => await repo.HideParadigmAsync(id, user.GetUserId(), cancellationToken);
+        int id, ClaimsPrincipal user, IGrammarEditRepository grammarEditRepository, CancellationToken cancellationToken)
+        => await grammarEditRepository.HideParadigm(id, user.GetUserId(), cancellationToken);
 
     private static async Task UnhideParadigm(
-        int id, IGrammarEditRepository repo, CancellationToken cancellationToken)
-        => await repo.UnhideParadigmAsync(id, cancellationToken);
+        int id, IGrammarEditRepository grammarEditRepository, CancellationToken cancellationToken)
+        => await grammarEditRepository.UnhideParadigm(id, cancellationToken);
 
     // Уваход → сутнасьць: нармалізуем тыпаграфічны націск (як канвэртэр), эфэктыўны тэг варыянту з fallback на тэг парадыгмы
-    private static Paradigm ToEntity(ParadigmInput input, int paradigmId = 0) => new()
+    private static Paradigm ToParadigm(ParadigmCreateVm createVm, int paradigmId = 0) => new()
     {
         ParadigmId = paradigmId,
-        Lemma = Normalizer.NormalizeTypographicStress(input.Lemma),
-        Tag = input.Tag,
-        Meaning = string.IsNullOrWhiteSpace(input.Meaning) ? null : input.Meaning,
+        Lemma = Normalizer.NormalizeTypographicStress(createVm.Lemma),
+        Tag = createVm.Tag,
+        Meaning = string.IsNullOrWhiteSpace(createVm.Meaning) ? null : createVm.Meaning,
         Source = ParadigmSource.Local,
-        Variants = input.Variants.Select(v => new ParadigmVariant
+        Variants = createVm.Variants.Select(v => new ParadigmVariant
         {
             Id = v.Id,
             Lemma = Normalizer.NormalizeTypographicStress(v.Lemma),
-            Tag = string.IsNullOrEmpty(v.Tag) ? input.Tag : v.Tag,
+            Tag = string.IsNullOrEmpty(v.Tag) ? createVm.Tag : v.Tag,
             Forms = v.Forms.Select(f => new ParadigmForm
             {
                 Tag = f.Tag,
@@ -100,13 +97,13 @@ public static class Grammar
         }).ToList(),
     };
 
-    private static ParadigmResponse ToResponse(Paradigm p, bool hidden) => new(
+    private static ParadigmResponse ToParadigmResponse(Paradigm p, bool hidden) => new(
         p.ParadigmId, p.Lemma, p.Tag, p.Meaning, p.Source, hidden,
         p.Variants.Select(v => new VariantResponse(v.Id, v.Lemma, v.Tag,
             v.Forms.Select(f => new FormResponse(f.Tag, f.Value)).ToList())).ToList());
 }
 
-public record ParadigmInput(string Lemma, string Tag, string? Meaning, List<VariantInput> Variants);
+public record ParadigmCreateVm(string Lemma, string Tag, string? Meaning, List<VariantInput> Variants);
 public record VariantInput(string Id, string Lemma, string Tag, List<FormInput> Forms);
 public record FormInput(string Tag, string Value);
 
@@ -117,9 +114,9 @@ public record FormResponse(string Tag, string Value);
 public record ParadigmSummaryResponse(int ParadigmId, string Lemma, string Tag, ParadigmSource Source, bool Hidden);
 public record CreatedParadigmResponse(int ParadigmId);
 
-public class ParadigmInputValidator : AbstractValidator<ParadigmInput>
+public class ParadigmCreateVmValidator : AbstractValidator<ParadigmCreateVm>
 {
-    public ParadigmInputValidator()
+    public ParadigmCreateVmValidator()
     {
         RuleFor(x => x.Lemma).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Tag).NotEmpty().MaximumLength(50);
