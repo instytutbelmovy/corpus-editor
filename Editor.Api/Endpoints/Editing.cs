@@ -87,7 +87,7 @@ public static class Editing
                 : si.Metadata with { ResolvedOn = null },
         });
 
-        return await grammarDb.LookupWord(text, pickCustomWords: true);
+        return await grammarDb.LookupWord(text);
     }
 
     public static async Task PutComment(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] string comment, AwsFilesCache awsFilesCache)
@@ -127,7 +127,7 @@ public static class Editing
                 .Where(si => si.Type == SentenceItemType.Word)
                 .Select(si => si.Text)
                 .ToList();
-            var options = await grammarDb.LookupWords(words, pickCustomWords: true);
+            var options = await grammarDb.LookupWords(words);
 
             var result = EditDocumentCore(document, request,
                 paragraph => MapParagraphToView(paragraph, options));
@@ -268,7 +268,7 @@ public static class Editing
             .Where(si => si.Type == SentenceItemType.Word)
             .Select(si => si.Text)
             .ToList();
-        return await grammarDb.LookupWords(words, pickCustomWords: true);
+        return await grammarDb.LookupWords(words);
     }
 
     public static ValueTask<CorpusDocumentHeader> GetMetadata(int id, AwsFilesCache awsFilesCache)

@@ -77,7 +77,7 @@ public static class Registry
             .Where(x => x.Type == SentenceItemType.Word)
             .Select(x => x.Text)
             .ToList();
-        var lookups = await grammarDb.LookupWords(allWords, pickCustomWords: true);
+        var lookups = await grammarDb.LookupWords(allWords);
 
         paragraphs = paragraphs.Select(p => p with
         {

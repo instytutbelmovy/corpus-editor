@@ -2,13 +2,12 @@ namespace Editor;
 
 public class GrammarDb(IGrammarRepository grammarRepository)
 {
-    public async Task<List<GrammarInfo>> LookupWord(string word, bool pickCustomWords = true, CancellationToken cancellationToken = default)
+    public async Task<List<GrammarInfo>> LookupWord(string word, CancellationToken cancellationToken = default)
     {
         var normalizedWord = Normalizer.GrammarDbAggressiveNormalize(word);
 
         var matches = await grammarRepository.LookupByNormalizedForm(normalizedWord, cancellationToken);
         var results = matches
-            .Where(m => pickCustomWords || !GrammarIds.IsLocal(m.ParadigmId))
             .Select(ToGrammarInfo)
             .ToList();
 
@@ -16,7 +15,7 @@ public class GrammarDb(IGrammarRepository grammarRepository)
     }
 
     /// <summary> Пакетны пошук: адзін зварот да базы на ўсе словы, вынік па кожным зыходным слове </summary>
-    public async Task<Dictionary<string, List<GrammarInfo>>> LookupWords(IReadOnlyCollection<string> words, bool pickCustomWords = true, CancellationToken cancellationToken = default)
+    public async Task<Dictionary<string, List<GrammarInfo>>> LookupWords(IReadOnlyCollection<string> words, CancellationToken cancellationToken = default)
     {
         // Нармалізуем кожнае унікальнае слова адзін раз
         var normalizedByWord = new Dictionary<string, string>();
@@ -30,7 +29,7 @@ public class GrammarDb(IGrammarRepository grammarRepository)
         foreach (var (word, normalizedWord) in normalizedByWord)
         {
             var infos = matchesByNormalized.TryGetValue(normalizedWord, out var matches)
-                ? matches.Where(m => pickCustomWords || !GrammarIds.IsLocal(m.ParadigmId)).Select(ToGrammarInfo).ToList()
+                ? matches.Select(ToGrammarInfo).ToList()
                 : [];
 
             result[word] = infos;
@@ -54,9 +53,6 @@ public class GrammarDb(IGrammarRepository grammarRepository)
         var (lemma, effectiveTag) = variant.Value;
         return (lemma, new LinguisticTag(effectiveTag, paradigmFormId.FormTag));
     }
-
-    public async Task<(ParadigmFormId?, string?, LinguisticTag?)> InferGrammarInfo(string word, CancellationToken cancellationToken = default) =>
-        InferGrammarInfo(await LookupWord(word, cancellationToken: cancellationToken));
 
     public (ParadigmFormId?, string?, LinguisticTag?) InferGrammarInfo(List<GrammarInfo> grammarInfoList)
     {
