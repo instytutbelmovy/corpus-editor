@@ -37,7 +37,7 @@ public class GrammarDbConverter
         await using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
 
-        await TruncateTablesAsync(connection);
+        await DeleteUpstreamAsync(connection);
 
         _logger.LogInformation("Устаўляю {count} парадыгм...", paradigms.Count);
         await CopyParadigmsAsync(connection, paradigms.Values);
@@ -51,11 +51,14 @@ public class GrammarDbConverter
             paradigms.Count, forms.Count);
     }
 
-    private async Task TruncateTablesAsync(NpgsqlConnection connection)
+    private async Task DeleteUpstreamAsync(NpgsqlConnection connection)
     {
-        await using var command = new NpgsqlCommand("TRUNCATE TABLE forms, paradigms", connection);
+        // Выдаляем толькі апстрымныя радкі (source = 0). Лакальныя парадыгмы/формы і оверлэй
+        // hidden_paradigms застаюцца некранутымі, каб перажыць пераімпарт.
+        await using var command = new NpgsqlCommand(
+            "DELETE FROM forms WHERE source = 0; DELETE FROM paradigms WHERE source = 0", connection);
         await command.ExecuteNonQueryAsync();
-        _logger.LogInformation("Табліцы ачышчаныя");
+        _logger.LogInformation("Апстрымныя радкі выдаленыя");
     }
 
     private void ProcessXmlFile(
@@ -90,6 +93,12 @@ public class GrammarDbConverter
                 _logger.LogWarning("Няправільны ParadigmId у файле {file}", xmlFilePath);
                 continue;
             }
+
+            // Абарона ад калізіі: апстрымныя pdgId мусяць быць ніжэй за зарэзэрваваны лакальны дыяпазон.
+            // Спыняемся да любых зьменаў у базе, каб не сапсаваць лакальныя дадзеныя.
+            if (paradigmId >= GrammarIds.LocalParadigmIdBase)
+                throw new InvalidOperationException(
+                    $"Апстрым pdgId {paradigmId} трапляе ў зарэзэрваваны лакальны дыяпазон (>= {GrammarIds.LocalParadigmIdBase}); імпарт спынены.");
 
             var paradigm = new Paradigm
             {
@@ -153,7 +162,7 @@ public class GrammarDbConverter
     private async Task CopyParadigmsAsync(NpgsqlConnection connection, IEnumerable<Paradigm> paradigms)
     {
         await using var writer = await connection.BeginBinaryImportAsync(
-            "COPY paradigms (paradigm_id, lemma, tag, meaning, variants) FROM STDIN (FORMAT BINARY)");
+            "COPY paradigms (paradigm_id, lemma, tag, meaning, variants, source) FROM STDIN (FORMAT BINARY)");
 
         foreach (var paradigm in paradigms)
         {
@@ -167,6 +176,7 @@ public class GrammarDbConverter
                 await writer.WriteAsync(paradigm.Meaning, NpgsqlDbType.Text);
             // Той жа крыніцагенэраваны кантэкст, які GrammarDbContext выкарыстоўвае для дэсерыялізацыі
             await writer.WriteAsync(JsonSerializer.Serialize(paradigm.Variants, GrammarJsonSerializerContext.Default.ListParadigmVariant), NpgsqlDbType.Jsonb);
+            await writer.WriteAsync((int)ParadigmSource.Upstream, NpgsqlDbType.Integer);
         }
 
         await writer.CompleteAsync();
@@ -177,7 +187,7 @@ public class GrammarDbConverter
         IEnumerable<(string NormalizedForm, int ParadigmId, string VariantId, string FormTag)> forms)
     {
         await using var writer = await connection.BeginBinaryImportAsync(
-            "COPY forms (normalized_form, paradigm_id, variant_id, form_tag) FROM STDIN (FORMAT BINARY)");
+            "COPY forms (normalized_form, paradigm_id, variant_id, form_tag, source) FROM STDIN (FORMAT BINARY)");
 
         foreach (var (normalizedForm, paradigmId, variantId, formTag) in forms)
         {
@@ -186,6 +196,7 @@ public class GrammarDbConverter
             await writer.WriteAsync(paradigmId, NpgsqlDbType.Integer);
             await writer.WriteAsync(variantId, NpgsqlDbType.Text);
             await writer.WriteAsync(formTag, NpgsqlDbType.Text);
+            await writer.WriteAsync((int)ParadigmSource.Upstream, NpgsqlDbType.Integer);
         }
 
         await writer.CompleteAsync();

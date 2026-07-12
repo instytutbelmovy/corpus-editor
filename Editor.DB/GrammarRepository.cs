@@ -12,9 +12,11 @@ public class GrammarRepository(IDbContextFactory<GrammarDbContext> contextFactor
     {
         await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
 
+        // Схаваныя парадыгмы (оверлэй hidden_paradigms) не прапануюцца як кандыдаты
         var rows = await (from form in db.Forms
                           join paradigm in db.Paradigms on form.ParadigmId equals paradigm.ParadigmId
                           where form.NormalizedForm == normalizedForm
+                                && !db.HiddenParadigms.Any(h => h.ParadigmId == form.ParadigmId)
                           select new { form.ParadigmId, form.VariantId, form.FormTag, paradigm.Meaning, paradigm.Variants })
             .ToListAsync(cancellationToken);
 
@@ -44,9 +46,10 @@ public class GrammarRepository(IDbContextFactory<GrammarDbContext> contextFactor
         {
             var chunk = distinct[offset..Math.Min(offset + LookupBatchSize, distinct.Length)];
 
-            // Запыт 1: усе радкі зваротнага індэксу для формаў гэтай порцыі
+            // Запыт 1: усе радкі зваротнага індэксу для формаў гэтай порцыі (схаваныя парадыгмы адсейваюцца)
             var formRows = await db.Forms
-                .Where(f => chunk.Contains(f.NormalizedForm))
+                .Where(f => chunk.Contains(f.NormalizedForm)
+                            && !db.HiddenParadigms.Any(h => h.ParadigmId == f.ParadigmId))
                 .Select(f => new { f.NormalizedForm, f.ParadigmId, f.VariantId, f.FormTag })
                 .ToListAsync(cancellationToken);
 

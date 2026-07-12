@@ -3,6 +3,7 @@ using System;
 using Editor;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Editor.Migrations.Grammar
 {
     [DbContext(typeof(GrammarDbContext))]
-    partial class GrammarDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260712001634_AddLocalGrammar")]
+    partial class AddLocalGrammar
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

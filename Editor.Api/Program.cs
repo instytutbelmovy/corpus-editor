@@ -56,6 +56,7 @@ static void ConfigureServices(WebApplicationBuilder builder)
         options.SerializerOptions.TypeInfoResolverChain.Insert(2, VertiJsonSerializerContext.Default);
         options.SerializerOptions.TypeInfoResolverChain.Insert(3, AuthJsonSerializerContext.Default);
         options.SerializerOptions.TypeInfoResolverChain.Insert(4, AdministrationJsonSerializerContext.Default);
+        options.SerializerOptions.TypeInfoResolverChain.Insert(5, GrammarApiJsonSerializerContext.Default);
     });
 
     var editorConnectionString = builder.Configuration.GetConnectionString("EditorDb");
@@ -73,6 +74,7 @@ static void ConfigureServices(WebApplicationBuilder builder)
 
     builder.Services.AddSingleton<IUserRepository, UserRepository>();
     builder.Services.AddSingleton<IGrammarRepository, GrammarRepository>();
+    builder.Services.AddSingleton<IGrammarEditRepository, GrammarEditRepository>();
 
     builder.Services.AddSingleton<EditorUserStore>();
     builder.Services.AddSingleton<IUserStore<EditorUser>>(serviceProvider => serviceProvider.GetRequiredService<EditorUserStore>());
@@ -194,6 +196,7 @@ static void ConfigurePipeline(WebApplication app)
     app.MapEditing();
     app.MapAuth();
     app.MapUsers();
+    app.MapGrammar();
 
     app.Map("/api/{**path}", () => Results.NotFound());
     app.MapFallbackToFile("404.html", new StaticFileOptions { OnPrepareResponse = r => r.Context.Response.StatusCode = 404 });

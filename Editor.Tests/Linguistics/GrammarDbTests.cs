@@ -7,6 +7,8 @@ public class GrammarDbTests
     private static readonly FormMatch KotNoun = new(1, "a", "NMSNN", "кот", "NMS", "жывёла");
     private static readonly FormMatch KataGen = new(1, "a", "NMSGN", "кот", "NMS", "жывёла");
     private static readonly FormMatch KataOther = new(2, "a", "NFSNN", "ката", "NFS", null);
+    // Лакальная (уласная) парадыгма — id у зарэзэрваваным дыяпазоне (>= LocalParadigmIdBase)
+    private static readonly FormMatch KotLocal = new(GrammarIds.LocalParadigmIdBase + 5, "a", "NMSNN", "котік", "NMS", null);
 
     private static FakeGrammarRepository Repo() => new(new Dictionary<string, IReadOnlyList<FormMatch>>
     {
@@ -68,6 +70,37 @@ public class GrammarDbTests
         Assert.Null(paradigmFormId);
         Assert.Null(lemma);
         Assert.Null(tag);
+    }
+
+    [Fact]
+    public async Task LookupWord_ExcludesLocal_WhenPickCustomWordsFalse()
+    {
+        var repo = new FakeGrammarRepository(new Dictionary<string, IReadOnlyList<FormMatch>>
+        {
+            ["кот"] = [KotNoun, KotLocal],
+        });
+        var db = new GrammarDb(repo);
+
+        // pickCustomWords: true (змоўчаньне) — лакальны кандыдат уключаны
+        var withLocal = await db.LookupWord("кот");
+        Assert.Equal(2, withLocal.Count);
+
+        // pickCustomWords: false — лакальны кандыдат адсейваецца па дыяпазоне id
+        var withoutLocal = await db.LookupWord("кот", pickCustomWords: false);
+        Assert.Equal([GrammarInfoFor(KotNoun)], withoutLocal);
+    }
+
+    [Fact]
+    public async Task LookupWords_ExcludesLocal_WhenPickCustomWordsFalse()
+    {
+        var repo = new FakeGrammarRepository(new Dictionary<string, IReadOnlyList<FormMatch>>
+        {
+            ["кот"] = [KotNoun, KotLocal],
+        });
+        var db = new GrammarDb(repo);
+
+        var batch = await db.LookupWords(["кот"], pickCustomWords: false);
+        Assert.Equal([GrammarInfoFor(KotNoun)], batch["кот"]);
     }
 
     private static GrammarInfo GrammarInfoFor(FormMatch m) => new(

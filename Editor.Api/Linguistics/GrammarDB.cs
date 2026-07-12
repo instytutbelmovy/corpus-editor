@@ -8,6 +8,7 @@ public class GrammarDb(IGrammarRepository grammarRepository)
 
         var matches = await grammarRepository.LookupByNormalizedForm(normalizedWord, cancellationToken);
         var results = matches
+            .Where(m => pickCustomWords || !GrammarIds.IsLocal(m.ParadigmId))
             .Select(ToGrammarInfo)
             .ToList();
 
@@ -29,7 +30,7 @@ public class GrammarDb(IGrammarRepository grammarRepository)
         foreach (var (word, normalizedWord) in normalizedByWord)
         {
             var infos = matchesByNormalized.TryGetValue(normalizedWord, out var matches)
-                ? matches.Select(ToGrammarInfo).ToList()
+                ? matches.Where(m => pickCustomWords || !GrammarIds.IsLocal(m.ParadigmId)).Select(ToGrammarInfo).ToList()
                 : [];
 
             result[word] = infos;
