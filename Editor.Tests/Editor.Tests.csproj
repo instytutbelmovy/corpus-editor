@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Editor.Api\Editor.Api.csproj" />
+    <ProjectReference Include="..\Editor.Services\Editor.Services.csproj" />
   </ItemGroup>
 
 </Project>

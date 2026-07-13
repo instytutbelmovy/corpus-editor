@@ -93,6 +93,12 @@ static void ConfigureServices(WebApplicationBuilder builder)
     builder.Services.AddSingleton<AwsFilesCache>();
     builder.Services.AddSingleton<GrammarDb>();
 
+    builder.Services.AddScoped<EditingService>();
+    builder.Services.AddScoped<RegistryService>();
+    builder.Services.AddScoped<ParadigmService>();
+    builder.Services.AddScoped<UserService>();
+    builder.Services.AddScoped<AuthService>();
+
     builder.Services.AddHostedService<AwsFilesCacheMaintenanceService>();
 
     // Behind a TLS-terminating reverse proxy, honour X-Forwarded-For/Proto so downstream code sees the

@@ -1,5 +1,3 @@
-﻿using Editor.Converters;
-
 namespace Editor;
 
 public static class Registry
@@ -17,30 +15,19 @@ public static class Registry
         group.MapPost("/{n:int}/refresh", ReloadFile).Admin();
     }
 
-    public static ValueTask<ICollection<CorpusDocumentHeader>> GetAllFiles(AwsFilesCache awsFilesCache)
-    {
-        return awsFilesCache.GetAllDocumentHeaders();
-    }
+    private static ValueTask<ICollection<CorpusDocumentHeader>> GetAllFiles(RegistryService registryService)
+        => registryService.GetAllFiles();
 
-    public static async Task<IEnumerable<string>> GetAllTypes(AwsFilesCache awsFilesCache)
-    {
-        var headers = await awsFilesCache.GetAllDocumentHeaders();
-        return headers.Where(x => !string.IsNullOrWhiteSpace(x.Type)).Select(x => x.Type!).Distinct();
-    }
+    private static Task<IEnumerable<string>> GetAllTypes(RegistryService registryService)
+        => registryService.GetAllTypes();
 
-    public static async Task<IEnumerable<string>> GetAllStyles(AwsFilesCache awsFilesCache)
-    {
-        var headers = await awsFilesCache.GetAllDocumentHeaders();
-        return headers.Where(x => !string.IsNullOrWhiteSpace(x.Style)).Select(x => x.Style!).Distinct();
-    }
+    private static Task<IEnumerable<string>> GetAllStyles(RegistryService registryService)
+        => registryService.GetAllStyles();
 
-    public static async Task<IEnumerable<string>> GetAllCorpora(AwsFilesCache awsFilesCache)
-    {
-        var headers = await awsFilesCache.GetAllDocumentHeaders();
-        return headers.Where(x => !string.IsNullOrWhiteSpace(x.Corpus)).Select(x => x.Corpus!).Distinct();
-    }
+    private static Task<IEnumerable<string>> GetAllCorpora(RegistryService registryService)
+        => registryService.GetAllCorpora();
 
-    private static async Task<IResult> UploadFile(HttpRequest request, GrammarDb grammarDb, AwsFilesCache awsFilesCache)
+    private static async Task<IResult> UploadFile(HttpRequest request, RegistryService registryService)
     {
         if (!request.HasFormContentType)
             return Results.BadRequest("Expected multipart/form-data");
@@ -50,103 +37,30 @@ public static class Registry
         if (file == null)
             return Results.BadRequest("'file' not present in the form");
 
-        var n = Convert.ToInt32(form["n"]);
-        var title = form["title"].ToString();
-        var url = form["url"].ToString();
-        var publicationDate = form["publicationDate"].ToString();
-        var type = form["type"].ToString();
-        var style = form["style"].ToString();
-        var corpus = form["corpus"].ToString();
-
-        var extension = Path.GetExtension(file.FileName);
-        var reader = extension switch
-        {
-            ".txt" => (IDocumentReader)new TxtReader(),
-            ".docx" => new DocxReader(),
-            ".epub" => new EpubReader(),
-            ".odt" => new OdtReader(),
-            _ => throw new NotSupportedException($"Unsupported file type: {extension}")
-        };
         await using var stream = file.OpenReadStream();
-        var paragraphs = DocumentConverter.GetParagraphs(stream, reader);
-
-        // Адзін пакетны пошук на ўвесь дакумэнт замест запыту на кожнае слова
-        var allWords = paragraphs
-            .SelectMany(p => p.Sentences)
-            .SelectMany(s => s.SentenceItems)
-            .Where(x => x.Type == SentenceItemType.Word)
-            .Select(x => x.Text)
-            .ToList();
-        var lookups = await grammarDb.LookupWords(allWords);
-
-        paragraphs = paragraphs.Select(p => p with
-        {
-            Sentences = p.Sentences.Select(s => s with
-            {
-                SentenceItems = s.SentenceItems.Select(x => FillObviousGrammar(x, lookups)).ToList(),
-            }).ToList(),
-        }).ToList();
-
-        var percentCompletion = CorpusDocument.ComputeCompletion(paragraphs);
-        var header = new CorpusDocumentHeader(n, title, null, null, publicationDate, url, type, style, corpus)
-        {
-            PercentCompletion = percentCompletion,
-        };
-        var corpusDocument = new CorpusDocument(header, paragraphs.ToList());
-
-        await awsFilesCache.AddFile(corpusDocument);
+        await registryService.UploadFile(new DocumentUploadRequest(
+            N: Convert.ToInt32(form["n"]),
+            FileExtension: Path.GetExtension(file.FileName),
+            Content: stream,
+            Title: form["title"].ToString(),
+            Url: form["url"].ToString(),
+            PublicationDate: form["publicationDate"].ToString(),
+            Type: form["type"].ToString(),
+            Style: form["style"].ToString(),
+            Corpus: form["corpus"].ToString()));
 
         return Results.Ok();
-
-
-        LinguisticItem FillObviousGrammar(LinguisticItem item, IReadOnlyDictionary<string, List<GrammarInfo>> wordLookups)
-        {
-            if (item.Type != SentenceItemType.Word)
-                return item;
-
-            var candidates = wordLookups.TryGetValue(item.Text, out var c) ? c : [];
-            var (paradigmFormId, lemma, linguisticTag) = grammarDb.InferGrammarInfo(candidates);
-            return item with
-            {
-                ParadigmFormId = paradigmFormId,
-                Lemma = lemma,
-                LinguisticTag = linguisticTag,
-                Metadata = paradigmFormId != null && paradigmFormId.IsSingular()
-                    ? new LinguisticItemMetadata(null, DateOnly.FromDateTime(DateTime.UtcNow))
-                    : null,
-            };
-        }
     }
 
-    public static async Task<IResult> DownloadFile(int n, AwsFilesCache awsFilesCache)
+    private static async Task<IResult> DownloadFile(int n, RegistryService registryService)
     {
-        if (n < 0)
-            throw new BadRequestException();
-
-        try
-        {
-            var stream = await awsFilesCache.GetRawFile(n);
-            var fileName = $"{n}.verti";
-
-            return Results.File(stream, "text/plain", fileName);
-        }
-        catch (FileNotFoundException)
-        {
-            throw new NotFoundException();
-        }
+        var (stream, fileName) = await registryService.DownloadFile(n);
+        return Results.File(stream, "text/plain", fileName);
     }
 
-    public static async Task<ICollection<CorpusDocumentHeader>> ReloadFilesList(AwsFilesCache awsFilesCache)
-    {
-        await awsFilesCache.ReloadFilesList();
-        return await awsFilesCache.GetAllDocumentHeaders();
-    }
+    private static Task<ICollection<CorpusDocumentHeader>> ReloadFilesList(RegistryService registryService)
+        => registryService.ReloadFilesList();
 
-    public static async Task<CorpusDocumentHeader> ReloadFile(int n, AwsFilesCache awsFilesCache)
-    {
-        if (n < 0)
-            throw new BadRequestException();
-
-        return await awsFilesCache.ReloadFile(n);
-    }
+    private static Task<CorpusDocumentHeader> ReloadFile(int n, RegistryService registryService)
+        => registryService.ReloadFile(n);
 }
