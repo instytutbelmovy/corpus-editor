@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Editor.Domain", "Editor.Dom
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Editor.DB", "Editor.DB\Editor.DB.csproj", "{39B6BAD4-91C5-493E-8221-9956FA518A11}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Editor.Services", "Editor.Services\Editor.Services.csproj", "{768666E6-452A-43C3-832B-EEBFED2D3304}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,6 +85,18 @@ Global
 		{39B6BAD4-91C5-493E-8221-9956FA518A11}.Release|x64.Build.0 = Release|Any CPU
 		{39B6BAD4-91C5-493E-8221-9956FA518A11}.Release|x86.ActiveCfg = Release|Any CPU
 		{39B6BAD4-91C5-493E-8221-9956FA518A11}.Release|x86.Build.0 = Release|Any CPU
+		{768666E6-452A-43C3-832B-EEBFED2D3304}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{768666E6-452A-43C3-832B-EEBFED2D3304}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{768666E6-452A-43C3-832B-EEBFED2D3304}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{768666E6-452A-43C3-832B-EEBFED2D3304}.Debug|x64.Build.0 = Debug|Any CPU
+		{768666E6-452A-43C3-832B-EEBFED2D3304}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{768666E6-452A-43C3-832B-EEBFED2D3304}.Debug|x86.Build.0 = Debug|Any CPU
+		{768666E6-452A-43C3-832B-EEBFED2D3304}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{768666E6-452A-43C3-832B-EEBFED2D3304}.Release|Any CPU.Build.0 = Release|Any CPU
+		{768666E6-452A-43C3-832B-EEBFED2D3304}.Release|x64.ActiveCfg = Release|Any CPU
+		{768666E6-452A-43C3-832B-EEBFED2D3304}.Release|x64.Build.0 = Release|Any CPU
+		{768666E6-452A-43C3-832B-EEBFED2D3304}.Release|x86.ActiveCfg = Release|Any CPU
+		{768666E6-452A-43C3-832B-EEBFED2D3304}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

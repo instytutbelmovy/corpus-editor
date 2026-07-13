@@ -20,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Editor.DB\Editor.DB.csproj" />
     <ProjectReference Include="..\Editor.Domain\Editor.Domain.csproj" />
+    <ProjectReference Include="..\Editor.Services\Editor.Services.csproj" />
   </ItemGroup>
 
   <ItemGroup>
