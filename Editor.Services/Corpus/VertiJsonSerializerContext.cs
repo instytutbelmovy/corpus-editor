@@ -4,6 +4,6 @@ namespace Editor;
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(LinguisticItemMetadata))]
-internal partial class VertiJsonSerializerContext : JsonSerializerContext
+public partial class VertiJsonSerializerContext : JsonSerializerContext
 {
 }
