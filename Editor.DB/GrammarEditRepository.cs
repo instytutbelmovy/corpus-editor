@@ -2,14 +2,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Editor;
 
-public class GrammarEditRepository(IDbContextFactory<GrammarDbContext> contextFactory) : IGrammarEditRepository
+public class GrammarEditRepository(GrammarDbContext db) : IGrammarEditRepository
 {
     // Не інтэрпаляваны радок у самім выкліку Raw (пазьбягаем EF1002); імя паслядоўнасьці — канстанта, не ўвод карыстальніка
     private const string NextLocalIdSql = $"SELECT nextval('{GrammarIds.LocalParadigmIdSequence}') AS \"Value\"";
 
     public async Task<int> CreateLocalParadigm(Paradigm paradigm, CancellationToken cancellationToken = default)
     {
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
         await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
 
         var id = (int)await db.Database.SqlQueryRaw<long>(NextLocalIdSql).SingleAsync(cancellationToken);
@@ -30,7 +29,6 @@ public class GrammarEditRepository(IDbContextFactory<GrammarDbContext> contextFa
         EnsureLocal(paradigm.ParadigmId);
         paradigm.Source = ParadigmSource.Local;
 
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
         await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
 
         // Выдаляем стары радок + яго forms, потым устаўляем нанова — прасьцей за attach/Update пры NoTracking
@@ -48,7 +46,6 @@ public class GrammarEditRepository(IDbContextFactory<GrammarDbContext> contextFa
     {
         EnsureLocal(paradigmId);
 
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
         await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
 
         await db.Forms.Where(f => f.ParadigmId == paradigmId).ExecuteDeleteAsync(cancellationToken);
@@ -60,8 +57,6 @@ public class GrammarEditRepository(IDbContextFactory<GrammarDbContext> contextFa
 
     public async Task HideParadigm(int paradigmId, string? hiddenBy, CancellationToken cancellationToken = default)
     {
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
-
         var alreadyHidden = await db.HiddenParadigms.AnyAsync(h => h.ParadigmId == paradigmId, cancellationToken);
         if (alreadyHidden)
             return;
@@ -77,13 +72,11 @@ public class GrammarEditRepository(IDbContextFactory<GrammarDbContext> contextFa
 
     public async Task UnhideParadigm(int paradigmId, CancellationToken cancellationToken = default)
     {
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
         await db.HiddenParadigms.Where(h => h.ParadigmId == paradigmId).ExecuteDeleteAsync(cancellationToken);
     }
 
     public async Task<ParadigmDetail?> GetParadigm(int paradigmId, CancellationToken cancellationToken = default)
     {
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
         var paradigm = await db.Paradigms.FirstOrDefaultAsync(p => p.ParadigmId == paradigmId, cancellationToken);
         if (paradigm == null)
             return null;
@@ -93,8 +86,6 @@ public class GrammarEditRepository(IDbContextFactory<GrammarDbContext> contextFa
 
     public async Task<IReadOnlyList<ParadigmSummary>> SearchParadigms(string lemmaQuery, int limit, CancellationToken cancellationToken = default)
     {
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
-
         var pattern = $"%{lemmaQuery}%";
         var rows = await db.Paradigms
             .Where(p => EF.Functions.ILike(p.Lemma, pattern))

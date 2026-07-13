@@ -66,18 +66,20 @@ static void ConfigureServices(WebApplicationBuilder builder)
     if (string.IsNullOrEmpty(grammarConnectionString))
         throw new InvalidOperationException("Grammar database is not configured. Please set 'ConnectionStrings:GrammarDb' in the configuration.");
 
-    builder.Services.AddPooledDbContextFactory<EditorDbContext>(options =>
+    builder.Services.AddDbContext<EditorDbContext>(options =>
         options.UseNpgsql(editorConnectionString).UseSnakeCaseNamingConvention());
-    builder.Services.AddPooledDbContextFactory<GrammarDbContext>(options =>
+    builder.Services.AddDbContext<GrammarDbContext>(options =>
         options.UseNpgsql(grammarConnectionString).UseSnakeCaseNamingConvention()
             .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
 
-    builder.Services.AddSingleton<IUserRepository, UserRepository>();
-    builder.Services.AddSingleton<IGrammarRepository, GrammarRepository>();
-    builder.Services.AddSingleton<IGrammarEditRepository, GrammarEditRepository>();
+    // Scoped-рэпазыторыі падзяляюць DbContext свайго запыту. Будучы singleton, якому спатрэбіцца
+    // рэпазыторый, мусіць разьвязаць яго ў scope праз IServiceScopeFactory (сёньня такіх няма).
+    builder.Services.AddScoped<IUserRepository, UserRepository>();
+    builder.Services.AddScoped<IGrammarRepository, GrammarRepository>();
+    builder.Services.AddScoped<IGrammarEditRepository, GrammarEditRepository>();
 
-    builder.Services.AddSingleton<EditorUserStore>();
-    builder.Services.AddSingleton<IUserStore<EditorUser>>(serviceProvider => serviceProvider.GetRequiredService<EditorUserStore>());
+    builder.Services.AddScoped<EditorUserStore>();
+    builder.Services.AddScoped<IUserStore<EditorUser>>(serviceProvider => serviceProvider.GetRequiredService<EditorUserStore>());
 
     var emailSettings = builder.RegisterSettings<EmailSettings>("Email");
     if (string.IsNullOrEmpty(emailSettings.Domain) || string.IsNullOrEmpty(emailSettings.ApiKey))
@@ -91,8 +93,8 @@ static void ConfigureServices(WebApplicationBuilder builder)
 
     builder.Services.AddSingleton<ICorpusStorage, S3CorpusStorage>();
     builder.Services.AddSingleton<AwsFilesCache>();
-    builder.Services.AddSingleton<GrammarDb>();
 
+    builder.Services.AddScoped<GrammarDb>();
     builder.Services.AddScoped<EditingService>();
     builder.Services.AddScoped<RegistryService>();
     builder.Services.AddScoped<ParadigmService>();
@@ -176,10 +178,11 @@ static void ConfigureIdentity(WebApplicationBuilder builder)
 static void ConfigurePipeline(WebApplication app)
 {
     // Міграцыі абедзвюх баз ужываюцца аўтаматычна пры старце дадатку
-    using (var editorDb = app.Services.GetRequiredService<IDbContextFactory<EditorDbContext>>().CreateDbContext())
-        editorDb.Database.Migrate();
-    using (var grammarDb = app.Services.GetRequiredService<IDbContextFactory<GrammarDbContext>>().CreateDbContext())
-        grammarDb.Database.Migrate();
+    using (var scope = app.Services.CreateScope())
+    {
+        scope.ServiceProvider.GetRequiredService<EditorDbContext>().Database.Migrate();
+        scope.ServiceProvider.GetRequiredService<GrammarDbContext>().Database.Migrate();
+    }
 
     app.Services.InitLoggerFor(nameof(ExceptionMiddleware), ExceptionMiddleware.InitializeLogging);
     app.Services.InitLoggerFor(nameof(VertiIO), VertiIO.InitializeLogging);

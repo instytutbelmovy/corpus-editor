@@ -3,15 +3,13 @@ using Npgsql;
 
 namespace Editor;
 
-public class GrammarRepository(IDbContextFactory<GrammarDbContext> contextFactory) : IGrammarRepository
+public class GrammarRepository(GrammarDbContext db) : IGrammarRepository
 {
     /// <summary> Колькі нармалізаваных формаў пытаць за адзін запыт, каб масівы параметраў не раслі бязьмежна </summary>
     private const int LookupBatchSize = 500;
 
     public async Task<IReadOnlyList<FormMatch>> LookupByNormalizedForm(string normalizedForm, CancellationToken cancellationToken = default)
     {
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
-
         // Схаваныя парадыгмы (оверлэй hidden_paradigms) не прапануюцца як кандыдаты
         var rows = await (from form in db.Forms
                           join paradigm in db.Paradigms on form.ParadigmId equals paradigm.ParadigmId
@@ -38,8 +36,6 @@ public class GrammarRepository(IDbContextFactory<GrammarDbContext> contextFactor
             return new Dictionary<string, IReadOnlyList<FormMatch>>();
 
         var distinct = normalizedForms.Distinct().ToArray();
-
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
 
         // Разьбіваем на порцыі, каб масіў у `= ANY(...)` не рос бязьмежна на вялікіх дакумэнтах
         for (var offset = 0; offset < distinct.Length; offset += LookupBatchSize)
@@ -82,7 +78,6 @@ public class GrammarRepository(IDbContextFactory<GrammarDbContext> contextFactor
         if (variantId == null)
             return null;
 
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
         var paradigm = await db.Paradigms.SingleOrDefaultAsync(p => p.ParadigmId == paradigmId, cancellationToken);
         var variant = paradigm?.Variants.FirstOrDefault(v => v.Id == variantId);
         return variant == null ? null : (variant.Lemma, variant.Tag);
@@ -90,7 +85,6 @@ public class GrammarRepository(IDbContextFactory<GrammarDbContext> contextFactor
 
     public async Task<bool> HasData(CancellationToken cancellationToken = default)
     {
-        await using var db = await contextFactory.CreateDbContextAsync(cancellationToken);
         try
         {
             return await db.Paradigms.AnyAsync(cancellationToken);
