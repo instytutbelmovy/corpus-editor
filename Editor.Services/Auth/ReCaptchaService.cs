@@ -2,7 +2,12 @@ using System.Text.Json;
 
 namespace Editor;
 
-public class ReCaptchaService
+public interface IReCaptchaService
+{
+    Task<bool> VerifyTokenAsync(string token, string? remoteIp = null);
+}
+
+public class ReCaptchaService : IReCaptchaService
 {
     private readonly HttpClient _httpClient;
     private readonly ReCaptchaSettings _settings;

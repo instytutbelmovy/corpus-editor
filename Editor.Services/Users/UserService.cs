@@ -2,11 +2,19 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Editor;
 
+public interface IUserService
+{
+    Task<IEnumerable<EditorUserDto>> GetAllUsers();
+    Task<EditorUserDto> CreateUser(EditorUserCreateDto request);
+    Task<EditorUserDto> UpdateUser(string id, EditorUserCreateDto request);
+    Task InviteUser(string inviteeUserId, string inviterUserId);
+}
+
 public class UserService(
     IUserRepository userRepository,
     UserManager<EditorUser> userManager,
-    EmailService emailService,
-    AppSettings appSettings)
+    IEmailService emailService,
+    AppSettings appSettings) : IUserService
 {
     public async Task<IEnumerable<EditorUserDto>> GetAllUsers()
     {

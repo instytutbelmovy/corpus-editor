@@ -18,30 +18,30 @@ public static class Editing
         group.MapPut("/{id}/metadata", PutMetadata).Editor();
     }
 
-    private static Task<CorpusDocumentView> GetDocument(int n, EditingService editingService, int skipUpToId = 0, int take = 20)
+    private static Task<CorpusDocumentView> GetDocument(int n, IEditingService editingService, int skipUpToId = 0, int take = 20)
         => editingService.GetDocument(n, skipUpToId, take);
 
-    private static Task PutParadigmFormId(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] ParadigmFormId paradigmFormId, EditingService editingService)
+    private static Task PutParadigmFormId(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] ParadigmFormId paradigmFormId, IEditingService editingService)
         => editingService.PutParadigmFormId(n, paragraphId, paragraphStamp, sentenceId, sentenceStamp, wordIndex, paradigmFormId);
 
-    private static Task PutLemmaTags(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] LemmaTag lemmaTag, EditingService editingService)
+    private static Task PutLemmaTags(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] LemmaTag lemmaTag, IEditingService editingService)
         => editingService.PutLemmaTags(n, paragraphId, paragraphStamp, sentenceId, sentenceStamp, wordIndex, lemmaTag);
 
-    private static Task<IEnumerable<GrammarInfo>> PutText(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] string text, EditingService editingService)
+    private static Task<IEnumerable<GrammarInfo>> PutText(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] string text, IEditingService editingService)
         => editingService.PutText(n, paragraphId, paragraphStamp, sentenceId, sentenceStamp, wordIndex, text);
 
-    private static Task PutComment(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] string comment, EditingService editingService)
+    private static Task PutComment(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] string comment, IEditingService editingService)
         => editingService.PutComment(n, paragraphId, paragraphStamp, sentenceId, sentenceStamp, wordIndex, comment);
 
-    private static Task PutErrorType(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] LinguisticErrorType errorType, EditingService editingService)
+    private static Task PutErrorType(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, [FromBody] LinguisticErrorType errorType, IEditingService editingService)
         => editingService.PutErrorType(n, paragraphId, paragraphStamp, sentenceId, sentenceStamp, wordIndex, errorType);
 
-    private static Task<DocumentEditResponse> EditDocument(int n, DocumentEditRequest request, EditingService editingService)
+    private static Task<DocumentEditResponse> EditDocument(int n, DocumentEditRequest request, IEditingService editingService)
         => editingService.EditDocument(n, request);
 
-    private static ValueTask<CorpusDocumentHeader> GetMetadata(int id, EditingService editingService)
+    private static ValueTask<CorpusDocumentHeader> GetMetadata(int id, IEditingService editingService)
         => editingService.GetMetadata(id);
 
-    private static Task PutMetadata(int id, UpdateMetadataRequest request, EditingService editingService)
+    private static Task PutMetadata(int id, UpdateMetadataRequest request, IEditingService editingService)
         => editingService.PutMetadata(id, request);
 }

@@ -2,7 +2,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace Editor;
 
-public class AwsFilesCacheMaintenanceService(AwsFilesCache awsFilesCache, ILogger<AwsFilesCacheMaintenanceService> logger) : BackgroundService
+public class AwsFilesCacheMaintenanceService(IAwsFilesCache awsFilesCache, ILogger<AwsFilesCacheMaintenanceService> logger) : BackgroundService
 {
     private readonly TimeSpan _checkInterval = TimeSpan.FromMinutes(5);
 

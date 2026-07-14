@@ -1,6 +1,17 @@
 namespace Editor;
 
-public class ParadigmService(IGrammarEditRepository grammarEditRepository)
+public interface IParadigmService
+{
+    Task<List<ParadigmSummaryResponse>> SearchParadigms(string query, CancellationToken cancellationToken = default);
+    Task<ParadigmResponse> GetParadigm(int id, CancellationToken cancellationToken = default);
+    Task<CreatedParadigmResponse> CreateParadigm(ParadigmCreateVm createVm, CancellationToken cancellationToken = default);
+    Task<ParadigmResponse> UpdateParadigm(int id, ParadigmCreateVm createVm, CancellationToken cancellationToken = default);
+    Task DeleteParadigm(int id, CancellationToken cancellationToken = default);
+    Task HideParadigm(int id, string? userId, CancellationToken cancellationToken = default);
+    Task UnhideParadigm(int id, CancellationToken cancellationToken = default);
+}
+
+public class ParadigmService(IGrammarEditRepository grammarEditRepository) : IParadigmService
 {
     public async Task<List<ParadigmSummaryResponse>> SearchParadigms(string query, CancellationToken cancellationToken = default)
     {

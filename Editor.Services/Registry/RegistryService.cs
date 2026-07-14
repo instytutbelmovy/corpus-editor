@@ -2,7 +2,19 @@ using Editor.Converters;
 
 namespace Editor;
 
-public class RegistryService(GrammarDb grammarDb, AwsFilesCache awsFilesCache)
+public interface IRegistryService
+{
+    ValueTask<ICollection<CorpusDocumentHeader>> GetAllFiles();
+    Task<IEnumerable<string>> GetAllTypes();
+    Task<IEnumerable<string>> GetAllStyles();
+    Task<IEnumerable<string>> GetAllCorpora();
+    Task UploadFile(DocumentUploadRequest request);
+    Task<(Stream Stream, string FileName)> DownloadFile(int n);
+    Task<ICollection<CorpusDocumentHeader>> ReloadFilesList();
+    Task<CorpusDocumentHeader> ReloadFile(int n);
+}
+
+public class RegistryService(IGrammarDb grammarDb, IAwsFilesCache awsFilesCache) : IRegistryService
 {
     public ValueTask<ICollection<CorpusDocumentHeader>> GetAllFiles()
     {

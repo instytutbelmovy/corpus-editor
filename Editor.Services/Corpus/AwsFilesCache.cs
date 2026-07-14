@@ -2,7 +2,25 @@ using System.Collections.Concurrent;
 
 namespace Editor;
 
-public class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache>? logger)
+public interface IAwsFilesCache
+{
+    void Initialize();
+    Task ReloadFilesList();
+    Task<CorpusDocument> GetFileForRead(int n);
+    Task<(IDisposable documentLock, CorpusDocument document)> GetFileForWrite(int n, bool markPendingChangesUponCompletion);
+    Task<CorpusDocumentHeader> ReloadFile(int n);
+    Task<Stream> GetRawFile(int n);
+
+    /// <summary> Only to be called within a write lock obtained from GetFileForWrite. </summary>
+    Task FlushFile(int n);
+    ValueTask<ICollection<CorpusDocumentHeader>> GetAllDocumentHeaders();
+    ValueTask<CorpusDocumentHeader> GetDocumentHeader(int n);
+    void UpdateHeaderCache(int id, CorpusDocumentHeader header);
+    Task AddFile(CorpusDocument corpusDocument);
+    Task UploadPendingAndPurgeCache();
+}
+
+public class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache>? logger) : IAwsFilesCache
 {
     private static readonly TimeSpan UnloadingAge = TimeSpan.FromMinutes(10);
     private readonly ConcurrentDictionary<int, CorpusDocumentHeader> _documentHeaders = new();

@@ -2,12 +2,21 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Editor;
 
+public interface IAuthService
+{
+    /// <summary> Праверка captcha + стварэньне першага карыстальніка як адміна + адмова бяз ролі.
+    /// Вяртае карыстальніка; выклікальнік сам робіць PasswordSignInAsync і мапіць вынік. </summary>
+    Task<EditorUser> ResolveSignInUser(SignInRequest request, string? remoteIp);
+    Task ForgotPassword(ForgotPasswordRequest request, string? remoteIp);
+    Task ResetPassword(ResetPasswordRequest request, string? remoteIp);
+}
+
 public class AuthService(
     UserManager<EditorUser> userManager,
     IUserRepository userRepository,
-    ReCaptchaService reCaptchaService,
-    EmailService emailService,
-    AppSettings appSettings)
+    IReCaptchaService reCaptchaService,
+    IEmailService emailService,
+    AppSettings appSettings) : IAuthService
 {
     /// <summary> Праверка captcha + стварэньне першага карыстальніка як адміна + адмова бяз ролі.
     /// Вяртае карыстальніка; выклікальнік сам робіць PasswordSignInAsync і мапіць вынік. </summary>

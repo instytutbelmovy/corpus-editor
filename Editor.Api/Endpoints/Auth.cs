@@ -19,7 +19,7 @@ public static class Auth
 
     private static async Task<WhoAmIResponse> SignIn(
         [FromBody] SignInRequest request,
-        AuthService authService,
+        IAuthService authService,
         SignInManager<EditorUser> signInManager,
         HttpContext httpContext)
     {
@@ -50,13 +50,13 @@ public static class Auth
 
     private static Task ForgotPassword(
         [FromBody] ForgotPasswordRequest request,
-        AuthService authService,
+        IAuthService authService,
         HttpContext httpContext)
         => authService.ForgotPassword(request, httpContext.Connection.RemoteIpAddress?.ToString());
 
     private static Task ResetPassword(
         [FromBody] ResetPasswordRequest request,
-        AuthService authService,
+        IAuthService authService,
         HttpContext httpContext)
         => authService.ResetPassword(request, httpContext.Connection.RemoteIpAddress?.ToString());
 

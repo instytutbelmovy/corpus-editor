@@ -15,19 +15,19 @@ public static class Registry
         group.MapPost("/{n:int}/refresh", ReloadFile).Admin();
     }
 
-    private static ValueTask<ICollection<CorpusDocumentHeader>> GetAllFiles(RegistryService registryService)
+    private static ValueTask<ICollection<CorpusDocumentHeader>> GetAllFiles(IRegistryService registryService)
         => registryService.GetAllFiles();
 
-    private static Task<IEnumerable<string>> GetAllTypes(RegistryService registryService)
+    private static Task<IEnumerable<string>> GetAllTypes(IRegistryService registryService)
         => registryService.GetAllTypes();
 
-    private static Task<IEnumerable<string>> GetAllStyles(RegistryService registryService)
+    private static Task<IEnumerable<string>> GetAllStyles(IRegistryService registryService)
         => registryService.GetAllStyles();
 
-    private static Task<IEnumerable<string>> GetAllCorpora(RegistryService registryService)
+    private static Task<IEnumerable<string>> GetAllCorpora(IRegistryService registryService)
         => registryService.GetAllCorpora();
 
-    private static async Task<IResult> UploadFile(HttpRequest request, RegistryService registryService)
+    private static async Task<IResult> UploadFile(HttpRequest request, IRegistryService registryService)
     {
         if (!request.HasFormContentType)
             return Results.BadRequest("Expected multipart/form-data");
@@ -52,15 +52,15 @@ public static class Registry
         return Results.Ok();
     }
 
-    private static async Task<IResult> DownloadFile(int n, RegistryService registryService)
+    private static async Task<IResult> DownloadFile(int n, IRegistryService registryService)
     {
         var (stream, fileName) = await registryService.DownloadFile(n);
         return Results.File(stream, "text/plain", fileName);
     }
 
-    private static Task<ICollection<CorpusDocumentHeader>> ReloadFilesList(RegistryService registryService)
+    private static Task<ICollection<CorpusDocumentHeader>> ReloadFilesList(IRegistryService registryService)
         => registryService.ReloadFilesList();
 
-    private static Task<CorpusDocumentHeader> ReloadFile(int n, RegistryService registryService)
+    private static Task<CorpusDocumentHeader> ReloadFile(int n, IRegistryService registryService)
         => registryService.ReloadFile(n);
 }

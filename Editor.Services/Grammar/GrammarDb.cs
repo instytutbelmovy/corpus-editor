@@ -1,6 +1,18 @@
 namespace Editor;
 
-public class GrammarDb(IGrammarRepository grammarRepository)
+public interface IGrammarDb
+{
+    Task<List<GrammarInfo>> LookupWord(string word, CancellationToken cancellationToken = default);
+
+    /// <summary> Пакетны пошук: адзін зварот да базы на ўсе словы, вынік па кожным зыходным слове </summary>
+    Task<Dictionary<string, List<GrammarInfo>>> LookupWords(IReadOnlyCollection<string> words, CancellationToken cancellationToken = default);
+
+    Task<(string, LinguisticTag)> GetLemmaAndLinguisticTag(ParadigmFormId paradigmFormId, CancellationToken cancellationToken = default);
+
+    (ParadigmFormId?, string?, LinguisticTag?) InferGrammarInfo(List<GrammarInfo> grammarInfoList);
+}
+
+public class GrammarDb(IGrammarRepository grammarRepository) : IGrammarDb
 {
     public async Task<List<GrammarInfo>> LookupWord(string word, CancellationToken cancellationToken = default)
     {

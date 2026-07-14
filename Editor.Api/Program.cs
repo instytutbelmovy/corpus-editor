@@ -83,21 +83,24 @@ static void ConfigureServices(WebApplicationBuilder builder)
     if (string.IsNullOrEmpty(emailSettings.Domain) || string.IsNullOrEmpty(emailSettings.ApiKey))
         throw new InvalidOperationException("Email SMTP settings are not configured. Please set 'EmailSettings:SmtpHost' and 'EmailSettings:SmtpPort' in the configuration.");
     builder.Services.AddHttpClient<EmailService>();
+    builder.Services.AddTransient<IEmailService>(sp => sp.GetRequiredService<EmailService>());
 
     builder.RegisterSettings<ReCaptchaSettings>("ReCaptcha");
     builder.Services.AddHttpClient<ReCaptchaService>();
+    builder.Services.AddTransient<IReCaptchaService>(sp => sp.GetRequiredService<ReCaptchaService>());
 
     builder.Services.AddValidatorsFromAssemblyContaining<SignInRequest>();
 
     builder.Services.AddSingleton<ICorpusStorage, S3CorpusStorage>();
     builder.Services.AddSingleton<AwsFilesCache>();
+    builder.Services.AddSingleton<IAwsFilesCache>(sp => sp.GetRequiredService<AwsFilesCache>());
 
-    builder.Services.AddScoped<GrammarDb>();
-    builder.Services.AddScoped<EditingService>();
-    builder.Services.AddScoped<RegistryService>();
-    builder.Services.AddScoped<ParadigmService>();
-    builder.Services.AddScoped<UserService>();
-    builder.Services.AddScoped<AuthService>();
+    builder.Services.AddScoped<IGrammarDb, GrammarDb>();
+    builder.Services.AddScoped<IEditingService, EditingService>();
+    builder.Services.AddScoped<IRegistryService, RegistryService>();
+    builder.Services.AddScoped<IParadigmService, ParadigmService>();
+    builder.Services.AddScoped<IUserService, UserService>();
+    builder.Services.AddScoped<IAuthService, AuthService>();
 
     builder.Services.AddHostedService<AwsFilesCacheMaintenanceService>();
 

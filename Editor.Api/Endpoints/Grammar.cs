@@ -19,30 +19,30 @@ public static class Grammar
     }
 
     private static Task<List<ParadigmSummaryResponse>> SearchParadigms(
-        [FromQuery] string query, ParadigmService paradigmService, CancellationToken cancellationToken)
+        [FromQuery] string query, IParadigmService paradigmService, CancellationToken cancellationToken)
         => paradigmService.SearchParadigms(query, cancellationToken);
 
     private static Task<ParadigmResponse> GetParadigm(
-        int id, ParadigmService paradigmService, CancellationToken cancellationToken)
+        int id, IParadigmService paradigmService, CancellationToken cancellationToken)
         => paradigmService.GetParadigm(id, cancellationToken);
 
     private static Task<CreatedParadigmResponse> CreateParadigm(
-        [FromBody] ParadigmCreateVm createVm, ParadigmService paradigmService, CancellationToken cancellationToken)
+        [FromBody] ParadigmCreateVm createVm, IParadigmService paradigmService, CancellationToken cancellationToken)
         => paradigmService.CreateParadigm(createVm, cancellationToken);
 
     private static Task<ParadigmResponse> UpdateParadigm(
-        int id, [FromBody] ParadigmCreateVm createVm, ParadigmService paradigmService, CancellationToken cancellationToken)
+        int id, [FromBody] ParadigmCreateVm createVm, IParadigmService paradigmService, CancellationToken cancellationToken)
         => paradigmService.UpdateParadigm(id, createVm, cancellationToken);
 
     private static Task DeleteParadigm(
-        int id, ParadigmService paradigmService, CancellationToken cancellationToken)
+        int id, IParadigmService paradigmService, CancellationToken cancellationToken)
         => paradigmService.DeleteParadigm(id, cancellationToken);
 
     private static Task HideParadigm(
-        int id, ClaimsPrincipal user, ParadigmService paradigmService, CancellationToken cancellationToken)
+        int id, ClaimsPrincipal user, IParadigmService paradigmService, CancellationToken cancellationToken)
         => paradigmService.HideParadigm(id, user.GetUserId(), cancellationToken);
 
     private static Task UnhideParadigm(
-        int id, ParadigmService paradigmService, CancellationToken cancellationToken)
+        int id, IParadigmService paradigmService, CancellationToken cancellationToken)
         => paradigmService.UnhideParadigm(id, cancellationToken);
 }

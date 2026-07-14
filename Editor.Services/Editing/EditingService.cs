@@ -1,6 +1,19 @@
 namespace Editor;
 
-public class EditingService(GrammarDb grammarDb, AwsFilesCache awsFilesCache)
+public interface IEditingService
+{
+    Task<CorpusDocumentView> GetDocument(int n, int skipUpToId = 0, int take = 20);
+    Task PutParadigmFormId(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, ParadigmFormId paradigmFormId);
+    Task PutLemmaTags(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, LemmaTag lemmaTag);
+    Task<IEnumerable<GrammarInfo>> PutText(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, string text);
+    Task PutComment(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, string comment);
+    Task PutErrorType(int n, int paragraphId, Guid paragraphStamp, int sentenceId, Guid sentenceStamp, int wordIndex, LinguisticErrorType errorType);
+    Task<DocumentEditResponse> EditDocument(int n, DocumentEditRequest request);
+    ValueTask<CorpusDocumentHeader> GetMetadata(int id);
+    Task PutMetadata(int id, UpdateMetadataRequest request);
+}
+
+public class EditingService(IGrammarDb grammarDb, IAwsFilesCache awsFilesCache) : IEditingService
 {
     public async Task<CorpusDocumentView> GetDocument(int n, int skipUpToId = 0, int take = 20)
     {

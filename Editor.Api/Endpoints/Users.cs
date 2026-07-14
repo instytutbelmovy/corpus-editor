@@ -14,15 +14,15 @@ public static class Users
         group.MapPost("/{id}/invite", InviteUser).Validate<InviteUserRequest>().Admin();
     }
 
-    private static Task<IEnumerable<EditorUserDto>> GetAllUsers(UserService userService)
+    private static Task<IEnumerable<EditorUserDto>> GetAllUsers(IUserService userService)
         => userService.GetAllUsers();
 
-    private static Task<EditorUserDto> CreateUser([FromBody] EditorUserCreateDto request, UserService userService)
+    private static Task<EditorUserDto> CreateUser([FromBody] EditorUserCreateDto request, IUserService userService)
         => userService.CreateUser(request);
 
-    private static Task<EditorUserDto> UpdateUser([FromRoute] string id, [FromBody] EditorUserCreateDto request, UserService userService)
+    private static Task<EditorUserDto> UpdateUser([FromRoute] string id, [FromBody] EditorUserCreateDto request, IUserService userService)
         => userService.UpdateUser(id, request);
 
-    private static Task InviteUser([FromBody] InviteUserRequest request, ClaimsPrincipal user, UserService userService)
+    private static Task InviteUser([FromBody] InviteUserRequest request, ClaimsPrincipal user, IUserService userService)
         => userService.InviteUser(request.UserId, user.GetUserId()!);
 }

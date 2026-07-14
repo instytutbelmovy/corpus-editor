@@ -3,7 +3,12 @@ using System.Text.Json;
 
 namespace Editor;
 
-public class EmailService
+public interface IEmailService
+{
+    Task SendAsync(EmailMessage message);
+}
+
+public class EmailService : IEmailService
 {
     private readonly EmailSettings _emailSettings;
     private readonly ILogger<EmailService> _logger;
