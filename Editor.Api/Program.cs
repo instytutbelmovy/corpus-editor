@@ -70,39 +70,26 @@ static void ConfigureServices(WebApplicationBuilder builder)
         options.UseNpgsql(grammarConnectionString).UseSnakeCaseNamingConvention()
             .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
 
-    // Scoped-рэпазыторыі падзяляюць DbContext свайго запыту. Будучы singleton, якому спатрэбіцца
-    // рэпазыторый, мусіць разьвязаць яго ў scope праз IServiceScopeFactory (сёньня такіх няма).
-    builder.Services.AddScoped<IUserRepository, UserRepository>();
-    builder.Services.AddScoped<IGrammarRepository, GrammarRepository>();
-    builder.Services.AddScoped<IGrammarEditRepository, GrammarEditRepository>();
-
     builder.Services.AddScoped<EditorUserStore>();
     builder.Services.AddScoped<IUserStore<EditorUser>>(serviceProvider => serviceProvider.GetRequiredService<EditorUserStore>());
 
     var emailSettings = builder.RegisterSettings<EmailSettings>("Email");
     if (string.IsNullOrEmpty(emailSettings.Domain) || string.IsNullOrEmpty(emailSettings.ApiKey))
         throw new InvalidOperationException("Email SMTP settings are not configured. Please set 'EmailSettings:SmtpHost' and 'EmailSettings:SmtpPort' in the configuration.");
-    builder.Services.AddHttpClient<EmailService>();
-    builder.Services.AddTransient<IEmailService>(sp => sp.GetRequiredService<EmailService>());
+    builder.Services.AddHttpClient<IEmailService, EmailService>();
 
     builder.RegisterSettings<ReCaptchaSettings>("ReCaptcha");
-    builder.Services.AddHttpClient<ReCaptchaService>();
-    builder.Services.AddTransient<IReCaptchaService>(sp => sp.GetRequiredService<ReCaptchaService>());
+    builder.Services.AddHttpClient<IReCaptchaService, ReCaptchaService>();
 
     builder.Services.AddValidatorsFromAssemblyContaining<SignInRequest>();
 
     builder.Services.AddSingleton<ICorpusStorage, S3CorpusStorage>();
-    builder.Services.AddSingleton<AwsFilesCache>();
-    builder.Services.AddSingleton<IAwsFilesCache>(sp => sp.GetRequiredService<AwsFilesCache>());
-
-    builder.Services.AddScoped<IGrammarDb, GrammarDb>();
-    builder.Services.AddScoped<IEditingService, EditingService>();
-    builder.Services.AddScoped<IRegistryService, RegistryService>();
-    builder.Services.AddScoped<IParadigmService, ParadigmService>();
-    builder.Services.AddScoped<IUserService, UserService>();
-    builder.Services.AddScoped<IAuthService, AuthService>();
+    builder.Services.AddSingleton<IAwsFilesCache, AwsFilesCache>();
 
     builder.Services.AddHostedService<AwsFilesCacheMaintenanceService>();
+
+    builder.Services.AddConventionalServices(typeof(EditingService).Assembly); // Editor.Services
+    builder.Services.AddConventionalServices(typeof(UserRepository).Assembly); // Editor.DB
 
     // Behind a TLS-terminating reverse proxy, honour X-Forwarded-For/Proto so downstream code sees the
     // real client IP (reCAPTCHA remoteip, rate limiting) and scheme (HTTPS redirection).
