@@ -33,7 +33,7 @@ public class EmailService
             new("to", message.To),
             new("subject", message.Subject),
             new("template", message.Template),
-            new("h:X-Mailgun-Variables", JsonSerializer.Serialize(message.TemplateArguments, ServicesJsonSerializerContext.Default.DictionaryStringString)),
+            new("h:X-Mailgun-Variables", JsonSerializer.Serialize(message.TemplateArguments, EmailJsonSerializerContext.Default.DictionaryStringString)),
         };
 
         var content = new FormUrlEncodedContent(formData);

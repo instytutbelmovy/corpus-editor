@@ -42,7 +42,7 @@ public class ReCaptchaService
             return false;
 
         var jsonResponse = await response.Content.ReadAsStringAsync();
-        var result = JsonSerializer.Deserialize(jsonResponse, ServicesJsonSerializerContext.Default.ReCaptchaResponse);
+        var result = JsonSerializer.Deserialize(jsonResponse, ReCaptchaJsonSerializerContext.Default.ReCaptchaResponse);
 
         return result is { Success: true, Score: >= 0.5 };
     }

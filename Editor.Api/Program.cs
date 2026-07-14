@@ -52,11 +52,8 @@ static void ConfigureServices(WebApplicationBuilder builder)
     builder.Services.ConfigureHttpJsonOptions(options =>
     {
         options.SerializerOptions.TypeInfoResolverChain.Insert(0, InfrastructureJsonSerializerContext.Default);
-        options.SerializerOptions.TypeInfoResolverChain.Insert(1, EditorJsonSerializerContext.Default);
+        options.SerializerOptions.TypeInfoResolverChain.Insert(1, ServicesJsonSerializerContext.Default);
         options.SerializerOptions.TypeInfoResolverChain.Insert(2, VertiJsonSerializerContext.Default);
-        options.SerializerOptions.TypeInfoResolverChain.Insert(3, AuthJsonSerializerContext.Default);
-        options.SerializerOptions.TypeInfoResolverChain.Insert(4, AdministrationJsonSerializerContext.Default);
-        options.SerializerOptions.TypeInfoResolverChain.Insert(5, GrammarApiJsonSerializerContext.Default);
     });
 
     var editorConnectionString = builder.Configuration.GetConnectionString("EditorDb");
