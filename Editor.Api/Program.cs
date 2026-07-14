@@ -64,7 +64,8 @@ static void ConfigureServices(WebApplicationBuilder builder)
         throw new InvalidOperationException("Grammar database is not configured. Please set 'ConnectionStrings:GrammarDb' in the configuration.");
 
     builder.Services.AddDbContext<EditorDbContext>(options =>
-        options.UseNpgsql(editorConnectionString).UseSnakeCaseNamingConvention());
+        options.UseNpgsql(editorConnectionString).UseSnakeCaseNamingConvention()
+            .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
     builder.Services.AddDbContext<GrammarDbContext>(options =>
         options.UseNpgsql(grammarConnectionString).UseSnakeCaseNamingConvention()
             .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));

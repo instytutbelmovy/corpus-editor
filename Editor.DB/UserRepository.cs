@@ -17,37 +17,51 @@ public class UserRepository(EditorDbContext db) : IUserRepository
 
     public async Task<EditorUser?> FindByIdAsync(string userId, CancellationToken cancellationToken = default)
     {
-        return await db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Id == userId, cancellationToken);
+        return await db.Users.SingleOrDefaultAsync(u => u.Id == userId, cancellationToken);
     }
 
     public async Task<EditorUser?> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken = default)
     {
-        return await db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.NormalizedUserName == normalizedUserName, cancellationToken);
+        return await db.Users.SingleOrDefaultAsync(u => u.NormalizedUserName == normalizedUserName, cancellationToken);
     }
 
     public async Task<EditorUser?> FindByEmailAsync(string normalizedEmail, CancellationToken cancellationToken = default)
     {
-        return await db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail, cancellationToken);
+        return await db.Users.SingleOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail, cancellationToken);
     }
 
     public async Task<bool> UpdateAsync(EditorUser user, CancellationToken cancellationToken = default)
     {
-        var tracked = await db.Users.SingleOrDefaultAsync(u => u.Id == user.Id, cancellationToken);
-        if (tracked == null || tracked.ConcurrencyStamp != user.ConcurrencyStamp)
-            return false; // выдалены або несьвежая копія
+        var newStamp = Guid.NewGuid().ToString();
 
-        db.Entry(tracked).CurrentValues.SetValues(user);
-        tracked.ConcurrencyStamp = Guid.NewGuid().ToString();
-        try
-        {
-            await db.SaveChangesAsync(cancellationToken);
-            user.ConcurrencyStamp = tracked.ConcurrencyStamp; // каб копія выклікальніка засталася актуальнай
-            return true;
-        }
-        catch (DbUpdateConcurrencyException) // гонка паміж fetch і save
-        {
+        // Аптымістычная блакіроўка ў WHERE: 0 радкоў = выдалены або несьвежая копія.
+        // Пры NoTracking трэба пералічыць УСЕ калонкі рукамі — гл. каментар у EditorUser.
+        var rows = await db.Users
+            .Where(u => u.Id == user.Id && u.ConcurrencyStamp == user.ConcurrencyStamp)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(u => u.UserName, user.UserName)
+                .SetProperty(u => u.NormalizedUserName, user.NormalizedUserName)
+                .SetProperty(u => u.Email, user.Email)
+                .SetProperty(u => u.NormalizedEmail, user.NormalizedEmail)
+                .SetProperty(u => u.EmailConfirmed, user.EmailConfirmed)
+                .SetProperty(u => u.PasswordHash, user.PasswordHash)
+                .SetProperty(u => u.SecurityStamp, user.SecurityStamp)
+                .SetProperty(u => u.PhoneNumber, user.PhoneNumber)
+                .SetProperty(u => u.PhoneNumberConfirmed, user.PhoneNumberConfirmed)
+                .SetProperty(u => u.TwoFactorEnabled, user.TwoFactorEnabled)
+                .SetProperty(u => u.LockoutEnd, user.LockoutEnd)
+                .SetProperty(u => u.LockoutEnabled, user.LockoutEnabled)
+                .SetProperty(u => u.AccessFailedCount, user.AccessFailedCount)
+                .SetProperty(u => u.CreatedAt, user.CreatedAt)
+                .SetProperty(u => u.Role, user.Role)
+                .SetProperty(u => u.ConcurrencyStamp, newStamp),
+                cancellationToken);
+
+        if (rows == 0)
             return false;
-        }
+
+        user.ConcurrencyStamp = newStamp; // каб копія выклікальніка засталася актуальнай
+        return true;
     }
 
     public async Task<bool> HasUsersAsync(CancellationToken cancellationToken = default)
@@ -57,6 +71,6 @@ public class UserRepository(EditorDbContext db) : IUserRepository
 
     public async Task<List<EditorUser>> GetAllUsersAsync(CancellationToken cancellationToken = default)
     {
-        return await db.Users.AsNoTracking().ToListAsync(cancellationToken);
+        return await db.Users.ToListAsync(cancellationToken);
     }
 }
