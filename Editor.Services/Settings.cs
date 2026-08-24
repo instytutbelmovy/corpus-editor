@@ -1,4 +1,4 @@
-namespace Editor;
+namespace Editor.Services;
 
 public class AppSettings
 {

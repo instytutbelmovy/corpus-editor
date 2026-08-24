@@ -1,4 +1,4 @@
-namespace Editor;
+namespace Editor.Domain;
 
 public record FormMatch(
     int ParadigmId,

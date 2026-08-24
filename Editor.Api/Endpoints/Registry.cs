@@ -1,4 +1,8 @@
-namespace Editor;
+using Editor.Api.Infrastructure;
+using Editor.Domain.Corpus;
+using Editor.Services.Registry;
+
+namespace Editor.Api;
 
 public static class Registry
 {

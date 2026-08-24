@@ -1,7 +1,9 @@
-using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
+using Editor.Domain;
+using Editor.Services.Users;
+using Microsoft.AspNetCore.Identity;
 
-namespace Editor;
+namespace Editor.Api.Infrastructure;
 
 public class EditorClaimsPrincipalFactory : IUserClaimsPrincipalFactory<EditorUser>
 {

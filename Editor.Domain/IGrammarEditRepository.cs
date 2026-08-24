@@ -1,4 +1,6 @@
-namespace Editor;
+using Editor.Domain.Grammar;
+
+namespace Editor.Domain;
 
 public record ParadigmSummary(int ParadigmId, string Lemma, string Tag, ParadigmSource Source, bool Hidden);
 

@@ -1,7 +1,8 @@
 using System.Net;
 using System.Text.Json;
+using Editor.Services.Exceptions;
 
-namespace Editor;
+namespace Editor.Api.Infrastructure;
 
 public static class ExceptionMiddleware
 {

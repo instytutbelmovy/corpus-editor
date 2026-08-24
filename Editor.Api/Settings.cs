@@ -1,4 +1,4 @@
-namespace Editor;
+namespace Editor.Api;
 
 public class SentrySettings
 {

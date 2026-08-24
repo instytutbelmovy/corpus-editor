@@ -1,8 +1,9 @@
 using System.Text.Json;
+using Editor.Domain.Grammar;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 
-namespace Editor;
+namespace Editor.DB;
 
 public class GrammarDbContext(DbContextOptions<GrammarDbContext> options) : DbContext(options)
 {

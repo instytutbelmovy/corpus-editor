@@ -1,4 +1,4 @@
-﻿namespace Editor;
+﻿namespace Editor.Domain.Corpus;
 
 public record CorpusDocumentHeader(int N, string? Title, string? Author, string? Language, string? PublicationDate, string? Url, string? Type, string? Style, string? Corpus)
 {

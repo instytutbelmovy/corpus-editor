@@ -7,7 +7,6 @@
     <InvariantGlobalization>true</InvariantGlobalization>
     <PublishAot>false</PublishAot>
     <RuntimeIdentifiers>linux-musl-x64</RuntimeIdentifiers>
-    <RootNamespace>Editor</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

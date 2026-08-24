@@ -4,7 +4,7 @@ using WordParagraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
 using WordRun = DocumentFormat.OpenXml.Wordprocessing.Run;
 using WordText = DocumentFormat.OpenXml.Wordprocessing.Text;
 
-namespace Editor.Converters;
+namespace Editor.Services.Converters;
 
 public sealed class DocxReader : IDocumentReader
 {

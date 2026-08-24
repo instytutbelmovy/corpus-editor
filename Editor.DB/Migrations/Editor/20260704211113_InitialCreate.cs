@@ -1,9 +1,8 @@
-﻿using System;
+﻿#nullable disable
+
 using Microsoft.EntityFrameworkCore.Migrations;
 
-#nullable disable
-
-namespace Editor.Migrations.Editor
+namespace Editor.DB.Editor
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration

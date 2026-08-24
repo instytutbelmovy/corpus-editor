@@ -1,6 +1,7 @@
+using Editor.Domain;
 using FluentValidation;
 
-namespace Editor;
+namespace Editor.Services.Auth;
 
 public record SignInRequest(string Email, string Password, string? ReCaptchaToken = null);
 

@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace Editor;
+namespace Editor.DB;
 
 // Фабрыкі для dotnet-ef (генэрацыя міграцый); UseSnakeCaseNamingConvention мусіць
 // супадаць з рэгістрацыяй у Program.cs і ў GrammarDbConverter, іначай мадэль разыдзецца са схемай.

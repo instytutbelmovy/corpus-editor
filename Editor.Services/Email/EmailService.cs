@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using System.Text.Json;
 
-namespace Editor;
+namespace Editor.Services.Email;
 
 public interface IEmailService
 {

@@ -2,8 +2,11 @@ using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
 using Editor;
+using Editor.Domain;
+using Editor.Domain.Grammar;
 using Npgsql;
 using NpgsqlTypes;
+using GrammarJsonSerializerContext = Editor.DB.GrammarJsonSerializerContext;
 
 namespace GrammarDbConverter;
 

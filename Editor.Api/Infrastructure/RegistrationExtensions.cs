@@ -1,7 +1,7 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
-namespace Editor;
+namespace Editor.Api.Infrastructure;
 
 public static class RegistrationExtensions
 {

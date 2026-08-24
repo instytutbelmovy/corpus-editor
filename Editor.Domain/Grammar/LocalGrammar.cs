@@ -1,4 +1,4 @@
-namespace Editor;
+namespace Editor.Domain.Grammar;
 
 /// <summary> Крыніца парадыгмы/формы: апстрым (з GrammarDB XML) ці ўласная (лакальная) </summary>
 public enum ParadigmSource

@@ -1,6 +1,10 @@
+using Editor.Api.Infrastructure;
+using Editor.Domain;
+using Editor.Domain.Corpus;
+using Editor.Services.Editing;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Editor;
+namespace Editor.Api;
 
 public static class Editing
 {

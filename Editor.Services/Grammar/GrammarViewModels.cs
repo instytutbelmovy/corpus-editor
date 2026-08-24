@@ -1,6 +1,7 @@
+using Editor.Domain.Grammar;
 using FluentValidation;
 
-namespace Editor;
+namespace Editor.Services.Grammar;
 
 public record ParadigmCreateVm(string Lemma, string Tag, string? Meaning, List<VariantInput> Variants);
 public record VariantInput(string Id, string Lemma, string Tag, List<FormInput> Forms);

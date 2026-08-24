@@ -1,6 +1,7 @@
 using System.Text;
+using Editor.Domain;
 
-namespace Editor.Converters;
+namespace Editor.Services.Converters;
 
 public enum TokenType
 {

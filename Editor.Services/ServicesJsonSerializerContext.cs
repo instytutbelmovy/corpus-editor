@@ -1,6 +1,11 @@
 using System.Text.Json.Serialization;
+using Editor.Domain.Corpus;
+using Editor.Services.Auth;
+using Editor.Services.Editing;
+using Editor.Services.Grammar;
+using Editor.Services.Users;
 
-namespace Editor;
+namespace Editor.Services;
 
 /// <summary> Сэрыялізацыя DTO слою сэрвісаў для HTTP-адказаў API (Editing, Registry, Auth, Users, Grammar).
 /// Асобны ад Editor.DB.GrammarJsonSerializerContext (той — snake_case для jsonb варыянтаў у базе). </summary>

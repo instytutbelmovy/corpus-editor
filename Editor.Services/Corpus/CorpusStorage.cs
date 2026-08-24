@@ -3,8 +3,9 @@ using Amazon;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Amazon.S3.Transfer;
+using Editor.Domain.Corpus;
 
-namespace Editor;
+namespace Editor.Services.Corpus;
 
 public class AwsSettings
 {

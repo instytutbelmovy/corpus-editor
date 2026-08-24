@@ -1,7 +1,9 @@
-﻿using System.Xml.Linq;
-using System.Text.Json;
+﻿using System.Text.Json;
+using System.Xml.Linq;
+using Editor.Domain;
+using Editor.Domain.Corpus;
 
-namespace Editor;
+namespace Editor.Services.Corpus;
 
 public static class VertiIO
 {

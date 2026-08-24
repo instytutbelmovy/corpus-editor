@@ -1,6 +1,6 @@
 using HtmlAgilityPack;
 
-namespace Editor.Converters;
+namespace Editor.Services.Converters;
 
 public sealed class EpubReader : IDocumentReader
 {

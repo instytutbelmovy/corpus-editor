@@ -2,7 +2,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
 
-namespace Editor.Converters;
+namespace Editor.Services.Converters;
 
 public sealed class OdtReader : IDocumentReader
 {

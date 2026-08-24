@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace Editor;
+namespace Editor.Domain;
 
 public static class Normalizer
 {

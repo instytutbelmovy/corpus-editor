@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Editor;
+namespace Editor.Api.Infrastructure;
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 [JsonSerializable(typeof(FrontendConfigResponse))]

@@ -1,6 +1,11 @@
-using Editor.Converters;
+using Editor.Domain;
+using Editor.Domain.Corpus;
+using Editor.Services.Converters;
+using Editor.Services.Corpus;
+using Editor.Services.Exceptions;
+using Editor.Services.Grammar;
 
-namespace Editor;
+namespace Editor.Services.Registry;
 
 public interface IRegistryService
 {

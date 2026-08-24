@@ -1,3 +1,6 @@
+using Editor.Domain;
+using Editor.Services.Grammar;
+
 namespace Editor.Tests.Linguistics;
 
 public class GrammarDbTests

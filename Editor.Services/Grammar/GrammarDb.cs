@@ -1,4 +1,7 @@
-namespace Editor;
+using Editor.Domain;
+using Editor.Services.Exceptions;
+
+namespace Editor.Services.Grammar;
 
 public interface IGrammarDb
 {

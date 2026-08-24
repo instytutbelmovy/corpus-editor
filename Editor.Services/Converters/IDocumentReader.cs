@@ -1,4 +1,4 @@
-namespace Editor.Converters;
+namespace Editor.Services.Converters;
 
 public interface IDocumentReader
 {

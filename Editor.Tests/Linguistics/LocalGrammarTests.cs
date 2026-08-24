@@ -1,3 +1,6 @@
+using Editor.Domain;
+using Editor.Domain.Grammar;
+
 namespace Editor.Tests.Linguistics;
 
 public class LocalGrammarTests

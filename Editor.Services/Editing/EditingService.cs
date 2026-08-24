@@ -1,4 +1,10 @@
-namespace Editor;
+using Editor.Domain;
+using Editor.Domain.Corpus;
+using Editor.Services.Corpus;
+using Editor.Services.Exceptions;
+using Editor.Services.Grammar;
+
+namespace Editor.Services.Editing;
 
 public interface IEditingService
 {

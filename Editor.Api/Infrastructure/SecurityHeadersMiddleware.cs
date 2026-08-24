@@ -1,4 +1,4 @@
-namespace Editor;
+namespace Editor.Api.Infrastructure;
 
 /// <summary>
 /// Adds baseline security response headers to every response. Registered early in the pipeline

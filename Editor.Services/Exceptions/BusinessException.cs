@@ -1,4 +1,4 @@
-﻿namespace Editor;
+﻿namespace Editor.Services.Exceptions;
 
 public class BusinessException : Exception
 {

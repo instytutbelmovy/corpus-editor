@@ -1,9 +1,8 @@
-﻿using System;
+﻿#nullable disable
+
 using Microsoft.EntityFrameworkCore.Migrations;
 
-#nullable disable
-
-namespace Editor.Migrations.Grammar
+namespace Editor.DB.Grammar
 {
     /// <inheritdoc />
     public partial class AddLocalGrammar : Migration

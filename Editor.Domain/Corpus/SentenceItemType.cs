@@ -1,4 +1,4 @@
-﻿namespace Editor;
+﻿namespace Editor.Domain.Corpus;
 
 public enum SentenceItemType
 {

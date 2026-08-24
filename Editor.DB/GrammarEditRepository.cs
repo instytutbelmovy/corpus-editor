@@ -1,6 +1,8 @@
+using Editor.Domain;
+using Editor.Domain.Grammar;
 using Microsoft.EntityFrameworkCore;
 
-namespace Editor;
+namespace Editor.DB;
 
 public class GrammarEditRepository(GrammarDbContext db) : IGrammarEditRepository
 {

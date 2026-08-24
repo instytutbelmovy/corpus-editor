@@ -1,3 +1,7 @@
+using Editor.Domain.Corpus;
+using Editor.Services.Corpus;
+using Editor.Services.Exceptions;
+
 namespace Editor.Tests.Linguistics;
 
 public class AwsFilesCacheTests

@@ -1,6 +1,7 @@
+using Editor.Domain;
 using Microsoft.AspNetCore.Identity;
 
-namespace Editor;
+namespace Editor.Services.Users;
 
 public class EditorUserStore(IUserRepository userRepository) : IUserStore<EditorUser>, IUserPasswordStore<EditorUser>, IUserEmailStore<EditorUser>, IUserLockoutStore<EditorUser>, IUserSecurityStampStore<EditorUser>
 {

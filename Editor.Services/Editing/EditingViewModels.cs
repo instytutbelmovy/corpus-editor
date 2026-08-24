@@ -1,6 +1,8 @@
+using Editor.Domain;
+using Editor.Domain.Corpus;
 using FluentValidation;
 
-namespace Editor;
+namespace Editor.Services.Editing;
 
 public record CorpusDocumentView(CorpusDocumentHeader Header, IEnumerable<ParagraphView> Paragraphs);
 

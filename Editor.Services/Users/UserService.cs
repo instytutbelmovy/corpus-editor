@@ -1,6 +1,9 @@
+using Editor.Domain;
+using Editor.Services.Email;
+using Editor.Services.Exceptions;
 using Microsoft.AspNetCore.Identity;
 
-namespace Editor;
+namespace Editor.Services.Users;
 
 public interface IUserService
 {

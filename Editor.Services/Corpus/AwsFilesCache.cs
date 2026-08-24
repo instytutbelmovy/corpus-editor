@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
+using Editor.Domain.Corpus;
+using Editor.Services.Exceptions;
 
-namespace Editor;
+namespace Editor.Services.Corpus;
 
 public interface IAwsFilesCache
 {

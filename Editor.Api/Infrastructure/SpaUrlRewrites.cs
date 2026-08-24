@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Rewrite;
 
-namespace Editor;
+namespace Editor.Api.Infrastructure;
 
 internal static class SpaUrlRewrites
 {

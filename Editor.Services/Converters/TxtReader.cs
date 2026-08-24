@@ -1,7 +1,7 @@
 using System.Buffers;
 using System.Text;
 
-namespace Editor.Converters;
+namespace Editor.Services.Converters;
 
 public sealed class TxtReader : IDocumentReader
 {

@@ -1,7 +1,9 @@
 using System.Security.Claims;
+using Editor.Api.Infrastructure;
+using Editor.Services.Grammar;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Editor;
+namespace Editor.Api;
 
 public static class Grammar
 {

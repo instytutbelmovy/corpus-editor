@@ -1,7 +1,7 @@
 ﻿using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Editor;
+namespace Editor.Domain;
 
 public partial record LinguisticTag(
     string? ParadigmTag,

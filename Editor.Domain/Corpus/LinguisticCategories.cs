@@ -1,4 +1,4 @@
-namespace Editor;
+namespace Editor.Domain.Corpus;
 
 public record LinguisticCategories(
     string? PartOfSpeech = null,           // 1 - Часьціна мовы

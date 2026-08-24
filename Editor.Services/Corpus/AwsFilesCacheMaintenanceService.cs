@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Hosting;
 
-namespace Editor;
+namespace Editor.Services.Corpus;
 
 public class AwsFilesCacheMaintenanceService(IAwsFilesCache awsFilesCache, ILogger<AwsFilesCacheMaintenanceService> logger) : BackgroundService
 {

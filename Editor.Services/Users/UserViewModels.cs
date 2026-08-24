@@ -1,6 +1,7 @@
+using Editor.Domain;
 using FluentValidation;
 
-namespace Editor;
+namespace Editor.Services.Users;
 
 public record EditorUserDto(string Id, string UserName, string Email, Roles Role);
 

@@ -2,7 +2,7 @@
 using System.Reflection;
 using FluentValidation;
 
-namespace Editor;
+namespace Editor.Api.Infrastructure;
 
 public static class ValidationExtensions
 {

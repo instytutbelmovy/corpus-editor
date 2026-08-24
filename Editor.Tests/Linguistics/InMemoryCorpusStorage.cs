@@ -1,4 +1,6 @@
 using System.Collections.Concurrent;
+using Editor.Domain.Corpus;
+using Editor.Services.Corpus;
 
 namespace Editor.Tests.Linguistics;
 

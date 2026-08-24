@@ -1,10 +1,9 @@
-﻿using System.Collections.Generic;
-using Editor;
+﻿#nullable disable
+
+using Editor.Domain.Grammar;
 using Microsoft.EntityFrameworkCore.Migrations;
 
-#nullable disable
-
-namespace Editor.Migrations.Grammar
+namespace Editor.DB.Grammar
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration

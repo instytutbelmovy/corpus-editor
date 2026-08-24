@@ -1,4 +1,8 @@
 
+using Editor.Domain.Corpus;
+using Editor.Services.Editing;
+using Editor.Services.Exceptions;
+
 namespace Editor.Tests.Endpoints;
 
 public class EditingTests

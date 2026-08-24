@@ -1,6 +1,7 @@
+using Editor.Domain;
 using Microsoft.EntityFrameworkCore;
 
-namespace Editor;
+namespace Editor.DB;
 
 public class EditorDbContext(DbContextOptions<EditorDbContext> options) : DbContext(options)
 {

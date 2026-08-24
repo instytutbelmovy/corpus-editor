@@ -1,4 +1,4 @@
-namespace Editor;
+namespace Editor.Services.Registry;
 
 public record DocumentUploadRequest(
     int N,

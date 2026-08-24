@@ -1,4 +1,4 @@
-namespace Editor;
+namespace Editor.Domain.Grammar;
 
 /// <summary> Адна парадыгма ГрамБазы; варыянты захоўваюцца як jsonb </summary>
 public class Paradigm

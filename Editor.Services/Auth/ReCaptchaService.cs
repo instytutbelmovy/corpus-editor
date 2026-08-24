@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Editor;
+namespace Editor.Services.Auth;
 
 public interface IReCaptchaService
 {

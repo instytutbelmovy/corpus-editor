@@ -1,6 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace Editor;
+namespace Editor.Domain;
 
 public partial record ParadigmFormId(
     int ParadigmId,

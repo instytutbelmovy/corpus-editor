@@ -1,4 +1,4 @@
-﻿namespace Editor;
+﻿namespace Editor.Api.Infrastructure;
 
 public static class InfrastructureExtensions
 {

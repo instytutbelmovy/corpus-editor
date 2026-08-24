@@ -7,6 +7,19 @@ using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Threading.RateLimiting;
+using Editor.Api;
+using Editor.Api.Infrastructure;
+using Editor.DB;
+using Editor.Domain;
+using Editor.Services;
+using Editor.Services.Auth;
+using Editor.Services.Corpus;
+using Editor.Services.Editing;
+using Editor.Services.Email;
+using Editor.Services.Users;
+using InfrastructureJsonSerializerContext = Editor.Api.Infrastructure.InfrastructureJsonSerializerContext;
+using ServicesJsonSerializerContext = Editor.Services.ServicesJsonSerializerContext;
+using VertiJsonSerializerContext = Editor.Services.Corpus.VertiJsonSerializerContext;
 
 
 Console.OutputEncoding = Encoding.UTF8;

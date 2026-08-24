@@ -1,4 +1,6 @@
-namespace Editor.Converters;
+using Editor.Domain.Corpus;
+
+namespace Editor.Services.Converters;
 
 public static class Sentencer
 {

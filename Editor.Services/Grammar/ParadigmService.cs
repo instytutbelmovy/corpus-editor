@@ -1,4 +1,8 @@
-namespace Editor;
+using Editor.Domain;
+using Editor.Domain.Grammar;
+using Editor.Services.Exceptions;
+
+namespace Editor.Services.Grammar;
 
 public interface IParadigmService
 {

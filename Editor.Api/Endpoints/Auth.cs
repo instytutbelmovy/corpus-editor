@@ -1,8 +1,12 @@
 using System.Security.Claims;
+using Editor.Api.Infrastructure;
+using Editor.Domain;
+using Editor.Services.Auth;
+using Editor.Services.Exceptions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Editor;
+namespace Editor.Api;
 
 public static class Auth
 {
