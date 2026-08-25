@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Hosting;
 
 namespace Editor.Services.Email;
 
@@ -13,12 +14,14 @@ public class EmailService : IEmailService
     private readonly EmailSettings _emailSettings;
     private readonly ILogger<EmailService> _logger;
     private readonly HttpClient _httpClient;
+    private readonly IHostEnvironment _hostEnvironment;
 
-    public EmailService(EmailSettings emailSettings, ILogger<EmailService> logger, HttpClient httpClient)
+    public EmailService(EmailSettings emailSettings, ILogger<EmailService> logger, HttpClient httpClient, IHostEnvironment hostEnvironment)
     {
         _emailSettings = emailSettings;
         _logger = logger;
         _httpClient = httpClient;
+        _hostEnvironment = hostEnvironment;
 
         var credentials = Convert.ToBase64String(Encoding.ASCII.GetBytes($"api:{_emailSettings.ApiKey}"));
         _httpClient.DefaultRequestHeaders.Authorization = 
@@ -31,13 +34,24 @@ public class EmailService : IEmailService
 
         var url = $"https://api.eu.mailgun.net/v3/{_emailSettings.Domain}/messages";
 
+        // Абедзьве зьменныя пасылаюцца заўсёды, у любым асяродзьдзі: шаблон Mailgun параўноўвае
+        // prodEnvironmentSecret з літаралам усярэдзіне шаблону і малюе банэр "ліст з непрадукцыйнага
+        // асяродзьдзя" пры любым несупадзеньні — уключна з пустым значэньнем. Таму ненастроенае
+        // асяродзьдзе шле "" і атрымлівае банэр (fail-closed). Рабіць гэта ўмоўна па асяродзьдзі
+        // нельга — тады памылка настройкі ціха здыме банэр (fail-open).
+        var templateArguments = new Dictionary<string, string>(message.TemplateArguments)
+        {
+            ["prodEnvironmentSecret"] = _emailSettings.ProdEnvironmentSecret ?? "",
+            ["environment"] = _hostEnvironment.EnvironmentName.ToLowerInvariant(),
+        };
+
         var formData = new List<KeyValuePair<string, string>>
         {
             new("from", _emailSettings.From),
             new("to", message.To),
             new("subject", message.Subject),
             new("template", message.Template),
-            new("h:X-Mailgun-Variables", JsonSerializer.Serialize(message.TemplateArguments, EmailJsonSerializerContext.Default.DictionaryStringString)),
+            new("h:X-Mailgun-Variables", JsonSerializer.Serialize(templateArguments, EmailJsonSerializerContext.Default.DictionaryStringString)),
         };
 
         var content = new FormUrlEncodedContent(formData);
@@ -64,7 +78,7 @@ public class EmailMessage
     public string To { get; set; } = null!;
     public string Subject { get; set; } = null!;
     public string Template { get; set; } = null!;
-    public Dictionary<string, string> TemplateArguments { get; set; } = null!;
+    public Dictionary<string, string> TemplateArguments { get; set; } = new();
 }
 
 public class EmailSettings
@@ -72,4 +86,6 @@ public class EmailSettings
     public string Domain { get; set; } = null!;
     public string ApiKey { get; set; } = null!;
     public string From { get; set; } = null!;
+
+    public string ProdEnvironmentSecret { get; set; } = "";
 }
