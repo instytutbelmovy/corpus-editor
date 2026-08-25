@@ -7,6 +7,7 @@
     <InvariantGlobalization>true</InvariantGlobalization>
     <PublishAot>false</PublishAot>
     <RuntimeIdentifiers>linux-musl-x64</RuntimeIdentifiers>
+    <UserSecretsId>ed3d3415-c01f-4eeb-a4a4-cc5255f36e79</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
