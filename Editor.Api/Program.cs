@@ -187,7 +187,7 @@ static void ConfigurePipeline(WebApplication app)
 
     app.Services.InitLoggerFor(nameof(ExceptionMiddleware), ExceptionMiddleware.InitializeLogging);
     app.Services.InitLoggerFor(nameof(VertiIO), VertiIO.InitializeLogging);
-    app.Services.GetRequiredService<AwsFilesCache>().Initialize();
+    app.Services.GetRequiredService<IAwsFilesCache>().Initialize();
 
     // Must run first so scheme/client-IP are correct behind the reverse proxy.
     app.UseForwardedHeaders();
