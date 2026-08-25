@@ -2,6 +2,7 @@ using Editor;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Rewrite;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Net;
@@ -175,6 +176,11 @@ static void ConfigureIdentity(WebApplicationBuilder builder)
     });
     builder.Services.AddScoped<SignInManager<EditorUser>>();
     builder.Services.AddSingleton<IUserClaimsPrincipalFactory<EditorUser>, EditorClaimsPrincipalFactory>();
+    var argon2Settings = builder.RegisterSettings<Argon2Settings>("Identity:Argon2");
+    if (argon2Settings.MemoryKiB <= 0 || argon2Settings.Iterations <= 0 || argon2Settings.Parallelism <= 0
+        || argon2Settings.HashLength <= 0 || argon2Settings.MaxConcurrentOperations <= 0 || argon2Settings.ConcurrencyTimeoutMs < 0)
+        throw new InvalidOperationException("Argon2 settings are invalid. Please check the 'Identity:Argon2' configuration section.");
+    builder.Services.Replace(ServiceDescriptor.Singleton<IPasswordHasher<EditorUser>, Argon2PasswordHasher>());
     builder.Services.AddHttpContextAccessor();
 }
 

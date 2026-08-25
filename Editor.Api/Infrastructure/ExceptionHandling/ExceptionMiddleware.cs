@@ -30,6 +30,13 @@ public static class ExceptionMiddleware
             if (!context.Response.HasStarted)
                 context.Response.StatusCode = statusCode;
         }
+        catch (ServiceUnavailableException e)
+        {
+            var statusCode = (int)HttpStatusCode.ServiceUnavailable;
+            LogWarning(e, statusCode);
+            if (!context.Response.HasStarted)
+                context.Response.StatusCode = statusCode;
+        }
         catch (Exception e) when (e is FileNotFoundException or NotFoundException)
         {
             var statusCode = (int)HttpStatusCode.NotFound;
@@ -57,6 +64,14 @@ public static class ExceptionMiddleware
     private static void LogError(Exception e)
     {
         _logger.LogError(e, "Unhandled exception");
+    }
+
+    private static void LogWarning(Exception e, int? statusCode = null)
+    {
+        if (statusCode.HasValue)
+            _logger.LogWarning("{StatusCode}: {message}", statusCode, e.Message);
+        else
+            _logger.LogWarning(e.Message);
     }
 
     private static void LogInfo(Exception e, int? statusCode = null)

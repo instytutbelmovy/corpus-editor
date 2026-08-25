@@ -20,7 +20,6 @@ public class EmailService : IEmailService
         _logger = logger;
         _httpClient = httpClient;
 
-        // Настройка базовой аутентификации
         var credentials = Convert.ToBase64String(Encoding.ASCII.GetBytes($"api:{_emailSettings.ApiKey}"));
         _httpClient.DefaultRequestHeaders.Authorization = 
             new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", credentials);
