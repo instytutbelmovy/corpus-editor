@@ -3,6 +3,8 @@ using Editor.Api.Infrastructure;
 using Editor.Domain;
 using Editor.Services.Auth;
 using Editor.Services.Exceptions;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,6 +21,7 @@ public static class Auth
         group.MapPost("/forgot-password", ForgotPassword).Validate<ForgotPasswordRequest>().RateLimited();
         group.MapPost("/reset-password", ResetPassword).Validate<ResetPasswordRequest>().RateLimited();
         group.MapGet("/config", GetConfig);
+        group.MapGet("/google/login", GoogleLogin).RateLimited();
     }
 
     private static async Task<WhoAmIResponse> SignIn(
@@ -66,10 +69,19 @@ public static class Auth
 
     private static FrontendConfigResponse GetConfig(
         ReCaptchaSettings reCaptchaSettings,
-        SentrySettings sentrySettings)
+        SentrySettings sentrySettings,
+        GoogleAuthSettings googleAuthSettings)
     {
-        return new FrontendConfigResponse(reCaptchaSettings.SiteKey, sentrySettings.FeDsn, sentrySettings.Version, sentrySettings.Environment);
+        var googleSignInEnabled = !string.IsNullOrEmpty(googleAuthSettings.ClientId) && !string.IsNullOrEmpty(googleAuthSettings.ClientSecret);
+        return new FrontendConfigResponse(reCaptchaSettings.SiteKey, sentrySettings.FeDsn, sentrySettings.Version, sentrySettings.Environment, googleSignInEnabled);
+    }
+
+    private static IResult GoogleLogin(string? returnTo)
+    {
+        return Results.Challenge(
+            new AuthenticationProperties { RedirectUri = ReturnUrlValidation.OrDefault(returnTo) },
+            [GoogleDefaults.AuthenticationScheme]);
     }
 }
 
-public record FrontendConfigResponse(string RecaptchaSiteKey, string SentryDsn, string Version, string Environment);
+public record FrontendConfigResponse(string RecaptchaSiteKey, string SentryDsn, string Version, string Environment, bool GoogleSignInEnabled);

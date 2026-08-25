@@ -7,9 +7,12 @@ namespace Editor.Services.Auth;
 
 public interface IAuthService
 {
-    /// <summary> Праверка captcha + стварэньне першага карыстальніка як адміна + адмова бяз ролі.
-    /// Вяртае карыстальніка; выклікальнік сам робіць PasswordSignInAsync і мапіць вынік. </summary>
+    /// <summary> Праверка captcha + стварэньне першага карыстальніка як адміна + адмова бяз ролі. Вяртае карыстальніка; выклікальнік сам робіць PasswordSignInAsync і мапіць вынік. </summary>
     Task<EditorUser> ResolveSignInUser(SignInRequest request, string? remoteIp);
+
+    /// <summary> Тая ж лёгіка стварэньня першага адміна + адмовы бяз ролі, але для карыстальніка, ужо аўтэнтыфікаванага праз Google (пароль не патрэбны і не правяраецца). </summary>
+    Task<EditorUser> ResolveGoogleSignInUser(string email);
+
     Task ForgotPassword(ForgotPasswordRequest request, string? remoteIp);
     Task ResetPassword(ResetPasswordRequest request, string? remoteIp);
 }
@@ -21,13 +24,17 @@ public class AuthService(
     IEmailService emailService,
     AppSettings appSettings) : IAuthService
 {
-    /// <summary> Праверка captcha + стварэньне першага карыстальніка як адміна + адмова бяз ролі.
-    /// Вяртае карыстальніка; выклікальнік сам робіць PasswordSignInAsync і мапіць вынік. </summary>
     public async Task<EditorUser> ResolveSignInUser(SignInRequest request, string? remoteIp)
     {
         await CheckReCaptcha(request.ReCaptchaToken, remoteIp);
+        return await ResolveOrProvisionUser(request.Email, request.Password);
+    }
 
-        var user = await userManager.FindByEmailAsync(request.Email);
+    public Task<EditorUser> ResolveGoogleSignInUser(string email) => ResolveOrProvisionUser(email, password: null);
+
+    private async Task<EditorUser> ResolveOrProvisionUser(string email, string? password)
+    {
+        var user = await userManager.FindByEmailAsync(email);
         if (user == null)
         {
             var hasUsersAtAll = await userRepository.HasUsersAsync();
@@ -37,13 +44,15 @@ public class AuthService(
             // Create the first user as admin
             user = new EditorUser
             {
-                UserName = request.Email,
-                Email = request.Email,
+                UserName = email,
+                Email = email,
                 EmailConfirmed = true,
                 Role = Roles.Admin,
                 CreatedAt = DateTime.UtcNow,
             };
-            var createResult = await userManager.CreateAsync(user, request.Password);
+            var createResult = password != null
+                ? await userManager.CreateAsync(user, password)
+                : await userManager.CreateAsync(user);
             if (!createResult.Succeeded)
                 throw new BadRequestException("Не ўдалося стварыць першага карыстальніка: " + string.Join(", ", createResult.Errors.Select(e => e.Description)));
         }

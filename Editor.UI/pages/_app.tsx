@@ -12,7 +12,7 @@ import { isValidReturnUrl } from '@/utils/urlValidation';
 import { useRecaptchaVisibility } from '@/app/hooks/useRecaptchaVisibility';
 import { configService } from '@/app/services/configService';
 import { serviceLocator } from '@/app/services/serviceLocator';
-import * as Sentry from "@sentry/react";
+import * as Sentry from '@sentry/react';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -39,7 +39,7 @@ export default function App({ Component, pageProps }: AppProps) {
     signIn: storeSignIn,
     signOut: storeSignOut,
     checkAuthStatus,
-    setAuthService
+    setAuthService,
   } = useAuthStore();
 
   const { setDocumentService } = useDocumentStore();
@@ -60,7 +60,10 @@ export default function App({ Component, pageProps }: AppProps) {
   // Функцыя для перанакіроўкі на ўваход з захаваньнем returnTo
   const handleUnauthorizedRef = useRef(() => {
     const currentPath = routerRef.current.asPath;
-    if (currentPath.startsWith('/sign-in') || currentPath.includes('returnTo=')) {
+    if (
+      currentPath.startsWith('/sign-in') ||
+      currentPath.includes('returnTo=')
+    ) {
       routerRef.current.push('/sign-in');
     } else {
       // Правяраем лякальнасць URL перад захаваньнем
@@ -87,7 +90,7 @@ export default function App({ Component, pageProps }: AppProps) {
       const config = await configService.getConfig(serviceLocator.apiClient);
 
       initializeSentry(config.sentryDsn, config.environment, config.version);
-    };
+    }
   }, [setAuthService, setDocumentService]);
 
   // Правяраем аўтэнтыфікацыю
@@ -100,21 +103,16 @@ export default function App({ Component, pageProps }: AppProps) {
         // Спачатку правяраем localStorage
         const cachedUser = AuthStorage.get();
         if (cachedUser) {
-          // Аптымістычна ўсталёўваем як аўтэнтыфікаванага
+          // Аптымістычна ўсталёўваем як аўтэнтыфікаванага, пакуль ідзе праверка на сэрвэры
           useAuthStore.getState().setAuthenticated(true);
           useAuthStore.getState().setLoading(false);
+        }
 
-          // Потым правяраем на сервере ў фоне
-          const serverAuth = await checkAuthStatus();
-          if (!serverAuth) {
-            // Калі сервер кажа, што не аўтэнтыфікаваны, ачысціць стан
-            useAuthStore.getState().setAuthenticated(false);
-            hasCheckedAuth.current = false;
-          }
-        } else {
-          // Калі няма кэша ў localStorage, лічым што не аўтэнтыфікаваны
-          useAuthStore.getState().setAuthenticated(false);
-          useAuthStore.getState().setLoading(false);
+        // Заўсёды правяраем на сэрвэры: сэсія можа быць усталяваная і бяз лакальнага кэшу
+        // (напр. пасьля рэдырэкту з Google sign-in, дзе кука ставіцца бэкендам напрамую, мінаючы AuthStorage), таму адсутнасьць кэшу не азначае адсутнасьць сэсіі.
+        const serverAuth = await checkAuthStatus();
+        if (!serverAuth) {
+          hasCheckedAuth.current = false;
         }
       } catch (error) {
         console.error('Auth check failed:', error);
@@ -160,7 +158,12 @@ export default function App({ Component, pageProps }: AppProps) {
   useEffect(() => {
     const isPublicPage = publicPages.includes(router.pathname);
 
-    if (!isLoading && !isAuthenticated && !isPublicPage && hasCheckedAuth.current) {
+    if (
+      !isLoading &&
+      !isAuthenticated &&
+      !isPublicPage &&
+      hasCheckedAuth.current
+    ) {
       handleUnauthorizedRef.current();
     }
   }, [isAuthenticated, isLoading, router]);
@@ -173,13 +176,17 @@ export default function App({ Component, pageProps }: AppProps) {
   );
 }
 
-function initializeSentry(dsn: string, environment: string, version: string): void {
+function initializeSentry(
+  dsn: string,
+  environment: string,
+  version: string
+): void {
   if (environment != 'development') {
     Sentry.init({
       dsn: dsn,
       sendDefaultPii: false,
       environment: environment,
-      release: version
+      release: version,
     });
   }
 }

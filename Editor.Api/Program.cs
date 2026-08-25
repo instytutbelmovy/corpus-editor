@@ -1,4 +1,5 @@
 using Editor;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Rewrite;
@@ -135,8 +136,10 @@ static void ConfigureServices(WebApplicationBuilder builder)
 
 static void ConfigureIdentity(WebApplicationBuilder builder)
 {
-    builder.Services
-        .AddAuthentication()
+    var googleAuthSettings = builder.RegisterSettings<GoogleAuthSettings>("Google");
+
+    var authenticationBuilder = builder.Services
+        .AddAuthentication(IdentityConstants.ApplicationScheme)
         .AddCookie(IdentityConstants.ApplicationScheme, options =>
         {
             options.Cookie.HttpOnly = true;
@@ -155,6 +158,17 @@ static void ConfigureIdentity(WebApplicationBuilder builder)
                 context.Response.StatusCode = (int)HttpStatusCode.Forbidden;
                 return Task.CompletedTask;
             };
+        });
+
+    // Optional: only registered when a Google OAuth client is configured for this environment.
+    if (!string.IsNullOrEmpty(googleAuthSettings.ClientId) && !string.IsNullOrEmpty(googleAuthSettings.ClientSecret))
+        authenticationBuilder.AddGoogle(options =>
+        {
+            options.ClientId = googleAuthSettings.ClientId;
+            options.ClientSecret = googleAuthSettings.ClientSecret;
+            options.CallbackPath = "/api/auth/google-callback"; // under /api so the SPA rewriter leaves it alone
+            options.ClaimActions.MapJsonKey("email_verified", "email_verified"); // not mapped by default
+            options.Events.OnTicketReceived = GoogleSignInHandler.HandleTicketReceived;
         });
     builder.Services.AddIdentityCore<EditorUser>(o =>
         {
