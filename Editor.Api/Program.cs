@@ -158,6 +158,8 @@ static void ConfigureIdentity(WebApplicationBuilder builder)
     builder.Services.AddIdentityCore<EditorUser>(o =>
         {
             o.User.RequireUniqueEmail = true;
+            o.User.AllowedUserNameCharacters +=
+                new string(Enumerable.Range(0x0400, 0x100).Select(c => (char)c).ToArray());
 
             builder.Configuration.Bind("Identity:Password", o.Password);
         })
