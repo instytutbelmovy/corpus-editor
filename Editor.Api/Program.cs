@@ -93,8 +93,10 @@ static void ConfigureServices(WebApplicationBuilder builder)
         throw new InvalidOperationException("Email SMTP settings are not configured. Please set 'EmailSettings:SmtpHost' and 'EmailSettings:SmtpPort' in the configuration.");
     builder.Services.AddHttpClient<IEmailService, EmailService>();
 
-    builder.RegisterSettings<ReCaptchaSettings>("ReCaptcha");
-    builder.Services.AddHttpClient<IReCaptchaService, ReCaptchaService>();
+    var turnstileSettings = builder.RegisterSettings<TurnstileSettings>("Turnstile");
+    if (string.IsNullOrEmpty(turnstileSettings.SecretKey))
+        throw new InvalidOperationException("Cloudflare Turnstile secret key is not configured. Please set 'Turnstile:SecretKey' in the configuration.");
+    builder.Services.AddHttpClient<ITurnstileService, TurnstileService>();
 
     builder.Services.AddValidatorsFromAssemblyContaining<SignInRequest>();
 
@@ -107,7 +109,7 @@ static void ConfigureServices(WebApplicationBuilder builder)
     builder.Services.AddConventionalServices(typeof(UserRepository).Assembly); // Editor.DB
 
     // Behind a TLS-terminating reverse proxy, honour X-Forwarded-For/Proto so downstream code sees the
-    // real client IP (reCAPTCHA remoteip, rate limiting) and scheme (HTTPS redirection).
+    // real client IP (Turnstile remoteip, rate limiting) and scheme (HTTPS redirection).
     builder.Services.Configure<ForwardedHeadersOptions>(options =>
     {
         options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;

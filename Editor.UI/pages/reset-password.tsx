@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { useRecaptcha } from '@/app/hooks/useRecaptcha';
+import { useTurnstile } from '@/app/hooks/useTurnstile';
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('');
@@ -12,7 +12,8 @@ export default function ResetPassword() {
   const [email, setEmail] = useState('');
   const [token, setToken] = useState('');
   const router = useRouter();
-  const { executeRecaptcha, isReady } = useRecaptcha();
+  const { containerRef, isReady, getToken, resetToken } =
+    useTurnstile('reset_password');
 
   useEffect(() => {
     const { email: queryEmail, token: queryToken } = router.query;
@@ -40,12 +41,11 @@ export default function ResetPassword() {
     }
 
     try {
-      // Выконваем reCAPTCHA
-      let recaptchaToken: string | null = null;
+      let turnstileToken: string | null = null;
       if (isReady) {
-        recaptchaToken = await executeRecaptcha('reset_password');
-        if (!recaptchaToken) {
-          setError('Памылка праверкі reCAPTCHA');
+        turnstileToken = await getToken();
+        if (!turnstileToken) {
+          setError('Заўершыце праверку Turnstile');
           setIsLoading(false);
           return;
         }
@@ -60,13 +60,14 @@ export default function ResetPassword() {
           email,
           token,
           newPassword: password,
-          recaptchaToken,
+          turnstileToken,
         }),
       });
 
       if (response.ok) {
         setIsSuccess(true);
       } else {
+        resetToken();
         try {
           const errorData = await response.json();
           // Праверка розных фарматаў паведамленьняў пра памылкі
@@ -84,6 +85,7 @@ export default function ResetPassword() {
         }
       }
     } catch {
+      resetToken();
       setError('Памылка злучэньня з серверам');
     } finally {
       setIsLoading(false);
@@ -258,6 +260,8 @@ export default function ResetPassword() {
                 </div>
               </div>
             )}
+
+            <div ref={containerRef} />
 
             <div>
               <button

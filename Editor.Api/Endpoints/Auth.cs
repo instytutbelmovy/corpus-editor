@@ -68,12 +68,12 @@ public static class Auth
         => authService.ResetPassword(request, httpContext.Connection.RemoteIpAddress?.ToString());
 
     private static FrontendConfigResponse GetConfig(
-        ReCaptchaSettings reCaptchaSettings,
+        TurnstileSettings turnstileSettings,
         SentrySettings sentrySettings,
         GoogleAuthSettings googleAuthSettings)
     {
         var googleSignInEnabled = !string.IsNullOrEmpty(googleAuthSettings.ClientId) && !string.IsNullOrEmpty(googleAuthSettings.ClientSecret);
-        return new FrontendConfigResponse(reCaptchaSettings.SiteKey, sentrySettings.FeDsn, sentrySettings.Version, sentrySettings.Environment, googleSignInEnabled);
+        return new FrontendConfigResponse(turnstileSettings.SiteKey, sentrySettings.FeDsn, sentrySettings.Version, sentrySettings.Environment, googleSignInEnabled);
     }
 
     private static IResult GoogleLogin(string? returnTo)
@@ -84,4 +84,4 @@ public static class Auth
     }
 }
 
-public record FrontendConfigResponse(string RecaptchaSiteKey, string SentryDsn, string Version, string Environment, bool GoogleSignInEnabled);
+public record FrontendConfigResponse(string TurnstileSiteKey, string SentryDsn, string Version, string Environment, bool GoogleSignInEnabled);

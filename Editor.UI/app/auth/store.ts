@@ -17,7 +17,7 @@ interface AuthState {
   signIn: (
     email: string,
     password: string,
-    recaptchaToken?: string | null
+    turnstileToken?: string | null
   ) => Promise<{ success: boolean; message?: string }>;
   signOut: () => Promise<void>;
   checkAuthStatus: () => Promise<boolean>;
@@ -36,13 +36,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // Дзеяньні
   setAuthService: service => set({ authService: service }),
 
-  signIn: async (email, password, recaptchaToken) => {
+  signIn: async (email, password, turnstileToken) => {
     const { authService } = get();
     if (!authService) {
       return { success: false, message: 'Сэрвіс не ініцыялізаваны' };
     }
 
-    const result = await authService.signIn(email, password, recaptchaToken);
+    const result = await authService.signIn(email, password, turnstileToken);
     if (result.success) {
       const user = AuthStorage.get();
       set({

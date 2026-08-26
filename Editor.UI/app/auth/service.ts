@@ -22,14 +22,14 @@ export class AuthService {
   async signIn(
     email: string,
     password: string,
-    recaptchaToken?: string | null
+    turnstileToken?: string | null
   ): Promise<AuthResponse> {
     const response = await this.apiClient.post<WhoAmIResponse>(
       '/auth/sign-in',
       {
         email,
         password,
-        recaptchaToken,
+        turnstileToken,
       }
     );
 

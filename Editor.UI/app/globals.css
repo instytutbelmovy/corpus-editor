@@ -17,12 +17,3 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
-
-/* Схаваем reCAPTCHA на старонках праграмы */
-body.recaptcha-hidden .grecaptcha-badge {
-  display: none !important;
-}
-
-body.recaptcha-hidden iframe[src*='recaptcha'] {
-  display: none !important;
-}

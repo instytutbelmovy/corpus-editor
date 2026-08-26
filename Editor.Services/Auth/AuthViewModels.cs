@@ -3,13 +3,13 @@ using FluentValidation;
 
 namespace Editor.Services.Auth;
 
-public record SignInRequest(string Email, string Password, string? ReCaptchaToken = null);
+public record SignInRequest(string Email, string Password, string? TurnstileToken = null);
 
 public record WhoAmIResponse(string Id, Roles Role);
 
-public record ForgotPasswordRequest(string Email, string? ReCaptchaToken = null);
+public record ForgotPasswordRequest(string Email, string? TurnstileToken = null);
 
-public record ResetPasswordRequest(string Email, string Token, string NewPassword, string? ReCaptchaToken = null);
+public record ResetPasswordRequest(string Email, string Token, string NewPassword, string? TurnstileToken = null);
 
 public class SignInRequestValidator : AbstractValidator<SignInRequest>
 {

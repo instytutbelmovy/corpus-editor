@@ -1,19 +1,20 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Editor.Services.Auth;
 
-public interface IReCaptchaService
+public interface ITurnstileService
 {
     Task<bool> VerifyTokenAsync(string token, string? remoteIp = null);
 }
 
-public class ReCaptchaService : IReCaptchaService
+public class TurnstileService : ITurnstileService
 {
     private readonly HttpClient _httpClient;
-    private readonly ReCaptchaSettings _settings;
-    private readonly ILogger<ReCaptchaService> _logger;
+    private readonly TurnstileSettings _settings;
+    private readonly ILogger<TurnstileService> _logger;
 
-    public ReCaptchaService(HttpClient httpClient, ReCaptchaSettings settings, ILogger<ReCaptchaService> logger)
+    public TurnstileService(HttpClient httpClient, TurnstileSettings settings, ILogger<TurnstileService> logger)
     {
         _httpClient = httpClient;
         _settings = settings;
@@ -24,7 +25,7 @@ public class ReCaptchaService : IReCaptchaService
     {
         if (!_settings.IsEnforced)
         {
-            _logger.LogWarning("ReCaptcha check skipped due to settings");
+            _logger.LogWarning("Turnstile check skipped due to settings");
             return true;
         }
 
@@ -41,25 +42,33 @@ public class ReCaptchaService : IReCaptchaService
             requestData["remoteip"] = remoteIp;
 
         var formData = new FormUrlEncodedContent(requestData);
-        var response = await _httpClient.PostAsync("https://www.google.com/recaptcha/api/siteverify", formData);
-        
+        var response = await _httpClient.PostAsync("https://challenges.cloudflare.com/turnstile/v0/siteverify", formData);
+
         if (!response.IsSuccessStatusCode)
             return false;
 
         var jsonResponse = await response.Content.ReadAsStringAsync();
-        var result = JsonSerializer.Deserialize(jsonResponse, ReCaptchaJsonSerializerContext.Default.ReCaptchaResponse);
+        var result = JsonSerializer.Deserialize(jsonResponse, TurnstileJsonSerializerContext.Default.TurnstileResponse);
 
-        return result is { Success: true, Score: >= 0.5 };
+        if (result is not { Success: true })
+        {
+            _logger.LogWarning("Turnstile verification failed: {ErrorCodes}", string.Join(", ", result?.ErrorCodes ?? []));
+            return false;
+        }
+
+        return true;
     }
 }
 
-public class ReCaptchaResponse
+public class TurnstileResponse
 {
     public bool Success { get; set; }
-    public double Score { get; set; }
+
+    [JsonPropertyName("error-codes")]
+    public string[] ErrorCodes { get; set; } = [];
 }
 
-public class ReCaptchaSettings
+public class TurnstileSettings
 {
     public bool IsEnforced { get; set; } = true;
     public string SiteKey { get; set; } = string.Empty;

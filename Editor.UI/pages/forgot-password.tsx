@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useRecaptcha } from '@/app/hooks/useRecaptcha';
+import { useTurnstile } from '@/app/hooks/useTurnstile';
 
 export default function ForgotPassword() {
   const router = useRouter();
@@ -9,7 +9,8 @@ export default function ForgotPassword() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { executeRecaptcha, isReady } = useRecaptcha();
+  const { containerRef, isReady, getToken, resetToken } =
+    useTurnstile('forgot_password');
 
   useEffect(() => {
     if (router.isReady && router.query.email) {
@@ -23,12 +24,11 @@ export default function ForgotPassword() {
     setError(null);
 
     try {
-      // Выконваем reCAPTCHA
-      let recaptchaToken: string | null = null;
+      let turnstileToken: string | null = null;
       if (isReady) {
-        recaptchaToken = await executeRecaptcha('forgot_password');
-        if (!recaptchaToken) {
-          setError('Памылка праверкі reCAPTCHA');
+        turnstileToken = await getToken();
+        if (!turnstileToken) {
+          setError('Заўершыце праверку Turnstile');
           setIsLoading(false);
           return;
         }
@@ -39,12 +39,13 @@ export default function ForgotPassword() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, recaptchaToken }),
+        body: JSON.stringify({ email, turnstileToken }),
       });
 
       if (response.ok) {
         setIsSuccess(true);
       } else {
+        resetToken();
         try {
           const errorData = await response.json();
           // Праверка розных фарматаў паведамленьняў пра памылкі
@@ -62,6 +63,7 @@ export default function ForgotPassword() {
         }
       }
     } catch {
+      resetToken();
       setError('Памылка злучэньня з серверам');
     } finally {
       setIsLoading(false);
@@ -183,6 +185,8 @@ export default function ForgotPassword() {
                 </div>
               </div>
             )}
+
+            <div ref={containerRef} />
 
             <div>
               <button

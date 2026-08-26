@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useAuthStore } from '@/app/auth/store';
 import { isValidReturnUrl } from '@/utils/urlValidation';
-import { useRecaptcha } from '@/app/hooks/useRecaptcha';
+import { useTurnstile } from '@/app/hooks/useTurnstile';
 import { configService } from '@/app/services/configService';
 import { serviceLocator } from '@/app/services/serviceLocator';
 
@@ -23,7 +23,8 @@ export default function SignIn() {
   const [error, setError] = useState<string | null>(null);
   const [googleSignInEnabled, setGoogleSignInEnabled] = useState(false);
   const router = useRouter();
-  const { executeRecaptcha, isReady } = useRecaptcha();
+  const { containerRef, isReady, getToken, resetToken } =
+    useTurnstile('signin');
 
   useEffect(() => {
     if (!authService) return;
@@ -91,18 +92,17 @@ export default function SignIn() {
     }
 
     try {
-      // Выконваем reCAPTCHA
-      let recaptchaToken: string | null = null;
+      let turnstileToken: string | null = null;
       if (isReady) {
-        recaptchaToken = await executeRecaptcha('signin');
-        if (!recaptchaToken) {
-          setError('Памылка праверкі reCAPTCHA');
+        turnstileToken = await getToken();
+        if (!turnstileToken) {
+          setError('Заўершыце праверку Turnstile');
           setIsLoading(false);
           return;
         }
       }
 
-      const result = await storeSignIn(email, password, recaptchaToken);
+      const result = await storeSignIn(email, password, turnstileToken);
 
       if (result.success) {
         const returnTo = router.query.returnTo as string;
@@ -112,9 +112,11 @@ export default function SignIn() {
           router.push('/');
         }
       } else {
+        resetToken();
         setError(result.message || 'Памылка ўваходу');
       }
     } catch {
+      resetToken();
       setError('Памылка злучэньня з серверам');
     } finally {
       setIsLoading(false);
@@ -201,6 +203,8 @@ export default function SignIn() {
                 </div>
               </div>
             )}
+
+            <div ref={containerRef} />
 
             <div>
               <button

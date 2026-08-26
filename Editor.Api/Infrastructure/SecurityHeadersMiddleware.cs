@@ -6,9 +6,9 @@ namespace Editor.Api.Infrastructure;
 /// </summary>
 public static class SecurityHeadersMiddleware
 {
-    // reCAPTCHA needs google.com/gstatic.com (script + frame); the FE Sentry DSN posts to the
-    // sentry.io ingest host (connect-src). style-src allows 'unsafe-inline' because the exported
-    // Next.js SPA ships inline styles — tighten to nonces/hashes if the export is later reworked.
+    // Cloudflare Turnstile needs challenges.cloudflare.com (script + frame); the FE Sentry DSN posts
+    // to the sentry.io ingest host (connect-src). style-src allows 'unsafe-inline' because the
+    // exported Next.js SPA ships inline styles — tighten to nonces/hashes if the export is later reworked.
     private const string ContentSecurityPolicy =
         "default-src 'self'; " +
         "base-uri 'self'; " +
@@ -16,8 +16,8 @@ public static class SecurityHeadersMiddleware
         "frame-ancestors 'none'; " +
         "img-src 'self' data:; " +
         "style-src 'self' 'unsafe-inline'; " +
-        "script-src 'self' https://www.google.com https://www.gstatic.com; " +
-        "frame-src https://www.google.com; " +
+        "script-src 'self' https://challenges.cloudflare.com; " +
+        "frame-src https://challenges.cloudflare.com; " +
         "connect-src 'self' https://*.ingest.de.sentry.io";
 
     public static Task Handle(HttpContext context, Func<Task> next)

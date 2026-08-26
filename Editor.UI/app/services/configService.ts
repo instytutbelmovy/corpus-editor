@@ -1,7 +1,7 @@
 import { ApiClient } from '@/app/apiClient';
 
 export interface FrontendConfig {
-  recaptchaSiteKey: string;
+  turnstileSiteKey: string;
   sentryDsn: string;
   environment: string;
   version: string;
@@ -24,7 +24,7 @@ class ConfigService {
       if (stored) {
         const parsed = JSON.parse(stored) as FrontendConfig;
         // Правяраем, ці ёсць усе неабходныя палі
-        if (parsed.recaptchaSiteKey && parsed.sentryDsn) {
+        if (parsed.turnstileSiteKey && parsed.sentryDsn) {
           return parsed;
         }
       }
@@ -43,7 +43,7 @@ class ConfigService {
 
   private isConfigComplete(config: FrontendConfig): boolean {
     return !!(
-      config.recaptchaSiteKey &&
+      config.turnstileSiteKey &&
       config.sentryDsn &&
       config.environment &&
       config.version
@@ -55,7 +55,7 @@ class ConfigService {
     config2: FrontendConfig
   ): boolean {
     return (
-      config1.recaptchaSiteKey !== config2.recaptchaSiteKey ||
+      config1.turnstileSiteKey !== config2.turnstileSiteKey ||
       config1.sentryDsn !== config2.sentryDsn ||
       config1.environment !== config2.environment ||
       config1.googleSignInEnabled !== config2.googleSignInEnabled
@@ -89,7 +89,7 @@ class ConfigService {
       }
 
       const reseivedConfig = {
-        recaptchaSiteKey: response.data.recaptchaSiteKey,
+        turnstileSiteKey: response.data.turnstileSiteKey,
         sentryDsn: response.data.sentryDsn,
         environment: response.data.environment,
         version: response.data.version,
@@ -117,7 +117,7 @@ class ConfigService {
       console.error('Памылка загрузкі канфігу:', error);
       // Fallback да значэньняў па змаўчаньні, канфігурацыя з проду. Таму што так я імаверней пачну разьбірацца што пайло ня так
       return {
-        recaptchaSiteKey: '6LccmsUrAAAAABoGBBMbOdJWENmowzmY66pEQaME',
+        turnstileSiteKey: '',
         sentryDsn:
           'https://659ec7317863b18f497a2ec253dad619@o4509997938638848.ingest.de.sentry.io/4509998009876560',
         environment: 'production',

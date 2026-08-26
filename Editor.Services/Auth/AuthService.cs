@@ -20,13 +20,13 @@ public interface IAuthService
 public class AuthService(
     UserManager<EditorUser> userManager,
     IUserRepository userRepository,
-    IReCaptchaService reCaptchaService,
+    ITurnstileService turnstileService,
     IEmailService emailService,
     AppSettings appSettings) : IAuthService
 {
     public async Task<EditorUser> ResolveSignInUser(SignInRequest request, string? remoteIp)
     {
-        await CheckReCaptcha(request.ReCaptchaToken, remoteIp);
+        await CheckTurnstile(request.TurnstileToken, remoteIp);
         return await ResolveOrProvisionUser(request.Email, request.Password);
     }
 
@@ -65,7 +65,7 @@ public class AuthService(
 
     public async Task ForgotPassword(ForgotPasswordRequest request, string? remoteIp)
     {
-        await CheckReCaptcha(request.ReCaptchaToken, remoteIp);
+        await CheckTurnstile(request.TurnstileToken, remoteIp);
 
         var user = await userManager.FindByEmailAsync(request.Email);
         if (user == null || user.Role == Roles.None)
@@ -88,7 +88,7 @@ public class AuthService(
 
     public async Task ResetPassword(ResetPasswordRequest request, string? remoteIp)
     {
-        await CheckReCaptcha(request.ReCaptchaToken, remoteIp);
+        await CheckTurnstile(request.TurnstileToken, remoteIp);
 
         var user = await userManager.FindByEmailAsync(request.Email);
         if (user == null)
@@ -112,12 +112,12 @@ public class AuthService(
         }
     }
 
-    private async Task CheckReCaptcha(string? reCaptchaToken, string? remoteIp)
+    private async Task CheckTurnstile(string? turnstileToken, string? remoteIp)
     {
-        if (reCaptchaToken == null)
-            throw new BadRequestException("reCAPTCHA токен адсутнічае");
-        var isValidRecaptcha = await reCaptchaService.VerifyTokenAsync(reCaptchaToken, remoteIp);
-        if (!isValidRecaptcha)
-            throw new BadRequestException("reCAPTCHA праверка не прайшла");
+        if (turnstileToken == null)
+            throw new BadRequestException("Токен праверкі адсутнічае");
+        var isValid = await turnstileService.VerifyTokenAsync(turnstileToken, remoteIp);
+        if (!isValid)
+            throw new BadRequestException("Праверка не прайшла");
     }
 }
