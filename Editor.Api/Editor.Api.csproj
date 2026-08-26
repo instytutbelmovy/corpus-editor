@@ -22,31 +22,4 @@
     <PackageReference Include="Sentry.AspNetCore" Version="6.6.0" />
   </ItemGroup>
 
-  <Target Name="GenerateVersionFile" BeforeTargets="PrepareForBuild;ResolveStaticWebAssetsInputs">
-    <PropertyGroup>
-      <VersionFileDir>$(MSBuildProjectDirectory)\wwwroot</VersionFileDir>
-      <VersionFilePath>$(VersionFileDir)\version.json</VersionFilePath>
-      <BuildDate>$([System.DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"))</BuildDate>
-    </PropertyGroup>
-
-    <!-- GitCommitHash may already be supplied via -p:GitCommitHash=... (e.g. Coolify's
-         SOURCE_COMMIT build arg, since .git isn't available inside its build context).
-         Only shell out to git when it wasn't, and never fail the build if git/.git is missing. -->
-    <Exec Condition="'$(GitCommitHash)' == ''" Command="git rev-parse --short=8 HEAD" ConsoleToMSBuild="true" StandardOutputImportance="low" IgnoreExitCode="true">
-      <Output TaskParameter="ConsoleOutput" PropertyName="GitCommitHash" />
-    </Exec>
-
-    <PropertyGroup>
-      <GitCommitHash Condition="'$(GitCommitHash)' == ''">unknown</GitCommitHash>
-    </PropertyGroup>
-
-    <MakeDir Directories="$(VersionFileDir)" Condition="!Exists('$(VersionFileDir)')" />
-
-    <WriteLinesToFile File="$(VersionFilePath)" Lines="{&quot;version&quot;: &quot;$(GitCommitHash)&quot;, &quot;buildDate&quot;: &quot;$(BuildDate)&quot;}" Overwrite="true" />
-
-    <ItemGroup>
-      <Content Include="$(VersionFilePath)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    </ItemGroup>
-  </Target>
-
 </Project>
