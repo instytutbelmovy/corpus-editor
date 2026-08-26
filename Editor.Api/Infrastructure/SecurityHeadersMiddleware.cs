@@ -20,6 +20,18 @@ public static class SecurityHeadersMiddleware
         "frame-src https://challenges.cloudflare.com; " +
         "connect-src 'self' https://*.ingest.de.sentry.io";
 
+    // Denies every feature the app doesn't use. All browsing-context lists are empty ("()"),
+    // i.e. disabled even for same-origin, since none of these are needed by the SPA or Turnstile.
+    private const string PermissionsPolicy =
+        "accelerometer=(), " +
+        "camera=(), " +
+        "geolocation=(), " +
+        "gyroscope=(), " +
+        "magnetometer=(), " +
+        "microphone=(), " +
+        "payment=(), " +
+        "usb=()";
+
     public static Task Handle(HttpContext context, Func<Task> next)
     {
         var headers = context.Response.Headers;
@@ -27,6 +39,7 @@ public static class SecurityHeadersMiddleware
         headers["X-Frame-Options"] = "DENY";
         headers["Referrer-Policy"] = "no-referrer";
         headers["Content-Security-Policy"] = ContentSecurityPolicy;
+        headers["Permissions-Policy"] = PermissionsPolicy;
         return next();
     }
 }
