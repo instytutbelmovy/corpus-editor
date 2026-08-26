@@ -37,7 +37,7 @@ Wires everything at startup: initializes the `serviceLocator`, pushes services i
 
 All HTTP goes through **`app/apiClient.ts`** (`ApiClient`): `get/post/put/delete/postFormData`, prefixes `/api`, sends `credentials: 'include'`, and centralizes 401 handling (clears `AuthStorage`, redirects to sign-in). Returns `ApiResponse<T> = { data?, error?, status }` — **it does not throw**.
 
-**Service classes** wrap `ApiClient` per domain and *do* throw on `response.error`: `app/docs/service.ts` (`DocumentService`), `app/auth/service.ts` (`AuthService`), `app/users/service.ts` (`UserService`). Add new backend calls as methods on the relevant service, not ad-hoc `fetch`.
+**Service classes** wrap `ApiClient` per domain and _do_ throw on `response.error`: `app/docs/service.ts` (`DocumentService`), `app/auth/service.ts` (`AuthService`), `app/users/service.ts` (`UserService`). Add new backend calls as methods on the relevant service, not ad-hoc `fetch`.
 
 Services are constructed once via the **`serviceLocator`** singleton (`app/services/serviceLocator.ts`), initialized in `_app.tsx` with the `onUnauthorized` callback. Access with `serviceLocator.documentService` etc. — throws if used before init.
 

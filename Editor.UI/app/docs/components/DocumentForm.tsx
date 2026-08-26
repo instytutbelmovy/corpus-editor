@@ -3,7 +3,7 @@ import {
   BaseDocumentFormData,
   NewDocumentFormData,
   MetadataFormData,
-  FormErrors
+  FormErrors,
 } from '../formTypes';
 import { BUTTON_STYLES } from '../styles';
 
@@ -32,7 +32,7 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
   submitButtonText,
   loadingButtonText,
   title,
-  subtitle
+  subtitle,
 }: DocumentFormProps<T>) {
   const [formData, setFormData] = useState<T>(initialData);
   const [validationErrors, setValidationErrors] = useState<FormErrors>({});
@@ -64,7 +64,10 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const handleInputChange = (field: keyof BaseDocumentFormData, value: string | number | undefined) => {
+  const handleInputChange = (
+    field: keyof BaseDocumentFormData,
+    value: string | number | undefined
+  ) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (validationErrors[field]) {
       // Clear error when user starts typing
@@ -121,9 +124,12 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
         newErrors.file = 'Выберыце файл для загрузкі';
       } else {
         const allowedTypes = ['.docx', '.odt', '.txt', '.epub'];
-        const fileExtension = formData.file.name.toLowerCase().substring(formData.file.name.lastIndexOf('.'));
+        const fileExtension = formData.file.name
+          .toLowerCase()
+          .substring(formData.file.name.lastIndexOf('.'));
         if (!allowedTypes.includes(fileExtension)) {
-          newErrors.file = 'Падтрымліваюцца толькі файлы .docx, .odt, .txt, .epub';
+          newErrors.file =
+            'Падтрымліваюцца толькі файлы .docx, .odt, .txt, .epub';
         }
       }
     }
@@ -152,21 +158,27 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  {title}
-                </h1>
+                <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
                 {subtitle && (
-                  <p className="mt-1 text-sm text-gray-500">
-                    {subtitle}
-                  </p>
+                  <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
                 )}
               </div>
               <button
                 onClick={onCancel}
                 className="text-gray-400 hover:text-gray-600 transition-colors duration-150"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -185,16 +197,25 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
               {/* Нумар дакумэнта */}
               {showDocumentId && (
                 <div>
-                  <label htmlFor="n" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label
+                    htmlFor="n"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
                     Нумар дакумэнта *
                   </label>
                   <input
                     type="number"
                     id="n"
                     value={'n' in formData ? formData.n || '' : ''}
-                    onChange={(e) => handleInputChange('n' as keyof BaseDocumentFormData, parseInt(e.target.value) || 0)}
-                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.n ? 'border-red-300' : 'border-gray-300'
-                      }`}
+                    onChange={e =>
+                      handleInputChange(
+                        'n' as keyof BaseDocumentFormData,
+                        parseInt(e.target.value) || 0
+                      )
+                    }
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.n ? 'border-red-300' : 'border-gray-300'
+                    }`}
                     placeholder="Увядзіце нумар дакумэнта"
                   />
                   {errors.n && (
@@ -205,38 +226,55 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
 
               {/* Год публікацыі */}
               <div>
-                <label htmlFor="publicationDate" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="publicationDate"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Год публікацыі
                 </label>
                 <input
                   type="text"
                   id="publicationDate"
                   value={formData.publicationDate || ''}
-                  onChange={(e) => handleInputChange('publicationDate', e.target.value || undefined)}
-                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.publicationDate ? 'border-red-300' : 'border-gray-300'
-                    }`}
+                  onChange={e =>
+                    handleInputChange(
+                      'publicationDate',
+                      e.target.value || undefined
+                    )
+                  }
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    errors.publicationDate
+                      ? 'border-red-300'
+                      : 'border-gray-300'
+                  }`}
                   placeholder="2024"
                   pattern="[0-9]{4}"
                   title="Увядзіце год у фармаце YYYY"
                 />
                 {errors.publicationDate && (
-                  <p className="mt-1 text-sm text-red-600">{errors.publicationDate}</p>
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.publicationDate}
+                  </p>
                 )}
               </div>
             </div>
 
             {/* Назва */}
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="title"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Назва *
               </label>
               <input
                 type="text"
                 id="title"
                 value={formData.title}
-                onChange={(e) => handleInputChange('title', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.title ? 'border-red-300' : 'border-gray-300'
-                  }`}
+                onChange={e => handleInputChange('title', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  errors.title ? 'border-red-300' : 'border-gray-300'
+                }`}
                 placeholder="Увядзіце назву дакумэнта"
               />
               {errors.title && (
@@ -246,14 +284,17 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
 
             {/* Спасылка */}
             <div>
-              <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="url"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Спасылка
               </label>
               <input
                 type="url"
                 id="url"
                 value={formData.url}
-                onChange={(e) => handleInputChange('url', e.target.value)}
+                onChange={e => handleInputChange('url', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="https://example.com"
               />
@@ -261,23 +302,27 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
 
             {/* Тып тэксту */}
             <div ref={typeRef} className="relative">
-              <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="type"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Тып тэксту
               </label>
               <input
                 type="text"
                 id="type"
                 value={formData.type || ''}
-                onChange={(e) => handleInputChange('type', e.target.value)}
+                onChange={e => handleInputChange('type', e.target.value)}
                 onFocus={() => setTypeDropdownOpen(true)}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.type ? 'border-red-300' : 'border-gray-300'
-                  }`}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  errors.type ? 'border-red-300' : 'border-gray-300'
+                }`}
                 placeholder="Выберыце або ўвядзіце тып тэксту"
                 autoComplete="off"
               />
-              {typeDropdownOpen && (types.length > 0) && (
+              {typeDropdownOpen && types.length > 0 && (
                 <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                  {Array.from(new Set(types)).map((option) => (
+                  {Array.from(new Set(types)).map(option => (
                     <li
                       key={option}
                       onClick={() => {
@@ -295,22 +340,25 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
 
             {/* Стыль */}
             <div ref={styleRef} className="relative">
-              <label htmlFor="style" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="style"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Стыль
               </label>
               <input
                 type="text"
                 id="style"
                 value={formData.style || ''}
-                onChange={(e) => handleInputChange('style', e.target.value)}
+                onChange={e => handleInputChange('style', e.target.value)}
                 onFocus={() => setStyleDropdownOpen(true)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Выберыце або ўвядзіце стыль"
                 autoComplete="off"
               />
-              {styleDropdownOpen && (styles.length > 0) && (
+              {styleDropdownOpen && styles.length > 0 && (
                 <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                  {Array.from(new Set(styles)).map((option) => (
+                  {Array.from(new Set(styles)).map(option => (
                     <li
                       key={option}
                       onClick={() => {
@@ -328,14 +376,17 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
 
             {/* Корпус */}
             <div ref={corpusRef} className="relative">
-              <label htmlFor="corpus" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="corpus"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Корпус
               </label>
               <input
                 type="text"
                 id="corpus"
                 value={formData.corpus || ''}
-                onChange={(e) => handleInputChange('corpus', e.target.value)}
+                onChange={e => handleInputChange('corpus', e.target.value)}
                 onFocus={() => setCorpusDropdownOpen(true)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Выберыце або ўвядзіце корпус"
@@ -343,19 +394,18 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
               />
               {corpusDropdownOpen && corpora.length > 0 && (
                 <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                  {corpora
-                    .map((option) => (
-                      <li
-                        key={option}
-                        onClick={() => {
-                          handleInputChange('corpus', option);
-                          setCorpusDropdownOpen(false);
-                        }}
-                        className="px-3 py-2 cursor-pointer hover:bg-blue-50 text-sm text-gray-700"
-                      >
-                        {option}
-                      </li>
-                    ))}
+                  {corpora.map(option => (
+                    <li
+                      key={option}
+                      onClick={() => {
+                        handleInputChange('corpus', option);
+                        setCorpusDropdownOpen(false);
+                      }}
+                      className="px-3 py-2 cursor-pointer hover:bg-blue-50 text-sm text-gray-700"
+                    >
+                      {option}
+                    </li>
+                  ))}
                 </ul>
               )}
             </div>
@@ -363,7 +413,10 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
             {/* Файл */}
             {showFileUpload && (
               <div>
-                <label htmlFor="file" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="file"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   Файл дакумэнта *
                 </label>
                 <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
@@ -399,13 +452,23 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
                       </label>
                       <p className="pl-1">або перацягніце</p>
                     </div>
-                    <p className="text-xs text-gray-500">DOCX, ODT, TXT, EPUB да 10MB</p>
+                    <p className="text-xs text-gray-500">
+                      DOCX, ODT, TXT, EPUB да 10MB
+                    </p>
                   </div>
                 </div>
                 {'file' in formData && formData.file && (
                   <div className="mt-2 flex items-center text-sm text-gray-600">
-                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+                    <svg
+                      className="w-4 h-4 mr-2"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                     {formData.file.name}
                   </div>

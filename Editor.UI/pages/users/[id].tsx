@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../_app';
 import { UserForm } from '@/app/users/components';
-import { EditorUserDto, EditorUserCreateDto, FormErrors } from '@/app/users/types';
+import {
+  EditorUserDto,
+  EditorUserCreateDto,
+  FormErrors,
+} from '@/app/users/types';
 import { LoadingScreen, ErrorScreen } from '@/app/components';
 
 export default function EditUserPage() {
@@ -26,7 +30,7 @@ export default function EditUserPage() {
       try {
         const users = await userService.fetchUsers();
         const foundUser = users.find(u => u.id === id);
-        
+
         if (!foundUser) {
           setError('Карыстальнік не знойдзены');
           setLoading(false);
@@ -57,8 +61,8 @@ export default function EditUserPage() {
       await userService.updateUser(id, data);
       router.push('/users');
     } catch (err) {
-      setFormErrors({ 
-        submit: err instanceof Error ? err.message : 'Невядомая памылка' 
+      setFormErrors({
+        submit: err instanceof Error ? err.message : 'Невядомая памылка',
       });
     } finally {
       setIsSubmitting(false);

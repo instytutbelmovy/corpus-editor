@@ -1,5 +1,12 @@
 import { create } from 'zustand';
-import { DocumentData, DocumentHeader, ParagraphOperation, OperationType, Sentence, SentenceItem } from './types';
+import {
+  DocumentData,
+  DocumentHeader,
+  ParagraphOperation,
+  OperationType,
+  Sentence,
+  SentenceItem,
+} from './types';
 import { DocumentService } from './service';
 import { StructureEditor, EditResult } from './structureEditor';
 import { useUIStore } from './uiStore';
@@ -28,12 +35,18 @@ interface DocumentState {
 
   // Дзеяньні
   setDocumentService: (service: DocumentService) => void;
-  fetchDocument: (documentId: string, skipUpToId?: number, isInitial?: boolean) => Promise<void>;
+  fetchDocument: (
+    documentId: string,
+    skipUpToId?: number,
+    isInitial?: boolean
+  ) => Promise<void>;
   reloadDocument: (documentId: string) => Promise<void>;
   fetchDocuments: () => Promise<void>;
   refreshDocumentHeader: (documentId: number) => Promise<void>;
   refreshDocumentsList: () => Promise<void>;
-  updateDocument: (updater: (prev: DocumentData | null) => DocumentData | null) => void;
+  updateDocument: (
+    updater: (prev: DocumentData | null) => DocumentData | null
+  ) => void;
   clearDocument: () => void;
   setError: (error: string | null) => void;
 
@@ -44,15 +57,42 @@ interface DocumentState {
   saveEditing: () => Promise<void>;
 
   addWord: (paragraphId: number, sentenceId: number, wordIndex: number) => void;
-  addPunctuation: (paragraphId: number, sentenceId: number, wordIndex: number) => void;
-  addLineBreak: (paragraphId: number, sentenceId: number, wordIndex: number) => void;
-  splitSentence: (paragraphId: number, sentenceId: number, splitIndex: number) => void;
+  addPunctuation: (
+    paragraphId: number,
+    sentenceId: number,
+    wordIndex: number
+  ) => void;
+  addLineBreak: (
+    paragraphId: number,
+    sentenceId: number,
+    wordIndex: number
+  ) => void;
+  splitSentence: (
+    paragraphId: number,
+    sentenceId: number,
+    splitIndex: number
+  ) => void;
   splitParagraph: (paragraphId: number, sentenceId: number) => void;
   joinSentence: (paragraphId: number, sentenceId: number) => void;
   joinParagraph: (paragraphId: number) => void;
-  deleteItem: (paragraphId: number, sentenceId: number, itemIndex: number) => void;
-  setGlue: (paragraphId: number, sentenceId: number, itemIndex: number, glueNext: boolean) => void;
-  updateItemText: (paragraphId: number, sentenceId: number, itemIndex: number, text: string, replaceHistory?: boolean) => void;
+  deleteItem: (
+    paragraphId: number,
+    sentenceId: number,
+    itemIndex: number
+  ) => void;
+  setGlue: (
+    paragraphId: number,
+    sentenceId: number,
+    itemIndex: number,
+    glueNext: boolean
+  ) => void;
+  updateItemText: (
+    paragraphId: number,
+    sentenceId: number,
+    itemIndex: number,
+    text: string,
+    replaceHistory?: boolean
+  ) => void;
 
   _applyEdit: (editResult: EditResult, replaceHistory?: boolean) => void;
   snapshot: (replace?: boolean) => void;
@@ -77,12 +117,21 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   documentService: null,
 
   // Дзеяньні
-  setDocumentService: (service: DocumentService) => set({ documentService: service }),
+  setDocumentService: (service: DocumentService) =>
+    set({ documentService: service }),
 
-  fetchDocument: async (documentId: string, skipUpToId = 0, isInitial = false) => {
+  fetchDocument: async (
+    documentId: string,
+    skipUpToId = 0,
+    isInitial = false
+  ) => {
     const { documentService } = get();
     if (!documentService) {
-      set({ error: 'Сэрвіс не ініцыялізаваны', loading: false, loadingMore: false });
+      set({
+        error: 'Сэрвіс не ініцыялізаваны',
+        loading: false,
+        loadingMore: false,
+      });
       return;
     }
 
@@ -99,9 +148,10 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         set({
           documentData: data,
           originalDocumentData: JSON.parse(JSON.stringify(data)),
-          lastParagraphId: data.paragraphs.length > 0
-            ? data.paragraphs[data.paragraphs.length - 1].id
-            : 0,
+          lastParagraphId:
+            data.paragraphs.length > 0
+              ? data.paragraphs[data.paragraphs.length - 1].id
+              : 0,
           hasMore: data.paragraphs.length === 20,
           loading: false,
           history: [],
@@ -109,23 +159,30 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         });
       } else {
         set((state: DocumentState) => ({
-          documentData: state.documentData ? {
-            ...state.documentData,
-            paragraphs: [...state.documentData.paragraphs, ...data.paragraphs],
-          } : data,
-          lastParagraphId: data.paragraphs.length > 0
-            ? data.paragraphs[data.paragraphs.length - 1].id
-            : 0,
+          documentData: state.documentData
+            ? {
+                ...state.documentData,
+                paragraphs: [
+                  ...state.documentData.paragraphs,
+                  ...data.paragraphs,
+                ],
+              }
+            : data,
+          lastParagraphId:
+            data.paragraphs.length > 0
+              ? data.paragraphs[data.paragraphs.length - 1].id
+              : 0,
           hasMore: data.paragraphs.length === 20,
           loadingMore: false,
         }));
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Невядомая памылка';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Невядомая памылка';
       set({
         error: errorMessage,
         loading: false,
-        loadingMore: false
+        loadingMore: false,
       });
     }
   },
@@ -142,16 +199,22 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       lastParagraphId
     );
 
-    const data = await documentService.fetchDocument(documentId, 0, maxParagraphId);
+    const data = await documentService.fetchDocument(
+      documentId,
+      0,
+      maxParagraphId
+    );
 
-    const reloadedParagraphs = data.paragraphs
+    const reloadedParagraphs = data.paragraphs;
 
     set((state: DocumentState) => ({
-      documentData: state.documentData ? {
-        ...state.documentData,
-        header: state.documentData.header,
-        paragraphs: reloadedParagraphs,
-      } : null,
+      documentData: state.documentData
+        ? {
+            ...state.documentData,
+            header: state.documentData.header,
+            paragraphs: reloadedParagraphs,
+          }
+        : null,
     }));
   },
 
@@ -167,7 +230,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       const documents = await documentService.fetchDocuments();
       set({ documentsList: documents, loading: false });
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Невядомая памылка';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Невядомая памылка';
       set({ error: errorMessage, loading: false });
     }
   },
@@ -183,7 +247,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       set((state: DocumentState) => ({
         documentsList: state.documentsList.map((doc: DocumentHeader) =>
           doc.n === documentId ? updatedHeader : doc
-        )
+        ),
       }));
     } catch (err) {
       console.error('Failed to refresh document:', err);
@@ -202,14 +266,17 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       const documents = await documentService.refreshDocumentsList();
       set({ documentsList: documents, loading: false });
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Невядомая памылка';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Невядомая памылка';
       set({ error: errorMessage, loading: false });
     }
   },
 
-  updateDocument: (updater: (prev: DocumentData | null) => DocumentData | null) => {
+  updateDocument: (
+    updater: (prev: DocumentData | null) => DocumentData | null
+  ) => {
     set((state: DocumentState) => ({
-      documentData: updater(state.documentData)
+      documentData: updater(state.documentData),
     }));
   },
 
@@ -223,8 +290,6 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   setError: (error: string | null) => set({ error }),
-
-
 
   // Structural Editing Implementation
 
@@ -261,7 +326,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         const nextState = history[nextIndex];
         set({
           documentData: nextState.documentData,
-          historyIndex: nextIndex
+          historyIndex: nextIndex,
         });
       }
     }
@@ -289,7 +354,10 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     try {
       set({ loading: true });
 
-      const response = await documentService.saveDocument(documentData.header.n, operations);
+      const response = await documentService.saveDocument(
+        documentData.header.n,
+        operations
+      );
 
       // Merge edited paragraphs into current data
       const newParagraphs = [...documentData.paragraphs];
@@ -299,13 +367,15 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         if (index !== -1) {
           newParagraphs[index] = editedP;
         } else {
-          console.error(`Received update for unknown paragraph ID: ${editedP.id}`);
+          console.error(
+            `Received update for unknown paragraph ID: ${editedP.id}`
+          );
         }
       }
 
       const newDocumentData = {
         ...documentData,
-        paragraphs: newParagraphs
+        paragraphs: newParagraphs,
       };
 
       set({
@@ -313,11 +383,13 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         originalDocumentData: JSON.parse(JSON.stringify(newDocumentData)), // New baseline
         history: [],
         historyIndex: -1,
-        loading: false
+        loading: false,
       });
-
     } catch (err) {
-      set({ error: err instanceof Error ? err.message : 'Save failed', loading: false });
+      set({
+        error: err instanceof Error ? err.message : 'Save failed',
+        loading: false,
+      });
     }
   },
 
@@ -349,7 +421,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       set({
         documentData: newDocumentData,
         history: newHistory,
-        historyIndex: newHistory.length - 1
+        historyIndex: newHistory.length - 1,
       });
     }
   },
@@ -380,7 +452,12 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   splitSentence: (pId: number, sId: number, splitIdx: number) => {
     const { documentData } = get();
     if (!documentData) return;
-    const result = StructureEditor.splitSentence(documentData, pId, sId, splitIdx);
+    const result = StructureEditor.splitSentence(
+      documentData,
+      pId,
+      sId,
+      splitIdx
+    );
     get()._applyEdit(result);
   },
 
@@ -415,15 +492,33 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   setGlue: (pId: number, sId: number, itemIdx: number, glueNext: boolean) => {
     const { documentData } = get();
     if (!documentData) return;
-    const result = StructureEditor.setGlue(documentData, pId, sId, itemIdx, glueNext);
+    const result = StructureEditor.setGlue(
+      documentData,
+      pId,
+      sId,
+      itemIdx,
+      glueNext
+    );
     get()._applyEdit(result);
     get().snapshot();
   },
 
-  updateItemText: (pId: number, sId: number, itemIdx: number, text: string, replaceHistory = false) => {
+  updateItemText: (
+    pId: number,
+    sId: number,
+    itemIdx: number,
+    text: string,
+    replaceHistory = false
+  ) => {
     const { documentData } = get();
     if (!documentData) return;
-    const result = StructureEditor.updateItemText(documentData, pId, sId, itemIdx, text);
+    const result = StructureEditor.updateItemText(
+      documentData,
+      pId,
+      sId,
+      itemIdx,
+      text
+    );
     get()._applyEdit(result, replaceHistory);
   },
 
@@ -441,7 +536,9 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     // Deduplication: Check if the new state is identical to the previous one
     if (historyIndex >= 0) {
       const prevState = history[historyIndex];
-      const isIdentical = JSON.stringify(prevState.documentData) === JSON.stringify(newState.documentData);
+      const isIdentical =
+        JSON.stringify(prevState.documentData) ===
+        JSON.stringify(newState.documentData);
 
       if (isIdentical && !replace) {
         // If states are identical and we are not forcing a replacement, skip snapshot
@@ -456,7 +553,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       newHistory.push(newState);
       set({
         history: newHistory,
-        historyIndex: newHistory.length - 1
+        historyIndex: newHistory.length - 1,
       });
     }
   },
@@ -477,15 +574,20 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     if (!documentData || !originalDocumentData) return false;
     const ops = calculateOperations(originalDocumentData, documentData);
     return ops.length > 0;
-  }
+  },
 }));
 
-function calculateOperations(original: DocumentData, current: DocumentData): ParagraphOperation[] {
+function calculateOperations(
+  original: DocumentData,
+  current: DocumentData
+): ParagraphOperation[] {
   const operations: ParagraphOperation[] = [];
 
   // Map original paragraphs by concurrencyStamp for quick lookup
   const originalMap = new Map<string, number>();
-  original.paragraphs.forEach((p, index) => originalMap.set(p.concurrencyStamp, index));
+  original.paragraphs.forEach((p, index) =>
+    originalMap.set(p.concurrencyStamp, index)
+  );
 
   let virtualIndex = 0; // The index in 'original' we are currently matching against
 
@@ -505,34 +607,45 @@ function calculateOperations(original: DocumentData, current: DocumentData): Par
           paragraphId: i + 1, // The deletion happens at the current build position
           operationType: OperationType.Delete,
           replacementSentences: null,
-          concurrencyStamp: pToDelete.concurrencyStamp
+          concurrencyStamp: pToDelete.concurrencyStamp,
         });
       }
 
       // Now we process the matched paragraph
       const originalP = original.paragraphs[origIdx];
-      const originalContent = JSON.stringify(originalP.sentences.map((s: Sentence) => s.sentenceItems.map((si: SentenceItem) => si.linguisticItem)));
-      const currentContent = JSON.stringify(currentP.sentences.map((s: Sentence) => s.sentenceItems.map((si: SentenceItem) => si.linguisticItem)));
+      const originalContent = JSON.stringify(
+        originalP.sentences.map((s: Sentence) =>
+          s.sentenceItems.map((si: SentenceItem) => si.linguisticItem)
+        )
+      );
+      const currentContent = JSON.stringify(
+        currentP.sentences.map((s: Sentence) =>
+          s.sentenceItems.map((si: SentenceItem) => si.linguisticItem)
+        )
+      );
 
       if (originalContent !== currentContent) {
         operations.push({
           paragraphId: i + 1,
           operationType: OperationType.Update,
-          replacementSentences: currentP.sentences.map((s: Sentence) => s.sentenceItems.map((si: SentenceItem) => si.linguisticItem)),
-          concurrencyStamp: originalP.concurrencyStamp
+          replacementSentences: currentP.sentences.map((s: Sentence) =>
+            s.sentenceItems.map((si: SentenceItem) => si.linguisticItem)
+          ),
+          concurrencyStamp: originalP.concurrencyStamp,
         });
       }
 
       // Advance virtualIndex past the matched paragraph
       virtualIndex = origIdx + 1;
-
     } else {
       // Not found in remaining originals -> Treat as Create
       operations.push({
         paragraphId: i + 1,
         operationType: OperationType.Create,
-        replacementSentences: currentP.sentences.map((s: Sentence) => s.sentenceItems.map((si: SentenceItem) => si.linguisticItem)),
-        concurrencyStamp: null
+        replacementSentences: currentP.sentences.map((s: Sentence) =>
+          s.sentenceItems.map((si: SentenceItem) => si.linguisticItem)
+        ),
+        concurrencyStamp: null,
       });
     }
   }
@@ -544,7 +657,7 @@ function calculateOperations(original: DocumentData, current: DocumentData): Par
       paragraphId: current.paragraphs.length + 1, // Deleting from the end
       operationType: OperationType.Delete,
       replacementSentences: null,
-      concurrencyStamp: pToDelete.concurrencyStamp
+      concurrencyStamp: pToDelete.concurrencyStamp,
     });
   }
 

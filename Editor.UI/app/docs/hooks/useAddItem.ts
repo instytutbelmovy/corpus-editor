@@ -7,17 +7,29 @@ export function useAddItem() {
   const { selectWord } = useWordSelection();
   const { setIsEditingText } = useUIStore();
 
-  const handleAddWord = (paragraphId: number, sentenceId: number, index: number) => {
+  const handleAddWord = (
+    paragraphId: number,
+    sentenceId: number,
+    index: number
+  ) => {
     addWord(paragraphId, sentenceId, index);
     selectNewItem(paragraphId, sentenceId, index + 1);
   };
 
-  const handleAddPunctuation = (paragraphId: number, sentenceId: number, index: number) => {
+  const handleAddPunctuation = (
+    paragraphId: number,
+    sentenceId: number,
+    index: number
+  ) => {
     addPunctuation(paragraphId, sentenceId, index);
     selectNewItem(paragraphId, sentenceId, index + 1);
   };
 
-  const selectNewItem = (paragraphId: number, sentenceId: number, newIndex: number) => {
+  const selectNewItem = (
+    paragraphId: number,
+    sentenceId: number,
+    newIndex: number
+  ) => {
     const { documentData } = useDocumentStore.getState();
     if (documentData) {
       const paragraph = documentData.paragraphs.find(p => p.id === paragraphId);
@@ -32,6 +44,6 @@ export function useAddItem() {
 
   return {
     handleAddWord,
-    handleAddPunctuation
+    handleAddPunctuation,
   };
 }

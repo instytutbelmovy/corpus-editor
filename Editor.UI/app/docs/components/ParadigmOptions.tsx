@@ -4,7 +4,10 @@ import {
   LinguisticTag,
   LinguisticItem,
 } from '../types';
-import { parseLinguisticTag, LinguisticCategories } from '../linguisticCategories';
+import {
+  parseLinguisticTag,
+  LinguisticCategories,
+} from '../linguisticCategories';
 
 interface ParadigmOptionsProps {
   options: GrammarInfo[];
@@ -14,7 +17,10 @@ interface ParadigmOptionsProps {
   onSelect: (paradigmFormId: ParadigmFormId) => void;
   onManualInput?: () => void;
   onBeforeSelect?: () => Promise<void>;
-  onSaveManualCategories?: (lemma: string, linguisticTag: LinguisticTag) => Promise<void>;
+  onSaveManualCategories?: (
+    lemma: string,
+    linguisticTag: LinguisticTag
+  ) => Promise<void>;
 }
 
 interface GroupedOptions {
@@ -175,35 +181,43 @@ export function ParadigmOptions({
             <div className="space-y-2">
               {group.options.map(option => {
                 // Правяраем, ці выбрана опцыя
-                const isSelected = option.paradigmFormId === null
-                  ? // Для кастомных словаў правяраем lemma і linguisticTag
-                  selectedItem !== null &&
-                  selectedItem !== undefined &&
-                  selectedItem.paradigmFormId === null &&
-                  selectedItem.lemma === option.lemma &&
-                  selectedItem.linguisticTag !== null &&
-                  selectedItem.linguisticTag.paradigmTag === option.linguisticTag.paradigmTag &&
-                  selectedItem.linguisticTag.formTag === option.linguisticTag.formTag
-                  : // Для звычайных парадыгм правяраем paradigmFormId
-                  selectedParadigmFormId !== null &&
-                  selectedParadigmFormId.paradigmId === option.paradigmFormId.paradigmId &&
-                  selectedParadigmFormId.variantId === option.paradigmFormId.variantId &&
-                  selectedParadigmFormId.formTag === option.paradigmFormId.formTag;
+                const isSelected =
+                  option.paradigmFormId === null
+                    ? // Для кастомных словаў правяраем lemma і linguisticTag
+                      selectedItem !== null &&
+                      selectedItem !== undefined &&
+                      selectedItem.paradigmFormId === null &&
+                      selectedItem.lemma === option.lemma &&
+                      selectedItem.linguisticTag !== null &&
+                      selectedItem.linguisticTag.paradigmTag ===
+                        option.linguisticTag.paradigmTag &&
+                      selectedItem.linguisticTag.formTag ===
+                        option.linguisticTag.formTag
+                    : // Для звычайных парадыгм правяраем paradigmFormId
+                      selectedParadigmFormId !== null &&
+                      selectedParadigmFormId.paradigmId ===
+                        option.paradigmFormId.paradigmId &&
+                      selectedParadigmFormId.variantId ===
+                        option.paradigmFormId.variantId &&
+                      selectedParadigmFormId.formTag ===
+                        option.paradigmFormId.formTag;
 
                 const categories = parseLinguisticTag(option.linguisticTag);
 
                 // Генеруем унікальны ключ для опцыі
-                const optionKey = option.paradigmFormId === null
-                  ? `custom-${option.lemma}-${option.linguisticTag.paradigmTag}-${option.linguisticTag.formTag || ''}`
-                  : `${option.paradigmFormId.paradigmId}-${option.paradigmFormId.variantId}-${option.paradigmFormId.formTag}`;
+                const optionKey =
+                  option.paradigmFormId === null
+                    ? `custom-${option.lemma}-${option.linguisticTag.paradigmTag}-${option.linguisticTag.formTag || ''}`
+                    : `${option.paradigmFormId.paradigmId}-${option.paradigmFormId.variantId}-${option.paradigmFormId.formTag}`;
 
                 return (
                   <div
                     key={optionKey}
-                    className={`border rounded-lg p-3 transition-colors cursor-pointer ${isSelected
-                      ? 'border-green-500 bg-green-50'
-                      : 'border-gray-200 hover:border-blue-300'
-                      }`}
+                    className={`border rounded-lg p-3 transition-colors cursor-pointer ${
+                      isSelected
+                        ? 'border-green-500 bg-green-50'
+                        : 'border-gray-200 hover:border-blue-300'
+                    }`}
                     onClick={async () => {
                       if (onBeforeSelect) {
                         await onBeforeSelect();
@@ -211,7 +225,10 @@ export function ParadigmOptions({
                       // Калі paradigmFormId null, гэта кастомнае слова - выклікаем захаваньне ручных катэгорый
                       if (option.paradigmFormId === null) {
                         if (onSaveManualCategories) {
-                          await onSaveManualCategories(option.lemma, option.linguisticTag);
+                          await onSaveManualCategories(
+                            option.lemma,
+                            option.linguisticTag
+                          );
                         }
                       } else {
                         onSelect(option.paradigmFormId);
@@ -231,7 +248,7 @@ export function ParadigmOptions({
                               const isCommon =
                                 key in commonCategories &&
                                 commonCategories[
-                                key as keyof LinguisticCategories
+                                  key as keyof LinguisticCategories
                                 ] === value;
                               return renderCategory(
                                 key,

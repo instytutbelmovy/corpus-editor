@@ -24,7 +24,10 @@ export function Paragraph({
   isStructureEditingMode,
   index,
 }: ParagraphProps) {
-  const bgClass = isStructureEditingMode && index % 2 !== 0 ? 'bg-gray-100 rounded p-2 -mx-2' : '';
+  const bgClass =
+    isStructureEditingMode && index % 2 !== 0
+      ? 'bg-gray-100 rounded p-2 -mx-2'
+      : '';
 
   return (
     <div key={paragraph.id} className={`mb-4 ${bgClass}`}>
@@ -56,7 +59,9 @@ function ParagraphBoundary({ paragraphId }: { paragraphId: number }) {
   const { joinParagraph } = useDocumentStore();
 
   return (
-    <span className={`text-gray-400 select-none ml-1 cursor-pointer hover:text-blue-500 relative group/boundary px-1 ${isMergeHovered ? '!bg-red-100 rounded' : ''}`}>
+    <span
+      className={`text-gray-400 select-none ml-1 cursor-pointer hover:text-blue-500 relative group/boundary px-1 ${isMergeHovered ? '!bg-red-100 rounded' : ''}`}
+    >
       ¶
       <div className="absolute top-full left-1/2 transform -translate-x-1/2 -translate-y-1 pt-2 hidden group-hover/boundary:flex flex-col z-10">
         <div className="flex flex-col gap-1 bg-white shadow-lg rounded p-1 border border-gray-200 whitespace-nowrap">

@@ -31,7 +31,8 @@ export function Sentence({
   isLastSentence,
   nextSentenceId,
 }: SentenceProps) {
-  const bgClass = isStructureEditingMode && index % 2 !== 0 ? 'bg-yellow-50' : '';
+  const bgClass =
+    isStructureEditingMode && index % 2 !== 0 ? 'bg-yellow-50' : '';
   const { splitParagraph, joinSentence, setGlue } = useDocumentStore();
   const { handleAddWord, handleAddPunctuation } = useAddItem();
 
@@ -61,9 +62,9 @@ export function Sentence({
         const nextItem = sentence.sentenceItems[itemIndex + 1]?.linguisticItem;
         const isCurrentlyEditing = Boolean(
           selectedWord &&
-          selectedWord.paragraphId === paragraphId &&
-          selectedWord.sentenceId === sentence.id &&
-          selectedWord.wordIndex === itemIndex
+            selectedWord.paragraphId === paragraphId &&
+            selectedWord.sentenceId === sentence.id &&
+            selectedWord.wordIndex === itemIndex
         );
 
         // Правяраем ці чакае слова захаваньня
@@ -106,14 +107,20 @@ export function Sentence({
                     <button
                       className="px-2 py-1 text-xs hover:bg-gray-100 rounded text-left"
                       onClick={() => {
-                        handleAddPunctuation(paragraphId, sentence.id, itemIndex);
+                        handleAddPunctuation(
+                          paragraphId,
+                          sentence.id,
+                          itemIndex
+                        );
                       }}
                     >
                       Дадаць пунктуацыю
                     </button>
                     <button
                       className="px-2 py-1 text-xs hover:bg-gray-100 rounded text-left"
-                      onClick={() => setGlue(paragraphId, sentence.id, itemIndex, false)}
+                      onClick={() =>
+                        setGlue(paragraphId, sentence.id, itemIndex, false)
+                      }
                     >
                       Дадаць прабел
                     </button>
@@ -122,8 +129,8 @@ export function Sentence({
               </span>
             )}
 
-            {!currentItem.glueNext && (
-              isStructureEditingMode ? (
+            {!currentItem.glueNext &&
+              (isStructureEditingMode ? (
                 <InteractiveSpace
                   canGlue={Boolean(canGlue)}
                   isLastItem={itemIndex === sentence.sentenceItems.length - 1}
@@ -131,8 +138,9 @@ export function Sentence({
                   sentenceId={sentence.id}
                   itemIndex={itemIndex}
                 />
-              ) : ' '
-            )}
+              ) : (
+                ' '
+              ))}
           </span>
         );
       })}
@@ -143,7 +151,9 @@ export function Sentence({
             <div className="flex flex-col gap-1 bg-white shadow-lg rounded p-1 border border-gray-200 whitespace-nowrap">
               <button
                 className="px-2 py-1 text-xs hover:bg-gray-100 rounded text-left text-gray-900"
-                onClick={() => nextSentenceId && splitParagraph(paragraphId, nextSentenceId)}
+                onClick={() =>
+                  nextSentenceId && splitParagraph(paragraphId, nextSentenceId)
+                }
               >
                 Разьбіць на абзацы
               </button>

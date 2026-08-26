@@ -23,6 +23,6 @@ body.recaptcha-hidden .grecaptcha-badge {
   display: none !important;
 }
 
-body.recaptcha-hidden iframe[src*="recaptcha"] {
+body.recaptcha-hidden iframe[src*='recaptcha'] {
   display: none !important;
 }

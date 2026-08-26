@@ -5,7 +5,10 @@ declare global {
   interface Window {
     grecaptcha: {
       ready: (callback: () => void) => void;
-      execute: (siteKey: string, options: { action: string }) => Promise<string>;
+      execute: (
+        siteKey: string,
+        options: { action: string }
+      ) => Promise<string>;
     };
   }
 }
@@ -98,7 +101,7 @@ class ReCaptchaService {
     return {
       isLoaded: this.isLoaded,
       isReady: this.isReady,
-      siteKey: this.siteKey
+      siteKey: this.siteKey,
     };
   }
 }

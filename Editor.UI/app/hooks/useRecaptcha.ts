@@ -20,13 +20,16 @@ export const useRecaptcha = () => {
     initializeRecaptcha();
   }, []);
 
-  const executeRecaptcha = useCallback(async (action: string): Promise<string | null> => {
-    return recaptchaService.execute(action);
-  }, []);
+  const executeRecaptcha = useCallback(
+    async (action: string): Promise<string | null> => {
+      return recaptchaService.execute(action);
+    },
+    []
+  );
 
   return {
     isLoaded,
     isReady,
-    executeRecaptcha
+    executeRecaptcha,
   };
 };

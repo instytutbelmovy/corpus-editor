@@ -53,7 +53,11 @@ export function EditingPanel({
 
   useEffect(() => {
     setShowErrorDropdown(false);
-  }, [selectedWord?.paragraphId, selectedWord?.sentenceId, selectedWord?.wordIndex]);
+  }, [
+    selectedWord?.paragraphId,
+    selectedWord?.sentenceId,
+    selectedWord?.wordIndex,
+  ]);
 
   const hasError = !!selectedWord?.item.metadata?.errorType;
   const showDropdown = hasError || showErrorDropdown;
@@ -456,7 +460,9 @@ export function EditingPanel({
                   <input
                     type="text"
                     value={editText}
-                    onChange={e => setEditText(e.target.value.replace(/\+/g, '\u0301'))}
+                    onChange={e =>
+                      setEditText(e.target.value.replace(/\+/g, '\u0301'))
+                    }
                     className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Увядзіце новы тэкст"
                     autoFocus
@@ -573,9 +579,14 @@ export function EditingPanel({
                   Тып памылкі
                 </label>
                 <select
-                  value={selectedWord.item.metadata?.errorType || LinguisticErrorType.None}
-                  onChange={(e) => {
-                    const newVal = Number(e.target.value) as LinguisticErrorType;
+                  value={
+                    selectedWord.item.metadata?.errorType ||
+                    LinguisticErrorType.None
+                  }
+                  onChange={e => {
+                    const newVal = Number(
+                      e.target.value
+                    ) as LinguisticErrorType;
                     onSaveErrorType(newVal);
                     if (newVal === LinguisticErrorType.None) {
                       setShowErrorDropdown(true);
@@ -586,10 +597,18 @@ export function EditingPanel({
                 >
                   <option value={LinguisticErrorType.None}>Няма памылкі</option>
                   <option value={LinguisticErrorType.Lexical}>Лексічная</option>
-                  <option value={LinguisticErrorType.Orthoepic}>Артаэпічная</option>
-                  <option value={LinguisticErrorType.Formational}>Словаўтваральная</option>
-                  <option value={LinguisticErrorType.Stylistic}>Стылістычная</option>
-                  <option value={LinguisticErrorType.Grammatical}>Граматычная</option>
+                  <option value={LinguisticErrorType.Orthoepic}>
+                    Артаэпічная
+                  </option>
+                  <option value={LinguisticErrorType.Formational}>
+                    Словаўтваральная
+                  </option>
+                  <option value={LinguisticErrorType.Stylistic}>
+                    Стылістычная
+                  </option>
+                  <option value={LinguisticErrorType.Grammatical}>
+                    Граматычная
+                  </option>
                 </select>
               </div>
             )}
@@ -678,7 +697,7 @@ export function EditingPanel({
             </div>
           )}
         </div>
-      </div >
+      </div>
     </>
   );
 }

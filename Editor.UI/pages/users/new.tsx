@@ -30,8 +30,8 @@ export default function NewUserPage() {
       await userService.createUser(data);
       router.push('/users');
     } catch (err) {
-      setFormErrors({ 
-        submit: err instanceof Error ? err.message : 'Невядомая памылка' 
+      setFormErrors({
+        submit: err instanceof Error ? err.message : 'Невядомая памылка',
       });
     } finally {
       setIsSubmitting(false);

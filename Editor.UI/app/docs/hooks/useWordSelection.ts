@@ -10,12 +10,15 @@ export function useWordSelection() {
     saveError,
     setSaveError,
     clearSaveError,
-    pendingSaves
+    pendingSaves,
   } = useUIStore();
 
-
-
-  const selectWord = (item: LinguisticItem, paragraphId: number, sentenceId: number, wordIndex: number) => {
+  const selectWord = (
+    item: LinguisticItem,
+    paragraphId: number,
+    sentenceId: number,
+    wordIndex: number
+  ) => {
     const { documentData } = useDocumentStore.getState();
     if (!documentData) return;
 

@@ -19,7 +19,10 @@ export class ApiClient {
     return `${this.baseUrl}/api${url}`;
   }
 
-  private async handleResponse<T>(response: Response, skipUnauthorizedRedirect = false): Promise<ApiResponse<T>> {
+  private async handleResponse<T>(
+    response: Response,
+    skipUnauthorizedRedirect = false
+  ): Promise<ApiResponse<T>> {
     if (response.status === 401) {
       // Ачысціць аўтэнтыфікацыю
       AuthStorage.clear();
@@ -65,71 +68,96 @@ export class ApiClient {
     return {
       data,
       error,
-      status: response.status
+      status: response.status,
     };
   }
 
-  async get<T>(url: string, options: RequestInit = {}, skipUnauthorizedRedirect = false): Promise<ApiResponse<T>> {
+  async get<T>(
+    url: string,
+    options: RequestInit = {},
+    skipUnauthorizedRedirect = false
+  ): Promise<ApiResponse<T>> {
     const fullUrl = this.buildUrl(url);
     const response = await fetch(fullUrl, {
       method: 'GET',
       credentials: 'include',
-      ...options
+      ...options,
     });
 
     return this.handleResponse<T>(response, skipUnauthorizedRedirect);
   }
 
-  async post<T>(url: string, body?: unknown, options: RequestInit = {}, skipUnauthorizedRedirect = false): Promise<ApiResponse<T>> {
+  async post<T>(
+    url: string,
+    body?: unknown,
+    options: RequestInit = {},
+    skipUnauthorizedRedirect = false
+  ): Promise<ApiResponse<T>> {
     const fullUrl = this.buildUrl(url);
     const response = await fetch(fullUrl, {
       method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        ...options.headers
+        ...options.headers,
       },
-      body: body === undefined || body === null ? undefined : JSON.stringify(body),
-      ...options
+      body:
+        body === undefined || body === null ? undefined : JSON.stringify(body),
+      ...options,
     });
 
     return this.handleResponse<T>(response, skipUnauthorizedRedirect);
   }
 
-  async put<T>(url: string, body?: unknown, options: RequestInit = {}, skipUnauthorizedRedirect = false): Promise<ApiResponse<T>> {
+  async put<T>(
+    url: string,
+    body?: unknown,
+    options: RequestInit = {},
+    skipUnauthorizedRedirect = false
+  ): Promise<ApiResponse<T>> {
     const fullUrl = this.buildUrl(url);
     const response = await fetch(fullUrl, {
       method: 'PUT',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        ...options.headers
+        ...options.headers,
       },
-      body: body === undefined || body === null ? undefined : JSON.stringify(body),
-      ...options
+      body:
+        body === undefined || body === null ? undefined : JSON.stringify(body),
+      ...options,
     });
 
     return this.handleResponse<T>(response, skipUnauthorizedRedirect);
   }
 
-  async delete<T>(url: string, options: RequestInit = {}, skipUnauthorizedRedirect = false): Promise<ApiResponse<T>> {
+  async delete<T>(
+    url: string,
+    options: RequestInit = {},
+    skipUnauthorizedRedirect = false
+  ): Promise<ApiResponse<T>> {
     const fullUrl = this.buildUrl(url);
     const response = await fetch(fullUrl, {
       method: 'DELETE',
       credentials: 'include',
-      ...options
+      ...options,
     });
 
     return this.handleResponse<T>(response, skipUnauthorizedRedirect);
   }
 
-  async postFormData<T>(url: string, formData: FormData, options: RequestInit = {}, skipUnauthorizedRedirect = false): Promise<ApiResponse<T>> {
+  async postFormData<T>(
+    url: string,
+    formData: FormData,
+    options: RequestInit = {},
+    skipUnauthorizedRedirect = false
+  ): Promise<ApiResponse<T>> {
     const fullUrl = this.buildUrl(url);
     const response = await fetch(fullUrl, {
       method: 'POST',
       credentials: 'include',
       body: formData,
-      ...options
+      ...options,
     });
 
     return this.handleResponse<T>(response, skipUnauthorizedRedirect);

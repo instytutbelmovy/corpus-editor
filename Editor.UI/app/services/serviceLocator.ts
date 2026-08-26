@@ -11,7 +11,7 @@ class ServiceLocator {
   private _documentService: DocumentService | null = null;
   private _userService: UserService | null = null;
 
-  private constructor() { }
+  private constructor() {}
 
   public static getInstance(): ServiceLocator {
     if (!ServiceLocator.instance) {
@@ -40,7 +40,8 @@ class ServiceLocator {
   }
 
   public get documentService(): DocumentService {
-    if (!this._documentService) throw new Error('ServiceLocator not initialized');
+    if (!this._documentService)
+      throw new Error('ServiceLocator not initialized');
     return this._documentService;
   }
 

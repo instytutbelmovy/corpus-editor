@@ -17,7 +17,7 @@ export default function NewDocument() {
     publicationDate: '',
     type: undefined,
     style: undefined,
-    file: null
+    file: null,
   };
 
   const handleSubmit = async (data: NewDocumentFormData) => {
@@ -35,12 +35,14 @@ export default function NewDocument() {
     try {
       await documentService.createDocument({
         ...data,
-        file: data.file
+        file: data.file,
       });
 
       router.push('/');
     } catch (error) {
-      setErrors({ submit: error instanceof Error ? error.message : 'Невядомая памылка' });
+      setErrors({
+        submit: error instanceof Error ? error.message : 'Невядомая памылка',
+      });
     } finally {
       setLoading(false);
     }
@@ -65,4 +67,4 @@ export default function NewDocument() {
       subtitle="Запоўніце інфармацыю пра дакумэнт і выберыце файл"
     />
   );
-} 
+}

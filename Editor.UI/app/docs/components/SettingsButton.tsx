@@ -82,10 +82,11 @@ export function SettingsButton({
 
             <button
               onClick={() => handleModeChange('full')}
-              className={`w-full text-left px-2 py-1.5 text-sm rounded ${displayMode === 'full'
-                ? 'bg-blue-50 text-blue-700'
-                : 'text-gray-700 hover:bg-gray-50'
-                }`}
+              className={`w-full text-left px-2 py-1.5 text-sm rounded ${
+                displayMode === 'full'
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-gray-700 hover:bg-gray-50'
+              }`}
             >
               <div className="font-medium">Поўны</div>
               <div className="text-xs text-gray-500">
@@ -95,10 +96,11 @@ export function SettingsButton({
 
             <button
               onClick={() => handleModeChange('compact')}
-              className={`w-full text-left px-2 py-1.5 text-sm rounded ${displayMode === 'compact'
-                ? 'bg-blue-50 text-blue-700'
-                : 'text-gray-700 hover:bg-gray-50'
-                }`}
+              className={`w-full text-left px-2 py-1.5 text-sm rounded ${
+                displayMode === 'compact'
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-gray-700 hover:bg-gray-50'
+              }`}
             >
               <div className="font-medium">Скарочаны</div>
               <div className="text-xs text-gray-500">

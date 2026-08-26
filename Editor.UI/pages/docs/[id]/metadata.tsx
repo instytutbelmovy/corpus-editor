@@ -11,14 +11,17 @@ export default function EditMetadata() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
-  const [documentInfo, setDocumentInfo] = useState<{ n: number; percentCompletion: number } | null>(null);
+  const [documentInfo, setDocumentInfo] = useState<{
+    n: number;
+    percentCompletion: number;
+  } | null>(null);
   const [initialData, setInitialData] = useState<MetadataFormData>({
     title: '',
     url: '',
     publicationDate: undefined,
     type: 'пісьмовы',
     style: undefined,
-    corpus: undefined
+    corpus: undefined,
   });
 
   useEffect(() => {
@@ -31,10 +34,15 @@ export default function EditMetadata() {
 
       try {
         const data = await documentService.fetchDocumentMetadata(Number(id));
-        setDocumentInfo({ n: data.n, percentCompletion: data.percentCompletion });
+        setDocumentInfo({
+          n: data.n,
+          percentCompletion: data.percentCompletion,
+        });
         setInitialData(data);
       } catch (error) {
-        setErrors({ fetch: error instanceof Error ? error.message : 'Невядомая памылка' });
+        setErrors({
+          fetch: error instanceof Error ? error.message : 'Невядомая памылка',
+        });
       } finally {
         setLoading(false);
       }
@@ -58,7 +66,9 @@ export default function EditMetadata() {
 
       router.push('/');
     } catch (error) {
-      setErrors({ submit: error instanceof Error ? error.message : 'Невядомая памылка' });
+      setErrors({
+        submit: error instanceof Error ? error.message : 'Невядомая памылка',
+      });
     } finally {
       setSaving(false);
     }
@@ -111,4 +121,4 @@ export default function EditMetadata() {
       subtitle={`Дакумэнт #${documentInfo?.n} • Прагрэс: ${documentInfo?.percentCompletion}%`}
     />
   );
-} 
+}

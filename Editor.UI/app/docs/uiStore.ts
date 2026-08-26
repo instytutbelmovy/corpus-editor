@@ -56,7 +56,7 @@ interface UIState {
 
 export const useUIStore = create<UIState>()(
   persist(
-    (set) => ({
+    set => ({
       // Пачатковы стан
       selectedWord: null,
       displayMode: 'compact',
@@ -70,32 +70,33 @@ export const useUIStore = create<UIState>()(
       pendingSaves: new Set(),
 
       // Дзеяньні для выбару слоў
-      setSelectedWord: (word) => set({ selectedWord: word }),
-      clearSelectedWord: () => set({ selectedWord: null, isEditingText: false }),
+      setSelectedWord: word => set({ selectedWord: word }),
+      clearSelectedWord: () =>
+        set({ selectedWord: null, isEditingText: false }),
 
       // Дзеяньні для налад
-      setDisplayMode: (mode) => set({ displayMode: mode }),
+      setDisplayMode: mode => set({ displayMode: mode }),
 
       // Дзеяньні для рэдагаваньня
-      setIsEditingText: (editing) => set({ isEditingText: editing }),
-      setIsSavingText: (saving) => set({ isSavingText: saving }),
-      setIsSavingManual: (saving) => set({ isSavingManual: saving }),
-      setIsSavingComment: (saving) => set({ isSavingComment: saving }),
-      setIsSavingError: (saving) => set({ isSavingError: saving }),
-      setShowManualInput: (show) => set({ showManualInput: show }),
+      setIsEditingText: editing => set({ isEditingText: editing }),
+      setIsSavingText: saving => set({ isSavingText: saving }),
+      setIsSavingManual: saving => set({ isSavingManual: saving }),
+      setIsSavingComment: saving => set({ isSavingComment: saving }),
+      setIsSavingError: saving => set({ isSavingError: saving }),
+      setShowManualInput: show => set({ showManualInput: show }),
 
       // Дзеяньні для памылак
-      setSaveError: (error) => set({ saveError: error }),
+      setSaveError: error => set({ saveError: error }),
       clearSaveError: () => set({ saveError: null }),
 
       // Дзеяньні для чакаючых захаваньняў
-      addPendingSave: (key) => {
+      addPendingSave: key => {
         set(state => ({
-          pendingSaves: new Set([...state.pendingSaves, key])
+          pendingSaves: new Set([...state.pendingSaves, key]),
         }));
       },
 
-      removePendingSave: (key) => {
+      removePendingSave: key => {
         set(state => {
           const newSet = new Set(state.pendingSaves);
           newSet.delete(key);
@@ -107,11 +108,11 @@ export const useUIStore = create<UIState>()(
 
       // Рэжым рэдагаваньня структуры
       isStructureEditingMode: false,
-      setIsStructureEditingMode: (mode) => set({ isStructureEditingMode: mode }),
+      setIsStructureEditingMode: mode => set({ isStructureEditingMode: mode }),
     }),
     {
       name: 'editor-ui-store',
-      partialize: (state) => ({ displayMode: state.displayMode }),
+      partialize: state => ({ displayMode: state.displayMode }),
     }
   )
 );

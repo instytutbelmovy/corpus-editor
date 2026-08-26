@@ -10,7 +10,7 @@ const AUTH_STORAGE_KEY = 'editor-auth-user';
 export class AuthStorage {
   static get(): AuthUser | null {
     if (typeof window === 'undefined') return null;
-    
+
     try {
       const stored = localStorage.getItem(AUTH_STORAGE_KEY);
       return stored ? JSON.parse(stored) : null;
@@ -21,7 +21,7 @@ export class AuthStorage {
 
   static set(user: AuthUser): void {
     if (typeof window === 'undefined') return;
-    
+
     try {
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
     } catch {
@@ -31,7 +31,7 @@ export class AuthStorage {
 
   static clear(): void {
     if (typeof window === 'undefined') return;
-    
+
     try {
       localStorage.removeItem(AUTH_STORAGE_KEY);
     } catch {

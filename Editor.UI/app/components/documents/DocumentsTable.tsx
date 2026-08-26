@@ -12,11 +12,22 @@ interface DocumentsTableProps {
   userRole?: Roles;
 }
 
-export const DocumentsTable = ({ documents, isExpanded, onRefresh, onRefreshList, userRole }: DocumentsTableProps) => {
+export const DocumentsTable = ({
+  documents,
+  isExpanded,
+  onRefresh,
+  onRefreshList,
+  userRole,
+}: DocumentsTableProps) => {
   const [openMenu, setOpenMenu] = useState<number | null>(null);
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
-  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(null);
-  const [headerMenuPos, setHeaderMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; left: number } | null>(
+    null
+  );
+  const [headerMenuPos, setHeaderMenuPos] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
 
   useEffect(() => {
     const handleClickOutside = () => {
@@ -60,7 +71,7 @@ export const DocumentsTable = ({ documents, isExpanded, onRefresh, onRefreshList
       const rect = event.currentTarget.getBoundingClientRect();
       setMenuPos({
         top: rect.bottom + window.scrollY,
-        left: rect.right + window.scrollX
+        left: rect.right + window.scrollX,
       });
       setOpenMenu(docId);
     }
@@ -79,7 +90,7 @@ export const DocumentsTable = ({ documents, isExpanded, onRefresh, onRefreshList
       const rect = event.currentTarget.getBoundingClientRect();
       setHeaderMenuPos({
         top: rect.bottom + window.scrollY,
-        left: rect.right + window.scrollX
+        left: rect.right + window.scrollX,
       });
       setHeaderMenuOpen(true);
     }
@@ -130,37 +141,53 @@ export const DocumentsTable = ({ documents, isExpanded, onRefresh, onRefreshList
                     onClick={handleHeaderMenuClick}
                     className="text-gray-400 hover:text-gray-600 transition-colors duration-150 p-1 rounded-full hover:bg-gray-100"
                   >
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <svg
+                      className="w-5 h-5"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
                       <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                     </svg>
                   </button>
-                  {headerMenuOpen && typeof document !== 'undefined' && createPortal(
-                    <div
-                      className="absolute w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200"
-                      style={{
-                        top: `${(headerMenuPos?.top || 0) + 8}px`,
-                        left: `${headerMenuPos?.left || 0}px`,
-                        transform: 'translateX(-100%)'
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="py-1">
-                        <button
-                          onClick={(event) => {
-                            handleHeaderMenuActionClick(event);
-                            onRefreshList?.();
-                          }}
-                          className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
-                        >
-                          <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                          </svg>
-                          Абнавіць сьпіс
-                        </button>
-                      </div>
-                    </div>,
-                    document.body
-                  )}
+                  {headerMenuOpen &&
+                    typeof document !== 'undefined' &&
+                    createPortal(
+                      <div
+                        className="absolute w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200"
+                        style={{
+                          top: `${(headerMenuPos?.top || 0) + 8}px`,
+                          left: `${headerMenuPos?.left || 0}px`,
+                          transform: 'translateX(-100%)',
+                        }}
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <div className="py-1">
+                          <button
+                            onClick={event => {
+                              handleHeaderMenuActionClick(event);
+                              onRefreshList?.();
+                            }}
+                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
+                          >
+                            <svg
+                              className="w-4 h-4 mr-3"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                              />
+                            </svg>
+                            Абнавіць сьпіс
+                          </button>
+                        </div>
+                      </div>,
+                      document.body
+                    )}
                 </div>
               )}
             </th>
@@ -199,7 +226,9 @@ export const DocumentsTable = ({ documents, isExpanded, onRefresh, onRefreshList
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:text-blue-800 hover:underline"
                       >
-                        {doc.url.length > 30 ? `${doc.url.substring(0, 30)}...` : doc.url}
+                        {doc.url.length > 30
+                          ? `${doc.url.substring(0, 30)}...`
+                          : doc.url}
                       </a>
                     ) : (
                       '-'
@@ -229,66 +258,102 @@ export const DocumentsTable = ({ documents, isExpanded, onRefresh, onRefreshList
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                 <div className="relative">
                   <button
-                    onClick={(event) => handleMenuClick(event, doc.n)}
+                    onClick={event => handleMenuClick(event, doc.n)}
                     className="text-gray-400 hover:text-gray-600 transition-colors duration-150 p-1 rounded-full hover:bg-gray-100"
                     title="Дзеяньні"
                   >
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <svg
+                      className="w-5 h-5"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
                       <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                     </svg>
                   </button>
 
-                  {openMenu === doc.n && typeof document !== 'undefined' && createPortal(
-                    <div
-                      className="absolute w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200"
-                      style={{
-                        top: `${(menuPos?.top || 0) + 8}px`,
-                        left: `${menuPos?.left || 0}px`,
-                        transform: 'translateX(-100%)'
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div className="py-1">
-                        <Link
-                          href={`/docs/${doc.n}/metadata`}
-                          onClick={handleMenuActionClick}
-                          className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
-                        >
-                          <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          Мэтаданыя
-                        </Link>
-                        <button
-                          onClick={(event) => {
-                            handleMenuActionClick(event);
-                            handleDownload(doc.n);
-                          }}
-                          className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
-                        >
-                          <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          Сьцягнуць
-                        </button>
-                        {userRole === Roles.Admin && (
+                  {openMenu === doc.n &&
+                    typeof document !== 'undefined' &&
+                    createPortal(
+                      <div
+                        className="absolute w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200"
+                        style={{
+                          top: `${(menuPos?.top || 0) + 8}px`,
+                          left: `${menuPos?.left || 0}px`,
+                          transform: 'translateX(-100%)',
+                        }}
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <div className="py-1">
+                          <Link
+                            href={`/docs/${doc.n}/metadata`}
+                            onClick={handleMenuActionClick}
+                            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
+                          >
+                            <svg
+                              className="w-4 h-4 mr-3"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                              />
+                            </svg>
+                            Мэтаданыя
+                          </Link>
                           <button
-                            onClick={(event) => {
+                            onClick={event => {
                               handleMenuActionClick(event);
-                              onRefresh?.(doc.n);
+                              handleDownload(doc.n);
                             }}
                             className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
                           >
-                            <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            <svg
+                              className="w-4 h-4 mr-3"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                              />
                             </svg>
-                            Абнавіць
+                            Сьцягнуць
                           </button>
-                        )}
-                      </div>
-                    </div>,
-                    document.body
-                  )}
+                          {userRole === Roles.Admin && (
+                            <button
+                              onClick={event => {
+                                handleMenuActionClick(event);
+                                onRefresh?.(doc.n);
+                              }}
+                              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150"
+                            >
+                              <svg
+                                className="w-4 h-4 mr-3"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                />
+                              </svg>
+                              Абнавіць
+                            </button>
+                          )}
+                        </div>
+                      </div>,
+                      document.body
+                    )}
                 </div>
               </td>
             </tr>

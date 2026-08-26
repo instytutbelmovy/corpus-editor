@@ -1,4 +1,11 @@
-import { DocumentData, ParadigmFormId, GrammarInfo, DocumentHeader, ParagraphOperation, DocumentEditResponse } from './types';
+import {
+  DocumentData,
+  ParadigmFormId,
+  GrammarInfo,
+  DocumentHeader,
+  ParagraphOperation,
+  DocumentEditResponse,
+} from './types';
 import { ApiClient } from '@/app/apiClient';
 
 interface CreateDocumentData {
@@ -20,7 +27,8 @@ export class DocumentService {
   }
 
   async fetchDocuments(): Promise<DocumentHeader[]> {
-    const response = await this.apiClient.get<DocumentHeader[]>('/registry-files');
+    const response =
+      await this.apiClient.get<DocumentHeader[]>('/registry-files');
     if (response.error) {
       throw new Error(response.error);
     }
@@ -34,13 +42,17 @@ export class DocumentService {
     formData.append('n', documentData.n.toString());
     formData.append('title', documentData.title);
     if (documentData.url) formData.append('url', documentData.url);
-    if (documentData.publicationDate) formData.append('publicationDate', documentData.publicationDate);
+    if (documentData.publicationDate)
+      formData.append('publicationDate', documentData.publicationDate);
     if (documentData.type) formData.append('type', documentData.type);
     if (documentData.style) formData.append('style', documentData.style);
     if (documentData.corpus) formData.append('corpus', documentData.corpus);
     formData.append('file', documentData.file);
 
-    const response = await this.apiClient.postFormData('/registry-files', formData);
+    const response = await this.apiClient.postFormData(
+      '/registry-files',
+      formData
+    );
 
     if (response.error) {
       throw new Error(response.error);
@@ -62,15 +74,26 @@ export class DocumentService {
   }
 
   async fetchDocumentMetadata(documentId: number): Promise<DocumentHeader> {
-    const response = await this.apiClient.get<DocumentHeader>(`/registry-files/${documentId}/metadata`);
+    const response = await this.apiClient.get<DocumentHeader>(
+      `/registry-files/${documentId}/metadata`
+    );
     if (response.error) {
       throw new Error(response.error);
     }
     return response.data!;
   }
 
-  async updateMetadata(documentId: number, metadata: Omit<DocumentHeader, 'n' | 'percentCompletion' | 'author' | 'language'>): Promise<void> {
-    const response = await this.apiClient.put(`/registry-files/${documentId}/metadata`, metadata);
+  async updateMetadata(
+    documentId: number,
+    metadata: Omit<
+      DocumentHeader,
+      'n' | 'percentCompletion' | 'author' | 'language'
+    >
+  ): Promise<void> {
+    const response = await this.apiClient.put(
+      `/registry-files/${documentId}/metadata`,
+      metadata
+    );
 
     if (response.error) {
       throw new Error(response.error);
@@ -78,7 +101,10 @@ export class DocumentService {
   }
 
   async refreshDocument(documentId: number): Promise<DocumentHeader> {
-    const response = await this.apiClient.post<DocumentHeader>(`/registry-files/${documentId}/refresh`, {});
+    const response = await this.apiClient.post<DocumentHeader>(
+      `/registry-files/${documentId}/refresh`,
+      {}
+    );
 
     if (response.error) {
       throw new Error(response.error);
@@ -87,7 +113,10 @@ export class DocumentService {
   }
 
   async refreshDocumentsList(): Promise<DocumentHeader[]> {
-    const response = await this.apiClient.post<DocumentHeader[]>('/registry-files/refresh', {});
+    const response = await this.apiClient.post<DocumentHeader[]>(
+      '/registry-files/refresh',
+      {}
+    );
 
     if (response.error) {
       throw new Error(response.error);
@@ -190,9 +219,14 @@ export class DocumentService {
     }
   }
 
-  async saveDocument(documentId: number, operations: ParagraphOperation[]): Promise<DocumentEditResponse> {
+  async saveDocument(
+    documentId: number,
+    operations: ParagraphOperation[]
+  ): Promise<DocumentEditResponse> {
     const url = `/registry-files/${documentId}/edit`;
-    const response = await this.apiClient.post<DocumentEditResponse>(url, { operations });
+    const response = await this.apiClient.post<DocumentEditResponse>(url, {
+      operations,
+    });
 
     if (response.error) {
       throw new Error(response.error);

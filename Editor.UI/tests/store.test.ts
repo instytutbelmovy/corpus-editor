@@ -4,7 +4,7 @@ import { DocumentData, OperationType } from '../app/docs/types';
 // Mock StructureEditor
 jest.mock('../app/docs/structureEditor', () => ({
   StructureEditor: {
-    addWord: jest.fn((data) => ({
+    addWord: jest.fn(data => ({
       newDocumentData: { ...data, version: (data.version || 0) + 1 },
       newOperations: [],
     })),

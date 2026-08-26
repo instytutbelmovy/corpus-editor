@@ -33,14 +33,15 @@ export function UserForm({
     await onSubmit(formData);
   };
 
-  const handleChange = (field: keyof EditorUserCreateDto) => (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: field === 'role' ? Number(e.target.value) as Roles : e.target.value,
-    }));
-  };
+  const handleChange =
+    (field: keyof EditorUserCreateDto) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      setFormData(prev => ({
+        ...prev,
+        [field]:
+          field === 'role' ? (Number(e.target.value) as Roles) : e.target.value,
+      }));
+    };
 
   const roleOptions = Object.values(Roles)
     .filter(value => typeof value === 'number')
@@ -57,21 +58,27 @@ export function UserForm({
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  {title}
-                </h1>
+                <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
                 {subtitle && (
-                  <p className="mt-1 text-sm text-gray-500">
-                    {subtitle}
-                  </p>
+                  <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
                 )}
               </div>
               <button
                 onClick={onCancel}
                 className="text-gray-400 hover:text-gray-600 transition-colors duration-150"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -88,7 +95,10 @@ export function UserForm({
 
             {/* Імя карыстальніка */}
             <div>
-              <label htmlFor="userName" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="userName"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Імя карыстальніка *
               </label>
               <input
@@ -98,8 +108,9 @@ export function UserForm({
                 required
                 value={formData.userName}
                 onChange={handleChange('userName')}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.userName ? 'border-red-300' : 'border-gray-300'
-                  }`}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  errors.userName ? 'border-red-300' : 'border-gray-300'
+                }`}
                 placeholder="Увядзіце імя карыстальніка"
               />
               {errors.userName && (
@@ -109,7 +120,10 @@ export function UserForm({
 
             {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Email *
               </label>
               <input
@@ -119,8 +133,9 @@ export function UserForm({
                 required
                 value={formData.email}
                 onChange={handleChange('email')}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.email ? 'border-red-300' : 'border-gray-300'
-                  }`}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  errors.email ? 'border-red-300' : 'border-gray-300'
+                }`}
                 placeholder="Увядзіце email"
               />
               {errors.email && (
@@ -130,7 +145,10 @@ export function UserForm({
 
             {/* Роля */}
             <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="role"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Роля *
               </label>
               <select
@@ -139,8 +157,9 @@ export function UserForm({
                 required
                 value={formData.role}
                 onChange={handleChange('role')}
-                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.role ? 'border-red-300' : 'border-gray-300'
-                  }`}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  errors.role ? 'border-red-300' : 'border-gray-300'
+                }`}
               >
                 {roleOptions.map(option => (
                   <option key={option.value} value={option.value}>

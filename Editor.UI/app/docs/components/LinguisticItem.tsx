@@ -45,7 +45,10 @@ export function LinguisticItem({
     if (isStructureEditingMode) {
       return (
         <>
-          <span key={`${item.text}-${index}`} className="relative group/linebreak inline-block">
+          <span
+            key={`${item.text}-${index}`}
+            className="relative group/linebreak inline-block"
+          >
             <span className="text-gray-400 select-none mx-1 cursor-pointer hover:text-red-500">
               ↵
             </span>
@@ -91,7 +94,6 @@ export function LinguisticItem({
   // Punctuation styling
   const punctuationClasses = isPunctuation ? 'text-amber-700' : '';
 
-
   if (isStructureEditingMode) {
     return (
       <span className="relative group/item inline-block">
@@ -102,20 +104,28 @@ export function LinguisticItem({
           ref={spanRef}
           contentEditable
           suppressContentEditableWarning
-          onBlur={(e) => {
+          onBlur={e => {
             const newText = e.currentTarget.textContent || '';
             if (newText !== item.text) {
               if (paragraphId !== undefined && sentenceId !== undefined) {
                 // If the word was empty (newly added), we replace the "Add Word" history entry
                 // with this "Add Word + Text" entry, so Undo removes the word entirely.
                 const replaceHistory = item.text === '';
-                useDocumentStore.getState().updateItemText(paragraphId, sentenceId, index, newText, replaceHistory);
+                useDocumentStore
+                  .getState()
+                  .updateItemText(
+                    paragraphId,
+                    sentenceId,
+                    index,
+                    newText,
+                    replaceHistory
+                  );
               }
             }
             // Clear selection on blur
             clearSelectedWord();
           }}
-          onKeyDown={(e) => {
+          onKeyDown={e => {
             if (e.key === 'Enter') {
               e.preventDefault();
               e.currentTarget.blur();
@@ -134,7 +144,7 @@ export function LinguisticItem({
               }
             }
           }}
-          onClick={(e) => {
+          onClick={e => {
             e.stopPropagation();
           }}
         >

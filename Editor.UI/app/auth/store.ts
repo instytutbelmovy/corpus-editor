@@ -14,7 +14,11 @@ interface AuthState {
 
   // Дзеяньні
   setAuthService: (service: AuthService) => void;
-  signIn: (email: string, password: string, recaptchaToken?: string | null) => Promise<{ success: boolean; message?: string }>;
+  signIn: (
+    email: string,
+    password: string,
+    recaptchaToken?: string | null
+  ) => Promise<{ success: boolean; message?: string }>;
   signOut: () => Promise<void>;
   checkAuthStatus: () => Promise<boolean>;
   setAuthenticated: (authenticated: boolean) => void;
@@ -30,7 +34,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   authService: null,
 
   // Дзеяньні
-  setAuthService: (service) => set({ authService: service }),
+  setAuthService: service => set({ authService: service }),
 
   signIn: async (email, password, recaptchaToken) => {
     const { authService } = get();
@@ -43,7 +47,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const user = AuthStorage.get();
       set({
         isAuthenticated: true,
-        user: user || null
+        user: user || null,
       });
     }
     return result;
@@ -56,7 +60,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
     set({
       isAuthenticated: false,
-      user: null
+      user: null,
     });
   },
 
@@ -74,13 +78,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({
           isAuthenticated: true,
           user: user || null,
-          isLoading: false
+          isLoading: false,
         });
       } else {
         set({
           isAuthenticated: false,
           user: null,
-          isLoading: false
+          isLoading: false,
         });
       }
       return isAuth;
@@ -89,13 +93,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({
         isAuthenticated: false,
         user: null,
-        isLoading: false
+        isLoading: false,
       });
       return false;
     }
   },
 
-  setAuthenticated: (authenticated) => set({ isAuthenticated: authenticated }),
-  setUser: (user) => set({ user }),
-  setLoading: (loading) => set({ isLoading: loading }),
+  setAuthenticated: authenticated => set({ isAuthenticated: authenticated }),
+  setUser: user => set({ user }),
+  setLoading: loading => set({ isLoading: loading }),
 }));

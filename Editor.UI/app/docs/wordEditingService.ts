@@ -1,4 +1,11 @@
-import { DocumentData, SelectedWord, ParadigmFormId, LinguisticTag, GrammarInfo, LinguisticErrorType } from './types';
+import {
+  DocumentData,
+  SelectedWord,
+  ParadigmFormId,
+  LinguisticTag,
+  GrammarInfo,
+  LinguisticErrorType,
+} from './types';
 import { DocumentService } from './service';
 import { useDocumentStore } from './store';
 import { useUIStore } from './uiStore';
@@ -11,14 +18,21 @@ export class WordEditingService {
   }
 
   // Пошук наступнага незарэзолвленага слова
-  findNextUnresolvedWord(documentData: DocumentData | null, selectedWord: SelectedWord | null): SelectedWord | null {
+  findNextUnresolvedWord(
+    documentData: DocumentData | null,
+    selectedWord: SelectedWord | null
+  ): SelectedWord | null {
     if (!documentData) return null;
 
     let foundCurrent = false;
 
     for (const paragraph of documentData.paragraphs) {
       for (const sentence of paragraph.sentences) {
-        for (let wordIndex = 0; wordIndex < sentence.sentenceItems.length; wordIndex++) {
+        for (
+          let wordIndex = 0;
+          wordIndex < sentence.sentenceItems.length;
+          wordIndex++
+        ) {
           const sentenceItem = sentence.sentenceItems[wordIndex];
           const item = sentenceItem.linguisticItem;
 
@@ -55,7 +69,11 @@ export class WordEditingService {
     // Калі не знайшлі пасля бягучага, шукаем з пачатку
     for (const paragraph of documentData.paragraphs) {
       for (const sentence of paragraph.sentences) {
-        for (let wordIndex = 0; wordIndex < sentence.sentenceItems.length; wordIndex++) {
+        for (
+          let wordIndex = 0;
+          wordIndex < sentence.sentenceItems.length;
+          wordIndex++
+        ) {
           const sentenceItem = sentence.sentenceItems[wordIndex];
           const item = sentenceItem.linguisticItem;
 
@@ -86,7 +104,8 @@ export class WordEditingService {
     paradigmFormId: ParadigmFormId
   ): Promise<void> {
     const { updateDocument, snapshot } = useDocumentStore.getState();
-    const { setSelectedWord, addPendingSave, removePendingSave, setSaveError } = useUIStore.getState();
+    const { setSelectedWord, addPendingSave, removePendingSave, setSaveError } =
+      useUIStore.getState();
 
     snapshot();
 
@@ -187,11 +206,13 @@ export class WordEditingService {
             if (sentence.id !== selectedWord.sentenceId) continue;
             const item = sentence.sentenceItems[selectedWord.wordIndex];
             // Вяртаем да папярэдняга стану
-            item.linguisticItem.paradigmFormId = selectedWord.item.paradigmFormId;
+            item.linguisticItem.paradigmFormId =
+              selectedWord.item.paradigmFormId;
             item.linguisticItem.lemma = selectedWord.item.lemma;
             item.linguisticItem.linguisticTag = selectedWord.item.linguisticTag;
             if (item.linguisticItem.metadata) {
-              item.linguisticItem.metadata.resolvedOn = selectedWord.item.metadata?.resolvedOn || null;
+              item.linguisticItem.metadata.resolvedOn =
+                selectedWord.item.metadata?.resolvedOn || null;
             }
           }
         }
@@ -200,7 +221,8 @@ export class WordEditingService {
 
       removePendingSave(wordKey);
 
-      const errorMessage = err instanceof Error ? err.message : 'Невядомая памылка';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Невядомая памылка';
       setSaveError(errorMessage);
       throw err;
     }
@@ -222,15 +244,16 @@ export class WordEditingService {
     }
 
     try {
-      const newOptions: GrammarInfo[] = await this.documentService.updateWordText(
-        documentId,
-        selectedWord.paragraphId,
-        selectedWord.paragraphStamp,
-        selectedWord.sentenceId,
-        selectedWord.sentenceStamp,
-        selectedWord.wordIndex,
-        text
-      );
+      const newOptions: GrammarInfo[] =
+        await this.documentService.updateWordText(
+          documentId,
+          selectedWord.paragraphId,
+          selectedWord.paragraphStamp,
+          selectedWord.sentenceId,
+          selectedWord.sentenceStamp,
+          selectedWord.wordIndex,
+          text
+        );
 
       // Абнаўляем дакумэнт з новым тэкстам і варыянтамі
       updateDocument(prev => {
@@ -280,16 +303,17 @@ export class WordEditingService {
             linguisticTag: null,
             metadata: selectedWord.item.metadata
               ? {
-                ...selectedWord.item.metadata,
-                resolvedOn: null,
-              }
+                  ...selectedWord.item.metadata,
+                  resolvedOn: null,
+                }
               : null,
           },
           options: newOptions,
         });
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Невядомая памылка';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Невядомая памылка';
       setSaveError(errorMessage);
       throw err;
     }
@@ -303,7 +327,8 @@ export class WordEditingService {
     linguisticTag: LinguisticTag
   ): Promise<void> {
     const { updateDocument, snapshot } = useDocumentStore.getState();
-    const { setSelectedWord, addPendingSave, removePendingSave, setSaveError } = useUIStore.getState();
+    const { setSelectedWord, addPendingSave, removePendingSave, setSaveError } =
+      useUIStore.getState();
 
     snapshot();
 
@@ -331,7 +356,9 @@ export class WordEditingService {
 
     try {
       // Фарматуем linguisticTag для API
-      const tagString = linguisticTag.paradigmTag + (linguisticTag.formTag ? '|' + linguisticTag.formTag : '');
+      const tagString =
+        linguisticTag.paradigmTag +
+        (linguisticTag.formTag ? '|' + linguisticTag.formTag : '');
 
       await this.documentService.saveLemmaTag(
         documentId,
@@ -387,11 +414,13 @@ export class WordEditingService {
             if (sentence.id !== selectedWord.sentenceId) continue;
             const item = sentence.sentenceItems[selectedWord.wordIndex];
             // Вяртаем да папярэдняга стану
-            item.linguisticItem.paradigmFormId = selectedWord.item.paradigmFormId;
+            item.linguisticItem.paradigmFormId =
+              selectedWord.item.paradigmFormId;
             item.linguisticItem.lemma = selectedWord.item.lemma;
             item.linguisticItem.linguisticTag = selectedWord.item.linguisticTag;
             if (item.linguisticItem.metadata) {
-              item.linguisticItem.metadata.resolvedOn = selectedWord.item.metadata?.resolvedOn || null;
+              item.linguisticItem.metadata.resolvedOn =
+                selectedWord.item.metadata?.resolvedOn || null;
             }
           }
         }
@@ -400,7 +429,8 @@ export class WordEditingService {
 
       removePendingSave(wordKey);
 
-      const errorMessage = err instanceof Error ? err.message : 'Невядомая памылка';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Невядомая памылка';
       setSaveError(errorMessage);
       throw err;
     }
@@ -477,7 +507,8 @@ export class WordEditingService {
     errorType: LinguisticErrorType
   ): Promise<void> {
     const { updateDocument, snapshot } = useDocumentStore.getState();
-    const { setSelectedWord, addPendingSave, removePendingSave } = useUIStore.getState();
+    const { setSelectedWord, addPendingSave, removePendingSave } =
+      useUIStore.getState();
 
     snapshot();
 
@@ -507,7 +538,10 @@ export class WordEditingService {
             if (sentence.id !== selectedWord.sentenceId) continue;
             const item = sentence.sentenceItems[selectedWord.wordIndex];
             if (!item.linguisticItem.metadata) {
-              item.linguisticItem.metadata = { suggested: null, resolvedOn: null };
+              item.linguisticItem.metadata = {
+                suggested: null,
+                resolvedOn: null,
+              };
             }
             item.linguisticItem.metadata.errorType = errorType;
           }

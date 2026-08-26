@@ -7,7 +7,15 @@ import { DocumentsTable } from '@/app/components/documents/DocumentsTable';
 import { useAuthStore } from '@/app/auth/store';
 
 export default function Home() {
-  const { documentsList, loading, error, fetchDocuments, documentService, refreshDocumentHeader, refreshDocumentsList } = useDocumentStore();
+  const {
+    documentsList,
+    loading,
+    error,
+    fetchDocuments,
+    documentService,
+    refreshDocumentHeader,
+    refreshDocumentsList,
+  } = useDocumentStore();
   const { displayMode, setDisplayMode } = useUIStore();
   const { user } = useAuthStore();
 
@@ -51,4 +59,3 @@ export default function Home() {
     </div>
   );
 }
-

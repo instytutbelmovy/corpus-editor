@@ -33,14 +33,8 @@ export default function DocumentPage() {
   }, [documentId, setIsStructureEditingMode]);
 
   // Хукі для работы з дакумэнтам
-  const {
-    documentData,
-    loading,
-    error,
-    loadingMore,
-    hasMore,
-    fetchDocument,
-  } = useDocument(documentId);
+  const { documentData, loading, error, loadingMore, hasMore, fetchDocument } =
+    useDocument(documentId);
 
   // Хукі для выбару і рэдагаваньня слоў
   const {

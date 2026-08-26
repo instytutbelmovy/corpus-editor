@@ -1,5 +1,10 @@
 import { StructureEditor } from '../app/docs/structureEditor';
-import { DocumentData, Paragraph, Sentence, SentenceItemType } from '../app/docs/types';
+import {
+  DocumentData,
+  Paragraph,
+  Sentence,
+  SentenceItemType,
+} from '../app/docs/types';
 
 const createMockSentence = (id: number, text: string): Sentence => ({
   id,
@@ -40,7 +45,9 @@ describe('StructureEditor', () => {
     const data = createMockData();
     const result = StructureEditor.addWord(data, 1, 1, 0);
 
-    expect(result.newDocumentData.paragraphs[0].sentences[0].sentenceItems).toHaveLength(2);
+    expect(
+      result.newDocumentData.paragraphs[0].sentences[0].sentenceItems
+    ).toHaveLength(2);
     expect(result.newOperations).toHaveLength(1);
     expect(result.newOperations[0].operationType).toBe(1); // Update
   });
@@ -56,8 +63,12 @@ describe('StructureEditor', () => {
     const result = StructureEditor.splitSentence(data, 1, 1, 0);
 
     expect(result.newDocumentData.paragraphs[0].sentences).toHaveLength(2);
-    expect(result.newDocumentData.paragraphs[0].sentences[0].sentenceItems).toHaveLength(1);
-    expect(result.newDocumentData.paragraphs[0].sentences[1].sentenceItems).toHaveLength(1);
+    expect(
+      result.newDocumentData.paragraphs[0].sentences[0].sentenceItems
+    ).toHaveLength(1);
+    expect(
+      result.newDocumentData.paragraphs[0].sentences[1].sentenceItems
+    ).toHaveLength(1);
     expect(result.newOperations).toHaveLength(1);
   });
 
@@ -69,7 +80,9 @@ describe('StructureEditor', () => {
     const result = StructureEditor.joinSentence(data, 1, 1);
 
     expect(result.newDocumentData.paragraphs[0].sentences).toHaveLength(1);
-    expect(result.newDocumentData.paragraphs[0].sentences[0].sentenceItems).toHaveLength(2);
+    expect(
+      result.newDocumentData.paragraphs[0].sentences[0].sentenceItems
+    ).toHaveLength(2);
     expect(result.newOperations).toHaveLength(1);
   });
 

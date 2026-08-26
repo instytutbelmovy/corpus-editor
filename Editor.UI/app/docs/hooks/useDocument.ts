@@ -2,15 +2,15 @@ import { useEffect } from 'react';
 import { useDocumentStore } from '../store';
 
 export function useDocument(documentId: string) {
-  const { 
-    documentData, 
-    loading, 
-    error, 
-    loadingMore, 
-    hasMore, 
+  const {
+    documentData,
+    loading,
+    error,
+    loadingMore,
+    hasMore,
     lastParagraphId,
-    fetchDocument, 
-    updateDocument 
+    fetchDocument,
+    updateDocument,
   } = useDocumentStore();
 
   useEffect(() => {

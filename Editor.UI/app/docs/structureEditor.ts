@@ -24,9 +24,9 @@ export const StructureEditor = {
     wordIndex: number
   ): EditResult => {
     const newData = clone(data);
-    const paragraph = newData.paragraphs.find((p) => p.id === paragraphId);
+    const paragraph = newData.paragraphs.find(p => p.id === paragraphId);
     if (!paragraph) throw new Error('Paragraph not found');
-    const sentence = paragraph.sentences.find((s) => s.id === sentenceId);
+    const sentence = paragraph.sentences.find(s => s.id === sentenceId);
     if (!sentence) throw new Error('Sentence not found');
 
     const newWord: SentenceItem = {
@@ -60,8 +60,8 @@ export const StructureEditor = {
         {
           paragraphId: paragraphId,
           operationType: OperationType.Update,
-          replacementSentences: paragraph.sentences.map((s) =>
-            s.sentenceItems.map((si) => si.linguisticItem)
+          replacementSentences: paragraph.sentences.map(s =>
+            s.sentenceItems.map(si => si.linguisticItem)
           ),
           concurrencyStamp: paragraph.concurrencyStamp,
         },
@@ -76,9 +76,9 @@ export const StructureEditor = {
     wordIndex: number
   ): EditResult => {
     const newData = clone(data);
-    const paragraph = newData.paragraphs.find((p) => p.id === paragraphId);
+    const paragraph = newData.paragraphs.find(p => p.id === paragraphId);
     if (!paragraph) throw new Error('Paragraph not found');
-    const sentence = paragraph.sentences.find((s) => s.id === sentenceId);
+    const sentence = paragraph.sentences.find(s => s.id === sentenceId);
     if (!sentence) throw new Error('Sentence not found');
 
     const newPunctuation: SentenceItem = {
@@ -111,8 +111,8 @@ export const StructureEditor = {
         {
           paragraphId: paragraphId,
           operationType: OperationType.Update,
-          replacementSentences: paragraph.sentences.map((s) =>
-            s.sentenceItems.map((si) => si.linguisticItem)
+          replacementSentences: paragraph.sentences.map(s =>
+            s.sentenceItems.map(si => si.linguisticItem)
           ),
           concurrencyStamp: paragraph.concurrencyStamp,
         },
@@ -127,9 +127,9 @@ export const StructureEditor = {
     wordIndex: number
   ): EditResult => {
     const newData = clone(data);
-    const paragraph = newData.paragraphs.find((p) => p.id === paragraphId);
+    const paragraph = newData.paragraphs.find(p => p.id === paragraphId);
     if (!paragraph) throw new Error('Paragraph not found');
-    const sentence = paragraph.sentences.find((s) => s.id === sentenceId);
+    const sentence = paragraph.sentences.find(s => s.id === sentenceId);
     if (!sentence) throw new Error('Sentence not found');
 
     const newLineBreak: SentenceItem = {
@@ -162,8 +162,8 @@ export const StructureEditor = {
         {
           paragraphId: paragraphId,
           operationType: OperationType.Update,
-          replacementSentences: paragraph.sentences.map((s) =>
-            s.sentenceItems.map((si) => si.linguisticItem)
+          replacementSentences: paragraph.sentences.map(s =>
+            s.sentenceItems.map(si => si.linguisticItem)
           ),
           concurrencyStamp: paragraph.concurrencyStamp,
         },
@@ -178,11 +178,15 @@ export const StructureEditor = {
     itemIndex: number
   ): EditResult => {
     const newData = clone(data);
-    const paragraphIndex = newData.paragraphs.findIndex((p) => p.id === paragraphId);
+    const paragraphIndex = newData.paragraphs.findIndex(
+      p => p.id === paragraphId
+    );
     if (paragraphIndex === -1) throw new Error('Paragraph not found');
     const paragraph = newData.paragraphs[paragraphIndex];
 
-    const sentenceIndex = paragraph.sentences.findIndex((s) => s.id === sentenceId);
+    const sentenceIndex = paragraph.sentences.findIndex(
+      s => s.id === sentenceId
+    );
     if (sentenceIndex === -1) throw new Error('Sentence not found');
     const sentence = paragraph.sentences[sentenceIndex];
 
@@ -192,7 +196,10 @@ export const StructureEditor = {
     const itemToDelete = sentence.sentenceItems[itemIndex];
     const leftItem = sentence.sentenceItems[itemIndex - 1];
 
-    if (itemToDelete.linguisticItem.type === SentenceItemType.Word && itemToDelete.linguisticItem.glueNext) {
+    if (
+      itemToDelete.linguisticItem.type === SentenceItemType.Word &&
+      itemToDelete.linguisticItem.glueNext
+    ) {
       if (leftItem) {
         leftItem.linguisticItem.glueNext = true;
       }
@@ -233,8 +240,8 @@ export const StructureEditor = {
         {
           paragraphId: paragraphId,
           operationType: OperationType.Update,
-          replacementSentences: paragraph.sentences.map((s) =>
-            s.sentenceItems.map((si) => si.linguisticItem)
+          replacementSentences: paragraph.sentences.map(s =>
+            s.sentenceItems.map(si => si.linguisticItem)
           ),
           concurrencyStamp: paragraph.concurrencyStamp,
         },
@@ -249,16 +256,19 @@ export const StructureEditor = {
     splitIndex: number // Index of the item *after* which to split (i.e., last item of first sentence)
   ): EditResult => {
     const newData = clone(data);
-    const paragraph = newData.paragraphs.find((p) => p.id === paragraphId);
+    const paragraph = newData.paragraphs.find(p => p.id === paragraphId);
     if (!paragraph) throw new Error('Paragraph not found');
-    const sentenceIndex = paragraph.sentences.findIndex((s) => s.id === sentenceId);
+    const sentenceIndex = paragraph.sentences.findIndex(
+      s => s.id === sentenceId
+    );
     if (sentenceIndex === -1) throw new Error('Sentence not found');
     const sentence = paragraph.sentences[sentenceIndex];
 
     const firstPartItems = sentence.sentenceItems.slice(0, splitIndex + 1);
     const secondPartItems = sentence.sentenceItems.slice(splitIndex + 1);
 
-    if (secondPartItems.length === 0) return { newDocumentData: data, newOperations: [] };
+    if (secondPartItems.length === 0)
+      return { newDocumentData: data, newOperations: [] };
 
     // Update first sentence
     sentence.sentenceItems = firstPartItems;
@@ -269,7 +279,7 @@ export const StructureEditor = {
     // However, the backend expects us to send the full list of sentences for the paragraph update.
     // The backend will regenerate IDs.
     // For local UI consistency, let's generate a temporary ID.
-    const maxSentenceId = Math.max(...paragraph.sentences.map((s) => s.id), 0);
+    const maxSentenceId = Math.max(...paragraph.sentences.map(s => s.id), 0);
     const newSentence: Sentence = {
       id: maxSentenceId + 1,
       concurrencyStamp: crypto.randomUUID(), // Temporary stamp
@@ -284,8 +294,8 @@ export const StructureEditor = {
         {
           paragraphId: paragraphId,
           operationType: OperationType.Update,
-          replacementSentences: paragraph.sentences.map((s) =>
-            s.sentenceItems.map((si) => si.linguisticItem)
+          replacementSentences: paragraph.sentences.map(s =>
+            s.sentenceItems.map(si => si.linguisticItem)
           ),
           concurrencyStamp: paragraph.concurrencyStamp,
         },
@@ -299,18 +309,24 @@ export const StructureEditor = {
     sentenceId: number // The first sentence to join with the next one
   ): EditResult => {
     const newData = clone(data);
-    const paragraph = newData.paragraphs.find((p) => p.id === paragraphId);
+    const paragraph = newData.paragraphs.find(p => p.id === paragraphId);
     if (!paragraph) throw new Error('Paragraph not found');
-    const sentenceIndex = paragraph.sentences.findIndex((s) => s.id === sentenceId);
+    const sentenceIndex = paragraph.sentences.findIndex(
+      s => s.id === sentenceId
+    );
     if (sentenceIndex === -1) throw new Error('Sentence not found');
 
-    if (sentenceIndex >= paragraph.sentences.length - 1) return { newDocumentData: data, newOperations: [] };
+    if (sentenceIndex >= paragraph.sentences.length - 1)
+      return { newDocumentData: data, newOperations: [] };
 
     const firstSentence = paragraph.sentences[sentenceIndex];
     const secondSentence = paragraph.sentences[sentenceIndex + 1];
 
     // Merge items
-    firstSentence.sentenceItems = [...firstSentence.sentenceItems, ...secondSentence.sentenceItems];
+    firstSentence.sentenceItems = [
+      ...firstSentence.sentenceItems,
+      ...secondSentence.sentenceItems,
+    ];
 
     // Remove second sentence
     paragraph.sentences.splice(sentenceIndex + 1, 1);
@@ -321,8 +337,8 @@ export const StructureEditor = {
         {
           paragraphId: paragraphId,
           operationType: OperationType.Update,
-          replacementSentences: paragraph.sentences.map((s) =>
-            s.sentenceItems.map((si) => si.linguisticItem)
+          replacementSentences: paragraph.sentences.map(s =>
+            s.sentenceItems.map(si => si.linguisticItem)
           ),
           concurrencyStamp: paragraph.concurrencyStamp,
         },
@@ -336,14 +352,19 @@ export const StructureEditor = {
     sentenceId: number // The first sentence of the NEW paragraph
   ): EditResult => {
     const newData = clone(data);
-    const paragraphIndex = newData.paragraphs.findIndex((p) => p.id === paragraphId);
+    const paragraphIndex = newData.paragraphs.findIndex(
+      p => p.id === paragraphId
+    );
     if (paragraphIndex === -1) throw new Error('Paragraph not found');
     const paragraph = newData.paragraphs[paragraphIndex];
 
-    const sentenceIndex = paragraph.sentences.findIndex((s) => s.id === sentenceId);
+    const sentenceIndex = paragraph.sentences.findIndex(
+      s => s.id === sentenceId
+    );
     if (sentenceIndex === -1) throw new Error('Sentence not found');
 
-    if (sentenceIndex === 0) return { newDocumentData: data, newOperations: [] }; // Nothing to split if it's the first sentence
+    if (sentenceIndex === 0)
+      return { newDocumentData: data, newOperations: [] }; // Nothing to split if it's the first sentence
 
     const firstParagraphSentences = paragraph.sentences.slice(0, sentenceIndex);
     const secondParagraphSentences = paragraph.sentences.slice(sentenceIndex);
@@ -374,8 +395,8 @@ export const StructureEditor = {
         {
           paragraphId: paragraphId,
           operationType: OperationType.Update,
-          replacementSentences: firstParagraphSentences.map((s) =>
-            s.sentenceItems.map((si) => si.linguisticItem)
+          replacementSentences: firstParagraphSentences.map(s =>
+            s.sentenceItems.map(si => si.linguisticItem)
           ),
           concurrencyStamp: paragraph.concurrencyStamp,
         },
@@ -383,8 +404,8 @@ export const StructureEditor = {
         {
           paragraphId: newParagraphId,
           operationType: OperationType.Create,
-          replacementSentences: secondParagraphSentences.map((s) =>
-            s.sentenceItems.map((si) => si.linguisticItem)
+          replacementSentences: secondParagraphSentences.map(s =>
+            s.sentenceItems.map(si => si.linguisticItem)
           ),
         },
       ],
@@ -396,25 +417,31 @@ export const StructureEditor = {
     paragraphId: number // The first paragraph to join with the next one
   ): EditResult => {
     const newData = clone(data);
-    const paragraphIndex = newData.paragraphs.findIndex((p) => p.id === paragraphId);
+    const paragraphIndex = newData.paragraphs.findIndex(
+      p => p.id === paragraphId
+    );
     if (paragraphIndex === -1) throw new Error('Paragraph not found');
 
-    if (paragraphIndex >= newData.paragraphs.length - 1) return { newDocumentData: data, newOperations: [] };
+    if (paragraphIndex >= newData.paragraphs.length - 1)
+      return { newDocumentData: data, newOperations: [] };
 
     const firstParagraph = newData.paragraphs[paragraphIndex];
     const secondParagraph = newData.paragraphs[paragraphIndex + 1];
 
     // Merge sentences
-    // We need to ensure sentence IDs are unique/consistent if we care about them locally, 
+    // We need to ensure sentence IDs are unique/consistent if we care about them locally,
     // but for the operation we just send the list.
     // Let's re-id the sentences of the second paragraph to avoid collisions if any (though they should be unique per paragraph usually)
     const maxFirstId = Math.max(...firstParagraph.sentences.map(s => s.id), 0);
     const shiftedSecondSentences = secondParagraph.sentences.map((s, idx) => ({
       ...s,
-      id: maxFirstId + 1 + idx
+      id: maxFirstId + 1 + idx,
     }));
 
-    firstParagraph.sentences = [...firstParagraph.sentences, ...shiftedSecondSentences];
+    firstParagraph.sentences = [
+      ...firstParagraph.sentences,
+      ...shiftedSecondSentences,
+    ];
 
     // Remove second paragraph
     newData.paragraphs.splice(paragraphIndex + 1, 1);
@@ -431,8 +458,8 @@ export const StructureEditor = {
         {
           paragraphId: paragraphId,
           operationType: OperationType.Update,
-          replacementSentences: firstParagraph.sentences.map((s) =>
-            s.sentenceItems.map((si) => si.linguisticItem)
+          replacementSentences: firstParagraph.sentences.map(s =>
+            s.sentenceItems.map(si => si.linguisticItem)
           ),
           concurrencyStamp: firstParagraph.concurrencyStamp,
         },
@@ -441,7 +468,7 @@ export const StructureEditor = {
           paragraphId: paragraphId + 1, // It was the next one
           operationType: OperationType.Delete,
           replacementSentences: null,
-          // Concurrency stamp is needed for delete? 
+          // Concurrency stamp is needed for delete?
           // The backend says: "if (paragraphOperation.OperationType is OperationType.Update or OperationType.Delete) ... check concurrency stamp"
           // But wait, the backend logic for Delete says:
           // "if (ongoingParagraphsCount < paragraphOperation.ParagraphId) throw NotFound"
@@ -461,9 +488,9 @@ export const StructureEditor = {
     glueNext: boolean
   ): EditResult => {
     const newData = clone(data);
-    const paragraph = newData.paragraphs.find((p) => p.id === paragraphId);
+    const paragraph = newData.paragraphs.find(p => p.id === paragraphId);
     if (!paragraph) throw new Error('Paragraph not found');
-    const sentence = paragraph.sentences.find((s) => s.id === sentenceId);
+    const sentence = paragraph.sentences.find(s => s.id === sentenceId);
     if (!sentence) throw new Error('Sentence not found');
     const item = sentence.sentenceItems[itemIndex];
     if (!item) throw new Error('Item not found');
@@ -476,8 +503,8 @@ export const StructureEditor = {
         {
           paragraphId: paragraphId,
           operationType: OperationType.Update,
-          replacementSentences: paragraph.sentences.map((s) =>
-            s.sentenceItems.map((si) => si.linguisticItem)
+          replacementSentences: paragraph.sentences.map(s =>
+            s.sentenceItems.map(si => si.linguisticItem)
           ),
           concurrencyStamp: paragraph.concurrencyStamp,
         },
@@ -493,9 +520,9 @@ export const StructureEditor = {
     text: string
   ): EditResult => {
     const newData = clone(data);
-    const paragraph = newData.paragraphs.find((p) => p.id === paragraphId);
+    const paragraph = newData.paragraphs.find(p => p.id === paragraphId);
     if (!paragraph) throw new Error('Paragraph not found');
-    const sentence = paragraph.sentences.find((s) => s.id === sentenceId);
+    const sentence = paragraph.sentences.find(s => s.id === sentenceId);
     if (!sentence) throw new Error('Sentence not found');
     const item = sentence.sentenceItems[itemIndex];
     if (!item) throw new Error('Item not found');
@@ -508,8 +535,8 @@ export const StructureEditor = {
         {
           paragraphId: paragraphId,
           operationType: OperationType.Update,
-          replacementSentences: paragraph.sentences.map((s) =>
-            s.sentenceItems.map((si) => si.linguisticItem)
+          replacementSentences: paragraph.sentences.map(s =>
+            s.sentenceItems.map(si => si.linguisticItem)
           ),
           concurrencyStamp: paragraph.concurrencyStamp,
         },
