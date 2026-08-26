@@ -13,8 +13,13 @@ RUN npm run build
 # Stage 2: Зборка бэкэнду; вынік зборкі франтэнду капіруецца ў wwwroot
 FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS be-build
 
-# git патрэбны для GenerateVersionFile (git rev-parse) у Editor.Api.csproj
+# git патрэбны для GenerateVersionFile (git rev-parse) калі build-arg SOURCE_COMMIT не перададзены
 RUN apk add --no-cache git
+
+# .git не заўсёды даступны ў build-кантэксце (напр. Coolify); у такім выпадку хэш каміта
+# перадаецца праз build-arg SOURCE_COMMIT (Coolify: Advanced -> "Include Source Commit in
+# Build"). Пакінуты пустым тут - GenerateVersionFile сам упадзе назад на git rev-parse.
+ARG SOURCE_COMMIT=
 
 WORKDIR /app
 COPY . ./
@@ -22,7 +27,7 @@ COPY --from=fe-build /app/Editor.UI/out/ ./Editor.Api/wwwroot/
 
 WORKDIR /app/Editor.Api
 RUN dotnet restore Editor.Api.csproj
-RUN dotnet publish Editor.Api.csproj -c Release -r linux-musl-x64 -o out --no-restore
+RUN dotnet publish Editor.Api.csproj -c Release -r linux-musl-x64 -o out --no-restore -p:GitCommitHash=$SOURCE_COMMIT
 
 
 # Stage 3: Фінальны вобраз

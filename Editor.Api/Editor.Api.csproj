@@ -29,9 +29,16 @@
       <BuildDate>$([System.DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"))</BuildDate>
     </PropertyGroup>
 
-    <Exec Command="git rev-parse --short=8 HEAD" ConsoleToMSBuild="true" StandardOutputImportance="low" IgnoreExitCode="false">
+    <!-- GitCommitHash may already be supplied via -p:GitCommitHash=... (e.g. Coolify's
+         SOURCE_COMMIT build arg, since .git isn't available inside its build context).
+         Only shell out to git when it wasn't, and never fail the build if git/.git is missing. -->
+    <Exec Condition="'$(GitCommitHash)' == ''" Command="git rev-parse --short=8 HEAD" ConsoleToMSBuild="true" StandardOutputImportance="low" IgnoreExitCode="true">
       <Output TaskParameter="ConsoleOutput" PropertyName="GitCommitHash" />
     </Exec>
+
+    <PropertyGroup>
+      <GitCommitHash Condition="'$(GitCommitHash)' == ''">unknown</GitCommitHash>
+    </PropertyGroup>
 
     <MakeDir Directories="$(VersionFileDir)" Condition="!Exists('$(VersionFileDir)')" />
 
