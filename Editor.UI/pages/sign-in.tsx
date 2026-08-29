@@ -1,0 +1,298 @@
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import Link from 'next/link';
+import { useAuthStore } from '@/app/auth/store';
+import { isValidReturnUrl } from '@/utils/urlValidation';
+import { useTurnstile } from '@/app/hooks/useTurnstile';
+import { configService } from '@/app/services/configService';
+import { serviceLocator } from '@/app/services/serviceLocator';
+
+// Коды памылак, зь якімі бэкенд перанакіроўвае сюды пасьля няўдалага ўваходу праз Google
+const REDIRECT_ERRORS: Record<string, string> = {
+  google:
+    'Не ўдалося ўвайсьці праз Google. Паспрабуйце яшчэ раз ці скарыстайцеся email і паролем.',
+  'no-access':
+    'Гэты рахунак Google ня мае доступу да сыстэмы. Зьвярніцеся да адміністратара, каб атрымаць доступ.',
+};
+
+export default function SignIn() {
+  const { authService, signIn: storeSignIn, checkAuthStatus } = useAuthStore();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [googleSignInEnabled, setGoogleSignInEnabled] = useState(false);
+  const router = useRouter();
+  const { containerRef, isReady, getToken, resetToken } =
+    useTurnstile('signin');
+
+  useEffect(() => {
+    if (!authService) return;
+
+    configService
+      .getConfig(serviceLocator.apiClient)
+      .then(config => setGoogleSignInEnabled(config.googleSignInEnabled))
+      .catch(() => setGoogleSignInEnabled(false));
+  }, [authService]);
+
+  useEffect(() => {
+    const code = router.query.error;
+    const message =
+      typeof code === 'string' ? REDIRECT_ERRORS[code] : undefined;
+    if (message) setError(message);
+  }, [router.query.error]);
+
+  const googleSignInHref = (() => {
+    const returnTo = router.query.returnTo as string;
+    const safeReturnTo =
+      returnTo && isValidReturnUrl(decodeURIComponent(returnTo))
+        ? decodeURIComponent(returnTo)
+        : null;
+    return safeReturnTo
+      ? `/api/auth/google/login?returnTo=${encodeURIComponent(safeReturnTo)}`
+      : '/api/auth/google/login';
+  })();
+
+  useEffect(() => {
+    // Праверка, ці ўжо ўвайшоў карыстальнік
+    const checkAuth = async () => {
+      if (!authService) return;
+
+      // Спачатку правяраем localStorage, каб пазбегнуць залішніх API выклікаў
+      const cachedUser = authService.getCurrentUser();
+      if (cachedUser) {
+        // Калі ёсць кэш, правяраем на сервере
+        const isAuthenticated = await checkAuthStatus();
+        if (isAuthenticated) {
+          const returnTo = router.query.returnTo as string;
+          if (returnTo && isValidReturnUrl(decodeURIComponent(returnTo))) {
+            router.push(decodeURIComponent(returnTo));
+          } else {
+            router.push('/');
+          }
+        } else {
+          // Калі сервер кажа, што не аўтэнтыфікаваны, ачысціць форму
+          setEmail('');
+          setPassword('');
+        }
+      }
+    };
+    checkAuth();
+  }, [router, authService, checkAuthStatus]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+
+    if (!authService) {
+      setError('Сэрвіс не ініцыялізаваны');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      let turnstileToken: string | null = null;
+      if (isReady) {
+        turnstileToken = await getToken();
+        if (!turnstileToken) {
+          setError('Заўершыце праверку Turnstile');
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      const result = await storeSignIn(email, password, turnstileToken);
+
+      if (result.success) {
+        const returnTo = router.query.returnTo as string;
+        if (returnTo && isValidReturnUrl(decodeURIComponent(returnTo))) {
+          router.push(decodeURIComponent(returnTo));
+        } else {
+          router.push('/');
+        }
+      } else {
+        resetToken();
+        setError(result.message || 'Памылка ўваходу');
+      }
+    } catch {
+      resetToken();
+      setError('Памылка злучэньня з серверам');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="text-center">
+          <h2 className="text-3xl font-bold text-gray-900">Уваход у сыстэму</h2>
+          <p className="mt-2 text-sm text-gray-600">Лінгвістычны рэдактар</p>
+        </div>
+      </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Email
+              </label>
+              <div className="mt-1">
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  placeholder="your@email.com"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Пароль
+              </label>
+              <div className="mt-1">
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  placeholder="Ваш пароль"
+                />
+              </div>
+            </div>
+
+            {error && (
+              <div className="rounded-md bg-red-50 p-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg
+                      className="h-5 w-5 text-red-400"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-red-800">
+                      {error}
+                    </h3>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div ref={containerRef} />
+
+            <div>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+              >
+                {isLoading ? (
+                  <div className="flex items-center">
+                    <svg
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Уваход...
+                  </div>
+                ) : (
+                  'Увайсьці'
+                )}
+              </button>
+            </div>
+
+            <div className="text-center">
+              <Link
+                href="/forgot-password"
+                className="text-sm text-blue-600 hover:text-blue-500"
+              >
+                Забылі пароль?
+              </Link>
+            </div>
+          </form>
+
+          {googleSignInEnabled && (
+            <>
+              <div className="mt-6 relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">або</span>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <a
+                  href={googleSignInHref}
+                  className="w-full inline-flex justify-center items-center gap-2 py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors duration-150"
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24">
+                    <path
+                      fill="#4285F4"
+                      d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.63h6.46c-.28 1.5-1.13 2.77-2.4 3.62v3h3.88c2.27-2.09 3.58-5.17 3.58-8.8z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 24c3.24 0 5.95-1.07 7.94-2.91l-3.88-3.01c-1.08.72-2.45 1.15-4.06 1.15-3.12 0-5.77-2.11-6.71-4.94H1.28v3.1C3.26 21.3 7.31 24 12 24z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.29 14.29A7.2 7.2 0 0 1 4.9 12c0-.8.14-1.57.39-2.29v-3.1H1.28A11.97 11.97 0 0 0 0 12c0 1.93.46 3.76 1.28 5.39l4.01-3.1z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 4.77c1.77 0 3.35.61 4.6 1.8l3.44-3.44C17.94 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.28 6.61l4.01 3.1c.94-2.83 3.59-4.94 6.71-4.94z"
+                    />
+                  </svg>
+                  Увайсці праз Google
+                </a>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

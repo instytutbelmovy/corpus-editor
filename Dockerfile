@@ -1,22 +1,36 @@
 # Multi-stage build для Editor праекту
 
-# Stage 1: Зборка
-FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
+# Stage 1: Зборка франтэнду (статычны экспарт -> /app/Editor.UI/out)
+FROM node:22-alpine AS fe-build
+
+WORKDIR /app/Editor.UI
+COPY Editor.UI/package*.json ./
+RUN npm ci
+COPY Editor.UI/ ./
+RUN npm run build
+
+
+# Stage 2: Зборка бэкэнду; вынік зборкі франтэнду капіруецца ў wwwroot
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS be-build
 
 WORKDIR /app
 COPY . ./
+COPY --from=fe-build /app/Editor.UI/out/ ./Editor.Api/wwwroot/
 
-WORKDIR /app/Editor/src
-RUN apk add nodejs npm git
-RUN npm ci
-RUN npm run build
+ARG SOURCE_COMMIT=
+RUN apk add --no-cache git && \
+    GIT_COMMIT=${SOURCE_COMMIT:-$(git rev-parse --short=8 HEAD 2>/dev/null || echo unknown)} && \
+    BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) && \
+    printf '{"version": "%s", "buildDate": "%s"}' "$GIT_COMMIT" "$BUILD_DATE" \
+        > Editor.Api/wwwroot/version.json && \
+    apk del git
 
-WORKDIR /app/Editor
-RUN dotnet restore Editor.csproj
-RUN dotnet publish Editor.csproj -c Release -r linux-musl-x64 -o out --no-restore
+WORKDIR /app/Editor.Api
+RUN dotnet restore Editor.Api.csproj
+RUN dotnet publish Editor.Api.csproj -c Release -r linux-musl-x64 -o out --no-restore
 
 
-# Stage 2: Фінальны вобраз
+# Stage 3: Фінальны вобраз
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS final
 
 RUN apk add --no-cache icu-libs
@@ -31,8 +45,7 @@ RUN addgroup -g 1001 -S appgroup && \
 WORKDIR /app
 
 # Капіруем збудаваны праект
-COPY --from=build /app/Editor/out ./
-COPY Editor/files/grammar.db ./files/grammar.db
+COPY --from=be-build /app/Editor.Api/out ./
 RUN chown -R appuser:appgroup /app
 
 USER appuser
@@ -40,4 +53,4 @@ USER appuser
 EXPOSE 80
 
 # Запускаем праграму
-ENTRYPOINT ["/app/Editor"] 
+ENTRYPOINT ["/app/Editor.Api"]

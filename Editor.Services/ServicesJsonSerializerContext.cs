@@ -1,0 +1,34 @@
+using System.Text.Json.Serialization;
+using Editor.Domain.Corpus;
+using Editor.Services.Auth;
+using Editor.Services.Editing;
+using Editor.Services.Grammar;
+using Editor.Services.Users;
+
+namespace Editor.Services;
+
+/// <summary> Сэрыялізацыя DTO слою сэрвісаў для HTTP-адказаў API (Editing, Registry, Auth, Users, Grammar).
+/// Асобны ад Editor.DB.GrammarJsonSerializerContext (той — snake_case для jsonb варыянтаў у базе). </summary>
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+// Editing / Registry
+[JsonSerializable(typeof(ICollection<CorpusDocumentHeader>))]
+[JsonSerializable(typeof(CorpusDocumentView))]
+[JsonSerializable(typeof(UpdateMetadataRequest))]
+[JsonSerializable(typeof(LemmaTag))]
+// Auth
+[JsonSerializable(typeof(SignInRequest))]
+[JsonSerializable(typeof(WhoAmIResponse))]
+[JsonSerializable(typeof(ForgotPasswordRequest))]
+[JsonSerializable(typeof(ResetPasswordRequest))]
+// Users
+[JsonSerializable(typeof(IEnumerable<EditorUserDto>))]
+[JsonSerializable(typeof(EditorUserCreateDto))]
+[JsonSerializable(typeof(InviteUserRequest))]
+// Grammar
+[JsonSerializable(typeof(ParadigmCreateVm))]
+[JsonSerializable(typeof(ParadigmResponse))]
+[JsonSerializable(typeof(CreatedParadigmResponse))]
+[JsonSerializable(typeof(List<ParadigmSummaryResponse>))]
+public partial class ServicesJsonSerializerContext : JsonSerializerContext
+{
+}

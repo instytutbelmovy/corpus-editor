@@ -1,4 +1,8 @@
 
+using Editor.Domain.Corpus;
+using Editor.Services.Editing;
+using Editor.Services.Exceptions;
+
 namespace Editor.Tests.Endpoints;
 
 public class EditingTests
@@ -11,7 +15,7 @@ public class EditingTests
         var document = CreateDocument(paragraphCount: 3);
         var request = new DocumentEditRequest([new() { ParagraphId = 5, OperationType = OperationType.Delete }]);
 
-        Assert.Throws<NotFoundException>(() => Editing.EditDocumentCore(document, request, _mapParagraphToView));
+        Assert.Throws<NotFoundException>(() => EditingService.EditDocumentCore(document, request, _mapParagraphToView));
     }
 
     [Fact]
@@ -28,7 +32,7 @@ public class EditingTests
             },
         ]);
 
-        Assert.Throws<ConflictException>(() => Editing.EditDocumentCore(document, request, _mapParagraphToView));
+        Assert.Throws<ConflictException>(() => EditingService.EditDocumentCore(document, request, _mapParagraphToView));
     }
 
     [Fact]
@@ -45,7 +49,7 @@ public class EditingTests
             }
         });
 
-        Assert.Throws<ConflictException>(() => Editing.EditDocumentCore(document, request, _mapParagraphToView));
+        Assert.Throws<ConflictException>(() => EditingService.EditDocumentCore(document, request, _mapParagraphToView));
     }
 
     [Fact]
@@ -62,7 +66,7 @@ public class EditingTests
             }
         });
 
-        var response = Editing.EditDocumentCore(document, request, _mapParagraphToView);
+        var response = EditingService.EditDocumentCore(document, request, _mapParagraphToView);
 
         Assert.Equal(4, document.Paragraphs.Count);
         AssertConsecutiveIds(document);
@@ -90,7 +94,7 @@ public class EditingTests
             }
         });
 
-        var response = Editing.EditDocumentCore(document, request, _mapParagraphToView);
+        var response = EditingService.EditDocumentCore(document, request, _mapParagraphToView);
 
         Assert.Equal(3, document.Paragraphs.Count);
         AssertConsecutiveIds(document);
@@ -116,7 +120,7 @@ public class EditingTests
             }
         });
 
-        var response = Editing.EditDocumentCore(document, request, _mapParagraphToView);
+        var response = EditingService.EditDocumentCore(document, request, _mapParagraphToView);
 
         Assert.Equal(2, document.Paragraphs.Count);
         AssertConsecutiveIds(document);
@@ -150,7 +154,7 @@ public class EditingTests
         });
 
 
-        var response = Editing.EditDocumentCore(document, request, _mapParagraphToView);
+        var response = EditingService.EditDocumentCore(document, request, _mapParagraphToView);
 
         Assert.Equal(5, document.Paragraphs.Count);
         AssertConsecutiveIds(document);
@@ -193,7 +197,7 @@ public class EditingTests
             }
         });
 
-        var response = Editing.EditDocumentCore(document, request, _mapParagraphToView);
+        var response = EditingService.EditDocumentCore(document, request, _mapParagraphToView);
 
         Assert.Equal(3, document.Paragraphs.Count);
         AssertConsecutiveIds(document);
@@ -233,7 +237,7 @@ public class EditingTests
             }
         });
 
-        Editing.EditDocumentCore(document, request, _mapParagraphToView);
+        EditingService.EditDocumentCore(document, request, _mapParagraphToView);
 
         Assert.Equal(4, document.Paragraphs.Count);
         AssertConsecutiveIds(document);
@@ -270,7 +274,7 @@ public class EditingTests
             }
         });
 
-        Editing.EditDocumentCore(document, request, _mapParagraphToView);
+        EditingService.EditDocumentCore(document, request, _mapParagraphToView);
 
         Assert.Single(document.Paragraphs);
         AssertConsecutiveIds(document);
@@ -313,7 +317,7 @@ public class EditingTests
             }
         });
 
-        Editing.EditDocumentCore(document, request, _mapParagraphToView);
+        EditingService.EditDocumentCore(document, request, _mapParagraphToView);
 
         Assert.Equal(3, document.Paragraphs.Count);
         AssertConsecutiveIds(document);
@@ -347,7 +351,7 @@ public class EditingTests
             }
         });
 
-        Assert.Throws<NotFoundException>(() => Editing.EditDocumentCore(document, request, _mapParagraphToView));
+        Assert.Throws<NotFoundException>(() => EditingService.EditDocumentCore(document, request, _mapParagraphToView));
     }
 
     private static void AssertConsecutiveIds(CorpusDocument document)
@@ -356,6 +360,54 @@ public class EditingTests
         {
             Assert.Equal(i + 1, document.Paragraphs[i].Id);
         }
+    }
+
+    [Fact]
+    public void EditDocumentCore_SwapsParagraphsListAtomically()
+    {
+        var document = CreateDocument(paragraphCount: 3);
+        var originalParagraphs = document.Paragraphs;
+        var request = new DocumentEditRequest([
+            new()
+            {
+                ParagraphId = 2,
+                OperationType = OperationType.Create,
+                ReplacementSentences = [[new LinguisticItem("word", SentenceItemType.Word)]]
+            }
+        ]);
+
+        EditingService.EditDocumentCore(document, request, _mapParagraphToView);
+
+        // Concurrent readers hold the old list; it must be left untouched and replaced wholesale
+        Assert.NotSame(originalParagraphs, document.Paragraphs);
+        Assert.Equal(3, originalParagraphs.Count);
+        Assert.Equal(4, document.Paragraphs.Count);
+    }
+
+    [Fact]
+    public void EditDocumentCore_LeavesDocumentUntouched_WhenValidationFails()
+    {
+        var document = CreateDocument(paragraphCount: 3);
+        var originalParagraphs = document.Paragraphs;
+        var request = new DocumentEditRequest([
+            new()
+            {
+                ParagraphId = 1,
+                OperationType = OperationType.Create,
+                ReplacementSentences = [[new LinguisticItem("word", SentenceItemType.Word)]]
+            },
+            new()
+            {
+                ParagraphId = 3,
+                OperationType = OperationType.Delete,
+                ConcurrencyStamp = Guid.NewGuid() // Mismatch
+            },
+        ]);
+
+        Assert.Throws<ConflictException>(() => EditingService.EditDocumentCore(document, request, _mapParagraphToView));
+
+        Assert.Same(originalParagraphs, document.Paragraphs);
+        Assert.Equal(3, document.Paragraphs.Count);
     }
 
     private static CorpusDocument CreateDocument(int paragraphCount)

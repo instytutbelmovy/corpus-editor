@@ -1,4 +1,5 @@
-using Editor.Converters;
+using Editor.Domain.Corpus;
+using Editor.Services.Converters;
 
 namespace Editor.Tests;
 

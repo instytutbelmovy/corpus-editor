@@ -1,0 +1,504 @@
+import { useState, useEffect, useRef } from 'react';
+import {
+  BaseDocumentFormData,
+  NewDocumentFormData,
+  MetadataFormData,
+  FormErrors,
+} from '../formTypes';
+import { BUTTON_STYLES } from '../styles';
+
+interface DocumentFormProps<T extends NewDocumentFormData | MetadataFormData> {
+  initialData: T;
+  onSubmit: (data: T) => Promise<void>;
+  onCancel: () => void;
+  isSubmitting: boolean;
+  errors: FormErrors;
+  showFileUpload?: boolean;
+  showDocumentId?: boolean;
+  submitButtonText: string;
+  loadingButtonText: string;
+  title: string;
+  subtitle?: string;
+}
+
+export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
+  initialData,
+  onSubmit,
+  onCancel,
+  isSubmitting,
+  errors: externalErrors,
+  showFileUpload = false,
+  showDocumentId = false,
+  submitButtonText,
+  loadingButtonText,
+  title,
+  subtitle,
+}: DocumentFormProps<T>) {
+  const [formData, setFormData] = useState<T>(initialData);
+  const [validationErrors, setValidationErrors] = useState<FormErrors>({});
+  const [corpora, setCorpora] = useState<string[]>([]);
+  const [types, setTypes] = useState<string[]>([]);
+  const [styles, setStyles] = useState<string[]>([]);
+  const [corpusDropdownOpen, setCorpusDropdownOpen] = useState(false);
+  const [typeDropdownOpen, setTypeDropdownOpen] = useState(false);
+  const [styleDropdownOpen, setStyleDropdownOpen] = useState(false);
+  const corpusRef = useRef<HTMLDivElement>(null);
+  const typeRef = useRef<HTMLDivElement>(null);
+  const styleRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (corpusRef.current && !corpusRef.current.contains(target)) {
+        setCorpusDropdownOpen(false);
+      }
+      if (typeRef.current && !typeRef.current.contains(target)) {
+        setTypeDropdownOpen(false);
+      }
+      if (styleRef.current && !styleRef.current.contains(target)) {
+        setStyleDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleInputChange = (
+    field: keyof BaseDocumentFormData,
+    value: string | number | undefined
+  ) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (validationErrors[field]) {
+      // Clear error when user starts typing
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    setFormData(prev => ({ ...prev, file }));
+    if (validationErrors.file) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.file;
+        return newErrors;
+      });
+    }
+  };
+
+  useEffect(() => {
+    fetch('/api/registry-files/corpora')
+      .then(res => res.json())
+      .then(data => setCorpora(data))
+      .catch(err => console.error('Failed to fetch corpora:', err));
+
+    fetch('/api/registry-files/types')
+      .then(res => res.json())
+      .then(data => setTypes(data))
+      .catch(err => console.error('Failed to fetch types:', err));
+
+    fetch('/api/registry-files/styles')
+      .then(res => res.json())
+      .then(data => setStyles(data))
+      .catch(err => console.error('Failed to fetch styles:', err));
+  }, []);
+
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+
+    if (showDocumentId && 'n' in formData && (!formData.n || formData.n <= 0)) {
+      newErrors.n = 'Нумар дакумэнта павінен быць дадатным лікам';
+    }
+
+    if (!formData.title.trim()) {
+      newErrors.title = 'Назва дакумэнта абавязковая';
+    }
+
+    if (showFileUpload && 'file' in formData) {
+      if (!formData.file) {
+        newErrors.file = 'Выберыце файл для загрузкі';
+      } else {
+        const allowedTypes = ['.docx', '.odt', '.txt', '.epub'];
+        const fileExtension = formData.file.name
+          .toLowerCase()
+          .substring(formData.file.name.lastIndexOf('.'));
+        if (!allowedTypes.includes(fileExtension)) {
+          newErrors.file =
+            'Падтрымліваюцца толькі файлы .docx, .odt, .txt, .epub';
+        }
+      }
+    }
+
+    setValidationErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!validateForm()) {
+      return;
+    }
+
+    await onSubmit(formData);
+  };
+
+  const errors = { ...externalErrors, ...validationErrors };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto px-2 sm:px-2 lg:px-4 pt-4 pb-8">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          {/* Загаловак */}
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+                {subtitle && (
+                  <p className="mt-1 text-sm text-gray-500">{subtitle}</p>
+                )}
+              </div>
+              <button
+                onClick={onCancel}
+                className="text-gray-400 hover:text-gray-600 transition-colors duration-150"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          {/* Форма */}
+          <form onSubmit={handleSubmit} className="px-6 py-6 space-y-6">
+            {errors.submit && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                <p className="text-sm text-red-600">{errors.submit}</p>
+              </div>
+            )}
+
+            {/* Нумар дакумэнта і год публікацыі */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Нумар дакумэнта */}
+              {showDocumentId && (
+                <div>
+                  <label
+                    htmlFor="n"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    Нумар дакумэнта *
+                  </label>
+                  <input
+                    type="number"
+                    id="n"
+                    value={'n' in formData ? formData.n || '' : ''}
+                    onChange={e =>
+                      handleInputChange(
+                        'n' as keyof BaseDocumentFormData,
+                        parseInt(e.target.value) || 0
+                      )
+                    }
+                    className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                      errors.n ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    placeholder="Увядзіце нумар дакумэнта"
+                  />
+                  {errors.n && (
+                    <p className="mt-1 text-sm text-red-600">{errors.n}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Год публікацыі */}
+              <div>
+                <label
+                  htmlFor="publicationDate"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Год публікацыі
+                </label>
+                <input
+                  type="text"
+                  id="publicationDate"
+                  value={formData.publicationDate || ''}
+                  onChange={e =>
+                    handleInputChange(
+                      'publicationDate',
+                      e.target.value || undefined
+                    )
+                  }
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    errors.publicationDate
+                      ? 'border-red-300'
+                      : 'border-gray-300'
+                  }`}
+                  placeholder="2024"
+                  pattern="[0-9]{4}"
+                  title="Увядзіце год у фармаце YYYY"
+                />
+                {errors.publicationDate && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errors.publicationDate}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Назва */}
+            <div>
+              <label
+                htmlFor="title"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Назва *
+              </label>
+              <input
+                type="text"
+                id="title"
+                value={formData.title}
+                onChange={e => handleInputChange('title', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  errors.title ? 'border-red-300' : 'border-gray-300'
+                }`}
+                placeholder="Увядзіце назву дакумэнта"
+              />
+              {errors.title && (
+                <p className="mt-1 text-sm text-red-600">{errors.title}</p>
+              )}
+            </div>
+
+            {/* Спасылка */}
+            <div>
+              <label
+                htmlFor="url"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Спасылка
+              </label>
+              <input
+                type="url"
+                id="url"
+                value={formData.url}
+                onChange={e => handleInputChange('url', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="https://example.com"
+              />
+            </div>
+
+            {/* Тып тэксту */}
+            <div ref={typeRef} className="relative">
+              <label
+                htmlFor="type"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Тып тэксту
+              </label>
+              <input
+                type="text"
+                id="type"
+                value={formData.type || ''}
+                onChange={e => handleInputChange('type', e.target.value)}
+                onFocus={() => setTypeDropdownOpen(true)}
+                className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                  errors.type ? 'border-red-300' : 'border-gray-300'
+                }`}
+                placeholder="Выберыце або ўвядзіце тып тэксту"
+                autoComplete="off"
+              />
+              {typeDropdownOpen && types.length > 0 && (
+                <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                  {Array.from(new Set(types)).map(option => (
+                    <li
+                      key={option}
+                      onClick={() => {
+                        handleInputChange('type', option);
+                        setTypeDropdownOpen(false);
+                      }}
+                      className="px-3 py-2 cursor-pointer hover:bg-blue-50 text-sm text-gray-700"
+                    >
+                      {option}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Стыль */}
+            <div ref={styleRef} className="relative">
+              <label
+                htmlFor="style"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Стыль
+              </label>
+              <input
+                type="text"
+                id="style"
+                value={formData.style || ''}
+                onChange={e => handleInputChange('style', e.target.value)}
+                onFocus={() => setStyleDropdownOpen(true)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Выберыце або ўвядзіце стыль"
+                autoComplete="off"
+              />
+              {styleDropdownOpen && styles.length > 0 && (
+                <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                  {Array.from(new Set(styles)).map(option => (
+                    <li
+                      key={option}
+                      onClick={() => {
+                        handleInputChange('style', option);
+                        setStyleDropdownOpen(false);
+                      }}
+                      className="px-3 py-2 cursor-pointer hover:bg-blue-50 text-sm text-gray-700"
+                    >
+                      {option}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Корпус */}
+            <div ref={corpusRef} className="relative">
+              <label
+                htmlFor="corpus"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Корпус
+              </label>
+              <input
+                type="text"
+                id="corpus"
+                value={formData.corpus || ''}
+                onChange={e => handleInputChange('corpus', e.target.value)}
+                onFocus={() => setCorpusDropdownOpen(true)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Выберыце або ўвядзіце корпус"
+                autoComplete="off"
+              />
+              {corpusDropdownOpen && corpora.length > 0 && (
+                <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                  {corpora.map(option => (
+                    <li
+                      key={option}
+                      onClick={() => {
+                        handleInputChange('corpus', option);
+                        setCorpusDropdownOpen(false);
+                      }}
+                      className="px-3 py-2 cursor-pointer hover:bg-blue-50 text-sm text-gray-700"
+                    >
+                      {option}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {/* Файл */}
+            {showFileUpload && (
+              <div>
+                <label
+                  htmlFor="file"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Файл дакумэнта *
+                </label>
+                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                  <div className="space-y-1 text-center">
+                    <svg
+                      className="mx-auto h-12 w-12 text-gray-400"
+                      stroke="currentColor"
+                      fill="none"
+                      viewBox="0 0 48 48"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <div className="flex text-sm text-gray-600">
+                      <label
+                        htmlFor="file-upload"
+                        className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
+                      >
+                        <span>Загрузіць файл</span>
+                        <input
+                          id="file-upload"
+                          name="file-upload"
+                          type="file"
+                          className="sr-only"
+                          accept=".docx,.odt,.txt,.epub"
+                          onChange={handleFileChange}
+                        />
+                      </label>
+                      <p className="pl-1">або перацягніце</p>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      DOCX, ODT, TXT, EPUB да 10MB
+                    </p>
+                  </div>
+                </div>
+                {'file' in formData && formData.file && (
+                  <div className="mt-2 flex items-center text-sm text-gray-600">
+                    <svg
+                      className="w-4 h-4 mr-2"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    {formData.file.name}
+                  </div>
+                )}
+                {errors.file && (
+                  <p className="mt-1 text-sm text-red-600">{errors.file}</p>
+                )}
+              </div>
+            )}
+
+            {/* Кнопкі */}
+            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={onCancel}
+                className={`px-4 py-2 rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${BUTTON_STYLES.secondary}`}
+              >
+                Скасаваць
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className={`px-4 py-2 rounded-md shadow-sm text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${BUTTON_STYLES.primary}`}
+              >
+                {isSubmitting ? loadingButtonText : submitButtonText}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
