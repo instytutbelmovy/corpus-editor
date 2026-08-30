@@ -34,11 +34,6 @@ public class EmailService : IEmailService
 
         var url = $"https://api.eu.mailgun.net/v3/{_emailSettings.Domain}/messages";
 
-        // Абедзьве зьменныя пасылаюцца заўсёды, у любым асяродзьдзі: шаблон Mailgun параўноўвае
-        // prodEnvironmentSecret з літаралам усярэдзіне шаблону і малюе банэр "ліст з непрадукцыйнага
-        // асяродзьдзя" пры любым несупадзеньні — уключна з пустым значэньнем. Таму ненастроенае
-        // асяродзьдзе шле "" і атрымлівае банэр (fail-closed). Рабіць гэта ўмоўна па асяродзьдзі
-        // нельга — тады памылка настройкі ціха здыме банэр (fail-open).
         var templateArguments = new Dictionary<string, string>(message.TemplateArguments)
         {
             ["prodEnvironmentSecret"] = _emailSettings.ProdEnvironmentSecret ?? "",
