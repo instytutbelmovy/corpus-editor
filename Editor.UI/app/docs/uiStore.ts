@@ -14,10 +14,10 @@ interface UIState {
   // Ці ідзе праўка тэксту слова проста ў тэксьце (рэжым рэдагаваньня структуры)
   isStructureTextEditing: boolean;
 
-  // Флагі захаваньня палёў панэлі рэдагаваньня
+  // Флагі захаваньня палёў панэлі рэдагаваньня.
+  // Камэнтар — выключэньне: яго флаг вяртае useDebouncedSave, каб трымацца слова
   isSavingText: boolean;
   isSavingManual: boolean;
-  isSavingComment: boolean;
   isSavingError: boolean;
 
   // Памылка захаваньня разьметкі
@@ -32,7 +32,6 @@ interface UIState {
   setIsStructureTextEditing: (editing: boolean) => void;
   setIsSavingText: (saving: boolean) => void;
   setIsSavingManual: (saving: boolean) => void;
-  setIsSavingComment: (saving: boolean) => void;
   setIsSavingError: (saving: boolean) => void;
   setSaveError: (error: string | null) => void;
   clearSaveError: () => void;
@@ -52,7 +51,6 @@ export const useUIStore = create<UIState>()(
       isStructureTextEditing: false,
       isSavingText: false,
       isSavingManual: false,
-      isSavingComment: false,
       isSavingError: false,
       saveError: null,
       pendingSaves: new Set(),
@@ -68,7 +66,6 @@ export const useUIStore = create<UIState>()(
         set({ isStructureTextEditing: editing }),
       setIsSavingText: saving => set({ isSavingText: saving }),
       setIsSavingManual: saving => set({ isSavingManual: saving }),
-      setIsSavingComment: saving => set({ isSavingComment: saving }),
       setIsSavingError: saving => set({ isSavingError: saving }),
 
       setSaveError: error => set({ saveError: error }),

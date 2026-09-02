@@ -15,8 +15,9 @@ export function useAddItem() {
     index: number
   ) => {
     add(paragraphId, sentenceId, index);
-    selectWord(paragraphId, sentenceId, index + 1);
-    setIsStructureTextEditing(true);
+    if (selectWord(paragraphId, sentenceId, index + 1)) {
+      setIsStructureTextEditing(true);
+    }
   };
 
   return {

@@ -28,7 +28,7 @@ interface EditingPanelProps {
   selectedWord: SelectedWord | null;
   saveError: string | null;
   onClose: () => void;
-  onSaveParadigm: (paradigmFormId: ParadigmFormId) => void;
+  onSaveParadigm: (paradigmFormId: ParadigmFormId) => Promise<void>;
   onClearError: () => void;
   onUpdateWordText?: (text: string) => Promise<void>;
   onSaveManualCategories?: (
@@ -55,7 +55,6 @@ export function EditingPanel({
     setDisplayMode,
     isSavingText,
     isSavingManual,
-    isSavingComment,
     isSavingError,
   } = useUIStore();
   const [showManualInput, setShowManualInput] = useState(false);
@@ -72,6 +71,7 @@ export function EditingPanel({
     value: comment,
     change: changeComment,
     flush: saveCommentImmediately,
+    isSaving: isSavingComment,
   } = useDebouncedSave({
     value: selectedWord?.item.comment ?? '',
     resetKey: selectedKey,
@@ -86,8 +86,12 @@ export function EditingPanel({
     selectedWord.item.linguisticTag !== null &&
     Boolean(selectedWord.item.metadata?.resolvedOn);
 
+  // Скідаем толькі пры пераходзе на іншае слова: праўка тэксту таго ж слова мяняе isManuallyEdited (тэкст-праўка скідае тэг), але не павінна закрываць сьпіс тыпаў памылкі
   useEffect(() => {
     setShowErrorDropdown(false);
+  }, [selectedKey]);
+
+  useEffect(() => {
     setShowManualInput(isManuallyEdited);
   }, [selectedKey, isManuallyEdited]);
 
@@ -184,6 +188,7 @@ export function EditingPanel({
           <div className="overflow-y-auto lg:overflow-visible">
             {showManualInput ? (
               <ManualLinguisticInput
+                key={selectedKey}
                 onSave={handleSaveManualInput}
                 onCancel={() => setShowManualInput(false)}
                 isSaving={isSavingManual}

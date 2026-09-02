@@ -62,7 +62,6 @@ interface DocumentState {
   cancelEditing: () => void;
   saveEditing: () => Promise<void>;
   startEditing: () => void;
-  snapshot: () => void;
   hasChanges: () => boolean;
 
   addWord: (paragraphId: number, sentenceId: number, wordIndex: number) => void;
@@ -360,16 +359,6 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     }
   },
 
-  // Здымак бягучага стану для undo перад разьметкай слова.
-  // Кладзецца спасылка: усе праўкі ствараюць новы аб'ект (гл. _edit і StructureEditor), таму роўнасьць спасылак азначае «нічога не зьмянілася з мінулага здымка».
-  snapshot: () => {
-    const { documentData, history, historyIndex } = get();
-    if (!documentData || history[historyIndex] === documentData) return;
-
-    const newHistory = [...history.slice(0, historyIndex + 1), documentData];
-    set({ history: newHistory, historyIndex: newHistory.length - 1 });
-  },
-
   hasChanges: () => {
     const { documentData, originalDocumentData } = get();
     if (!documentData || !originalDocumentData) return false;
@@ -451,6 +440,9 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     if (!documentData) return;
 
     const newDocumentData = editor(documentData);
+    // Некаторыя апэрацыі StructureEditor — no-op (напр. злучэньне апошняга абзаца): вяртаюць той самы аб'ект
+    if (newDocumentData === documentData) return;
+
     // Пасьля undo новае рэдагаваньне абразае «будучыню»
     const newHistory = history.slice(0, historyIndex + 1);
 

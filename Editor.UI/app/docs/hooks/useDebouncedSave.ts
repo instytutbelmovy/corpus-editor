@@ -23,6 +23,8 @@ export function useDebouncedSave({
   delayMs,
 }: UseDebouncedSaveOptions) {
   const [value, setValue] = useState(initialValue);
+  // Ключ слова, чыё захаваньне зараз ляціць на сэрвэр — паказвае «Захоўваецца…» толькі яго слову
+  const [savingKey, setSavingKey] = useState<string | null>(null);
   const lastSavedRef = useRef(initialValue);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingRef = useRef<PendingSave | null>(null);
@@ -41,6 +43,7 @@ export function useDebouncedSave({
     pendingRef.current = null;
     if (!pending || pending.value === lastSavedRef.current) return;
 
+    setSavingKey(pending.key);
     try {
       await pending.onSave(pending.value);
       // Слова ўжо магло зьмяніцца: тады база параўнаньня належыць іншаму слову
@@ -49,6 +52,9 @@ export function useDebouncedSave({
       }
     } catch (error) {
       console.error('Памылка захаваньня:', error);
+    } finally {
+      // Захаваньне іншага слова магло стартаваць, пакуль гэтае ляцела: не скідаем яго флаг
+      setSavingKey(current => (current === pending.key ? null : current));
     }
   }, []);
 
@@ -86,5 +92,5 @@ export function useDebouncedSave({
     [flush, delayMs]
   );
 
-  return { value, change, flush };
+  return { value, change, flush, isSaving: savingKey === resetKey };
 }

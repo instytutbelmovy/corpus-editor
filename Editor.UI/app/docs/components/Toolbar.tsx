@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useDocumentStore } from '../store';
 import { useUIStore } from '../uiStore';
 import { Button } from '@/app/components';
@@ -12,6 +13,8 @@ export function Toolbar() {
     historyIndex,
     history,
     hasChanges,
+    documentData,
+    originalDocumentData,
     loading,
   } = useDocumentStore();
 
@@ -20,6 +23,14 @@ export function Toolbar() {
     setIsStructureEditingMode,
     isStructureTextEditing,
   } = useUIStore();
+
+  // hasChanges() JSON.stringify'іць кожны абзац — лічым толькі калі мяняюцца самі дакумэнты, не на кожны рэндар.
+  // documentData/originalDocumentData не выкарыстоўваюцца ў целе — hasChanges() чытае іх сам з стору, але яны трэба ў залежнасьцях, каб useMemo пералічваў пры іх зьмене
+  const changed = useMemo(
+    () => hasChanges(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [hasChanges, documentData, originalDocumentData]
+  );
 
   if (!isStructureEditingMode) {
     return null;
@@ -66,7 +77,7 @@ export function Toolbar() {
       <Button
         size="sm"
         onClick={saveEditing}
-        disabled={!hasChanges() || loading}
+        disabled={!changed || loading}
         loading={loading}
         loadingText="Захоўваецца..."
       >

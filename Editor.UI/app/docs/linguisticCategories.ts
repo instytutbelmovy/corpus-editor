@@ -11,6 +11,7 @@ export type CategoryKey =
   | 'abbreviation'
   | 'gender'
   | 'declension'
+  | 'formGender'
   | 'case'
   | 'number'
   | 'adjectiveType'
@@ -71,6 +72,7 @@ export const CATEGORY_LABELS: Record<CategoryKey, string> = {
   abbreviation: 'Скарачэньне',
   gender: 'Род',
   declension: 'Скланеньне',
+  formGender: 'Род формы',
   case: 'Склон',
   number: 'Лік',
   adjectiveType: 'Тып прыметніка',
@@ -97,6 +99,19 @@ export const CATEGORY_LABELS: Record<CategoryKey, string> = {
 const options = (entries: Record<string, string>): CodeOption[] =>
   Object.entries(entries).map(([value, label]) => ({ value, label }));
 
+// Пазыцыя роду ў парадыгме (N: адзін код на ўвесь лемы) і ў форме (N: код на канкрэтную словаформу) — розныя катэгорыі, але адны і тыя ж коды
+const GENDER_LABELS: Record<string, string> = {
+  M: 'мужчынскі',
+  F: 'жаночы',
+  N: 'ніякі',
+  C: 'агульны',
+  S: 'субстантываваны',
+  U: 'субстантываны множналікавы',
+  P: 'толькі множны лік/адсутны',
+  '0': 'адсутнасьць роду',
+  '1': 'адсутнасьць форм',
+};
+
 export const CATEGORY_CODES: Record<CategoryKey, CodeOption[]> = {
   partOfSpeech: options(PART_OF_SPEECH_LABELS),
   properName: options({ C: 'агульны', P: 'уласны' }),
@@ -107,17 +122,7 @@ export const CATEGORY_CODES: Record<CategoryKey, CodeOption[]> = {
     // Адсутнасьць скарачэньня асобна не паказваем
     { value: 'N', label: 'не скарачэньне', hideInSummary: true },
   ],
-  gender: options({
-    M: 'мужчынскі',
-    F: 'жаночы',
-    N: 'ніякі',
-    C: 'агульны',
-    S: 'субстантываваны',
-    U: 'субстантываны множналікавы',
-    P: 'толькі множны лік/адсутны',
-    '0': 'адсутнасьць роду',
-    '1': 'адсутнасьць форм',
-  }),
+  gender: options(GENDER_LABELS),
   declension: options({
     '0': 'нескланяльны',
     '1': '1 скланеньне',
@@ -128,6 +133,7 @@ export const CATEGORY_CODES: Record<CategoryKey, CodeOption[]> = {
     '6': 'зьмешаны тып скланеньня',
     '7': 'множналікавы',
   }),
+  formGender: options(GENDER_LABELS),
   case: options({
     N: 'назоўны',
     G: 'родны',
@@ -254,7 +260,8 @@ const writePositions = (codes: Codes, keys: CategoryKey[]): string =>
 
 const GENDER_CASE_NUMBER: CategoryKey[] = ['gender', 'case', 'number'];
 
-// Формы, у якіх адзін сымбаль азначае асаблівы выпадак (кароткая форма, нескланяльнасьць)
+// Формы, у якіх пачатковы сымбаль азначае асаблівы выпадак (кароткая форма, нескланяльнасьць);
+// астатнія пазыцыі (калі ёсьць) у гэтым выпадку не разьбіраюцца
 const withSpecialSingleCode = (
   specialKey: CategoryKey,
   specialCode: string,
@@ -262,7 +269,7 @@ const withSpecialSingleCode = (
 ): FormCodec => ({
   keys: [specialKey, ...keys],
   parse: formTag =>
-    formTag.length === 1 && formTag[0] === specialCode
+    formTag[0] === specialCode
       ? { [specialKey]: specialCode }
       : readPositions(formTag, keys),
   build: codes =>
@@ -276,14 +283,19 @@ const positional = (keys: CategoryKey[]): FormCodec => ({
 });
 
 const FORM_SCHEMA: Record<string, FormCodec> = {
-  // Назоўнік: два сымбалі (склон, лік) або тры (род, склон, лік)
+  // Назоўнік: два сымбалі (склон, лік) або тры (род формы, склон, лік).
+  // Род формы — асобная катэгорыя ад роду парадыгмы: субстантываваныя і множналікавыя
+  // назоўнікі маюць адзін род для лемы (парадыгмы) і другі для канкрэтнай словаформы.
   N: {
-    keys: ['case', 'number'],
+    keys: ['formGender', 'case', 'number'],
     parse: formTag =>
       formTag.length === 3
-        ? readPositions(formTag, GENDER_CASE_NUMBER)
+        ? readPositions(formTag, ['formGender', 'case', 'number'])
         : readPositions(formTag, ['case', 'number']),
-    build: codes => writePositions(codes, ['case', 'number']),
+    build: codes =>
+      codes.formGender
+        ? writePositions(codes, ['formGender', 'case', 'number'])
+        : writePositions(codes, ['case', 'number']),
   },
   A: withSpecialSingleCode('adverbFunction', 'R'),
   M: withSpecialSingleCode('numeralInflection', '0'),
@@ -343,7 +355,7 @@ const FORM_SCHEMA: Record<string, FormCodec> = {
 
 // Коды, дапушчальныя для катэгорыі пры пэўнай частцы мовы
 const ALLOWED_CODES: Record<string, Partial<Record<CategoryKey, string>>> = {
-  N: { gender: 'MFNCSUP', case: 'NGDAILV' },
+  N: { gender: 'MFNCSUP', formGender: 'MFNP', case: 'NGDAILV' },
   A: { gender: 'MFNP', case: 'NGDAIL' },
   M: { gender: 'MFNP', case: 'NGDAIL' },
   S: { gender: 'MFN01', case: 'NGDAIL' },

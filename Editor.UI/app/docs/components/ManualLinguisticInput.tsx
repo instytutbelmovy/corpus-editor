@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { LinguisticTag } from '../types';
 import {
   buildTag,
@@ -24,24 +24,22 @@ interface ManualLinguisticInputProps {
   initialValues?: ManualInputValues | null;
 }
 
-// Ручная зборка тэгу: катэгорыі і дапушчальныя коды бяруцца са схемы тэгаў
+// Ручная зборка тэгу: катэгорыі і дапушчальныя коды бяруцца са схемы тэгаў.
+// Бацькоўскі кампанэнт перамантоўвае (key па слове) пры пераходзе на іншае слова, таму initialValues чытаецца толькі пры мантаваньні -
+// фонавыя захаваньні, якія перастварваюць selectedWord, больш не скідаюць яшчэ не захаваны ўвод.
 export function ManualLinguisticInput({
   onSave,
   onCancel,
   isSaving = false,
   initialValues = null,
 }: ManualLinguisticInputProps) {
-  const [lemma, setLemma] = useState('');
-  const [partOfSpeech, setPartOfSpeech] = useState('');
+  const [lemma, setLemma] = useState(initialValues?.lemma ?? '');
+  const [partOfSpeech, setPartOfSpeech] = useState(
+    initialValues?.partOfSpeech ?? ''
+  );
   const [categories, setCategories] = useState<
     Partial<Record<CategoryKey, string>>
-  >({});
-
-  useEffect(() => {
-    setLemma(initialValues?.lemma ?? '');
-    setPartOfSpeech(initialValues?.partOfSpeech ?? '');
-    setCategories(initialValues?.categories ?? {});
-  }, [initialValues]);
+  >(initialValues?.categories ?? {});
 
   const tag = buildTag(partOfSpeech, categories);
   const canSave = Boolean(lemma.trim() && partOfSpeech);

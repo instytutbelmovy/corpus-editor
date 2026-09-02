@@ -159,7 +159,6 @@ export async function saveParadigmFormId(
   word: SelectedWord,
   paradigmFormId: ParadigmFormId
 ): Promise<void> {
-  const { snapshot } = useDocumentStore.getState();
   const { addPendingSave, removePendingSave, setSaveError } =
     useUIStore.getState();
 
@@ -168,8 +167,6 @@ export async function saveParadigmFormId(
     goToNextWord(word);
     return;
   }
-
-  snapshot();
 
   const previousItem = word.item;
   const key = wordKey(word);
@@ -211,13 +208,7 @@ export async function updateWordText(
   word: SelectedWord,
   text: string
 ): Promise<void> {
-  const { snapshot } = useDocumentStore.getState();
   const { setSaveError } = useUIStore.getState();
-
-  // Для новага (пустога) слова здымак не робім, каб undo выдаліла слова цалкам
-  if (word.item.text !== '') {
-    snapshot();
-  }
 
   try {
     const newOptions: GrammarInfo[] = await documentService().updateWordText(
@@ -258,11 +249,9 @@ export async function saveManualCategories(
   lemma: string,
   linguisticTag: LinguisticTag
 ): Promise<void> {
-  const { snapshot, reloadDocument } = useDocumentStore.getState();
+  const { reloadDocument } = useDocumentStore.getState();
   const { addPendingSave, removePendingSave, setSaveError } =
     useUIStore.getState();
-
-  snapshot();
 
   const previousItem = word.item;
   const key = wordKey(word);
@@ -307,8 +296,6 @@ export async function saveComment(
 ): Promise<void> {
   if (word.item.comment === comment) return;
 
-  useDocumentStore.getState().snapshot();
-
   try {
     await documentService().saveComment(documentId, word, comment);
 
@@ -324,10 +311,7 @@ export async function saveErrorType(
   word: SelectedWord,
   errorType: LinguisticErrorType
 ): Promise<void> {
-  const { snapshot } = useDocumentStore.getState();
   const { addPendingSave, removePendingSave } = useUIStore.getState();
-
-  snapshot();
 
   const key = wordKey(word);
   addPendingSave(key);

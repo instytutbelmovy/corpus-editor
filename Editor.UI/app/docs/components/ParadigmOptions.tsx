@@ -19,7 +19,7 @@ interface ParadigmOptionsProps {
   selectedParadigmFormId: ParadigmFormId | null;
   selectedItem?: LinguisticItem | null;
   displayMode: DisplayMode;
-  onSelect: (paradigmFormId: ParadigmFormId) => void;
+  onSelect: (paradigmFormId: ParadigmFormId) => Promise<void>;
   onManualInput?: () => void;
   onBeforeSelect?: () => Promise<void>;
   onSaveManualCategories?: (
@@ -125,7 +125,7 @@ export function ParadigmOptions({
       if (option.paradigmFormId === null) {
         await onSaveManualCategories?.(option.lemma, option.linguisticTag);
       } else {
-        onSelect(option.paradigmFormId);
+        await onSelect(option.paradigmFormId);
       }
     } catch (error) {
       console.error('Памылка захаваньня варыянту:', error);

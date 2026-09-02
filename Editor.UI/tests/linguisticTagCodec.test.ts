@@ -17,11 +17,18 @@ describe('parseTagCodes', () => {
     });
   });
 
-  test('назоўнік: форма з трох сымбаляў дае род', () => {
+  test('назоўнік: форма з трох сымбаляў дае род формы, а не род парадыгмы', () => {
     const codes = parseTagCodes({ paradigmTag: 'N......', formTag: 'MNS' });
-    expect(codes.gender).toBe('M');
+    expect(codes.formGender).toBe('M');
+    expect(codes.gender).toBeUndefined();
     expect(codes.case).toBe('N');
     expect(codes.number).toBe('S');
+  });
+
+  test('назоўнік: род парадыгмы і род формы захоўваюцца асобна', () => {
+    const codes = parseTagCodes({ paradigmTag: 'NCIP.C1', formTag: 'MNS' });
+    expect(codes.gender).toBe('C');
+    expect(codes.formGender).toBe('M');
   });
 
   test('пусты тэг', () => {
@@ -42,12 +49,20 @@ describe('parseTagCodes', () => {
     expect(imperative.person).toBe('2');
     expect(imperative.number).toBe('S');
   });
+
+  test('дзеепрыметнік: кароткая форма распазнаецца незалежна ад даўжыні тэгу', () => {
+    const codes = parseTagCodes({ paradigmTag: 'PARP', formTag: 'RMS' });
+    expect(codes.participleForm).toBe('R');
+    expect(codes.gender).toBeUndefined();
+  });
 });
 
 // Тэгі, якія ручны ўвод мусіць умець сабраць назад
 const roundTripTags: LinguisticTag[] = [
   { paradigmTag: 'NPA....', formTag: 'NS' },
   { paradigmTag: 'NCI..M1', formTag: 'GP' },
+  { paradigmTag: 'NCIP.C1', formTag: 'MNS' },
+  { paradigmTag: 'NCIP.S5', formTag: 'FGS' },
   { paradigmTag: 'AQP', formTag: 'MNS' },
   { paradigmTag: 'AQP', formTag: 'R' },
   { paradigmTag: 'MNC', formTag: 'MNS' },
@@ -87,6 +102,7 @@ describe('ручны ўвод', () => {
       'abbreviation',
       'gender',
       'declension',
+      'formGender',
       'case',
       'number',
     ]);

@@ -5,13 +5,8 @@ import { LinguisticErrorType, LinguisticTag, ParadigmFormId } from '../types';
 
 // Абгортка над wordEditing: бярэ выбранае слова са store і трымае флагі захаваньня
 export function useWordEditing(documentId: string) {
-  const {
-    selectedWord,
-    setIsSavingText,
-    setIsSavingManual,
-    setIsSavingComment,
-    setIsSavingError,
-  } = useUIStore();
+  const { selectedWord, setIsSavingText, setIsSavingManual, setIsSavingError } =
+    useUIStore();
 
   const handleSaveParadigm = useCallback(
     async (paradigmFormId: ParadigmFormId) => {
@@ -62,18 +57,13 @@ export function useWordEditing(documentId: string) {
     [selectedWord, documentId, setIsSavingManual]
   );
 
+  // Стан захаваньня камэнтара трымае не гэты хук, а useDebouncedSave (флаг па слове)
   const handleSaveComment = useCallback(
     async (comment: string) => {
       if (!selectedWord || !documentId) return;
-
-      setIsSavingComment(true);
-      try {
-        await wordEditing.saveComment(documentId, selectedWord, comment);
-      } finally {
-        setIsSavingComment(false);
-      }
+      await wordEditing.saveComment(documentId, selectedWord, comment);
     },
-    [selectedWord, documentId, setIsSavingComment]
+    [selectedWord, documentId]
   );
 
   const handleSaveErrorType = useCallback(

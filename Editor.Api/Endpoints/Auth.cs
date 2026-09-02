@@ -37,7 +37,7 @@ public static class Auth
             return new WhoAmIResponse(user.Id, user.Role);
 
         if (result.IsLockedOut)
-            throw new UnauthorizedException("Карыстальнік часова заблякаваны, паспрабуйце пасьля");
+            throw new LockedException("Карыстальнік часова заблякаваны, паспрабуйце пасьля");
 
         throw new UnauthorizedException();
     }
