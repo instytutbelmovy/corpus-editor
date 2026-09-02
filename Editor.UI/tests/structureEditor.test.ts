@@ -1,10 +1,12 @@
-import { StructureEditor } from '../app/docs/structureEditor';
+import { StructureEditor } from '@/app/docs/structureEditor';
 import {
   DocumentData,
+  DocumentHeader,
+  OperationType,
   Paragraph,
   Sentence,
   SentenceItemType,
-} from '../app/docs/types';
+} from '@/app/docs/types';
 
 const createMockSentence = (id: number, text: string): Sentence => ({
   id,
@@ -33,7 +35,7 @@ const createMockParagraph = (id: number, sentences: Sentence[]): Paragraph => ({
 });
 
 const createMockData = (): DocumentData => ({
-  header: {} as any,
+  header: {} as DocumentHeader,
   paragraphs: [
     createMockParagraph(1, [createMockSentence(1, 'Hello')]),
     createMockParagraph(2, [createMockSentence(1, 'World')]),
@@ -49,16 +51,15 @@ describe('StructureEditor', () => {
       result.newDocumentData.paragraphs[0].sentences[0].sentenceItems
     ).toHaveLength(2);
     expect(result.newOperations).toHaveLength(1);
-    expect(result.newOperations[0].operationType).toBe(1); // Update
+    expect(result.newOperations[0].operationType).toBe(OperationType.Update);
   });
 
   it('should split a sentence', () => {
     const data = createMockData();
     // Add a word to the first sentence so we can split
-    data.paragraphs[0].sentences[0].sentenceItems.push({
-      linguisticItem: { text: 'World', type: 1 } as any,
-      options: [],
-    });
+    data.paragraphs[0].sentences[0].sentenceItems.push(
+      createMockSentence(1, 'World').sentenceItems[0]
+    );
 
     const result = StructureEditor.splitSentence(data, 1, 1, 0);
 
@@ -117,6 +118,6 @@ describe('StructureEditor', () => {
     expect(result.newDocumentData.paragraphs).toHaveLength(1); // Original 2 becomes 1
     expect(result.newDocumentData.paragraphs[0].sentences).toHaveLength(1); // The remaining paragraph has 1 sentence
     expect(result.newDocumentData.paragraphs[0].id).toBe(1); // Shifted
-    expect(result.newOperations[0].operationType).toBe(-1); // Delete
+    expect(result.newOperations[0].operationType).toBe(OperationType.Delete);
   });
 });
