@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   GrammarInfo,
   ParadigmFormId,
@@ -47,41 +48,45 @@ const optionKey = (option: GrammarInfo) =>
     ? `custom-${option.lemma}-${option.linguisticTag.paradigmTag}-${option.linguisticTag.formTag || ''}`
     : `${option.paradigmFormId.paradigmId}-${option.paradigmFormId.variantId}-${option.paradigmFormId.formTag}`;
 
+// Тэг разьбіраецца адзін раз на варыянт і далей перадаецца разам зь ім
+interface ParsedOption {
+  option: GrammarInfo;
+  categories: LinguisticCategories;
+}
+
 // Варыянты групуюцца па частках мовы
 function groupByPartOfSpeech(options: GrammarInfo[]) {
-  const groups = new Map<string, GrammarInfo[]>();
+  const groups = new Map<string, ParsedOption[]>();
 
   for (const option of options) {
-    const partOfSpeech =
-      parseLinguisticTag(option.linguisticTag).partOfSpeech || 'Невызначана';
+    const categories = parseLinguisticTag(option.linguisticTag);
+    const partOfSpeech = categories.partOfSpeech || 'Невызначана';
     const group = groups.get(partOfSpeech);
     if (group) {
-      group.push(option);
+      group.push({ option, categories });
     } else {
-      groups.set(partOfSpeech, [option]);
+      groups.set(partOfSpeech, [{ option, categories }]);
     }
   }
 
   return [...groups.entries()].map(([partOfSpeech, groupOptions]) => ({
     partOfSpeech,
     options: groupOptions,
+    commonCategories: getCommonCategories(groupOptions),
   }));
 }
 
 // Катэгорыі, аднолькавыя для ўсёй групы: у скарочаным рэжыме іх не паказваем
 function getCommonCategories(
-  options: GrammarInfo[]
+  parsedOptions: ParsedOption[]
 ): Partial<LinguisticCategories> {
-  if (options.length <= 1) return {};
+  if (parsedOptions.length <= 1) return {};
 
-  const allCategories = options.map(option =>
-    parseLinguisticTag(option.linguisticTag)
-  );
   const common: Partial<LinguisticCategories> = {};
 
   for (const key of CATEGORY_KEYS) {
-    const values = allCategories
-      .map(categories => categories[key])
+    const values = parsedOptions
+      .map(({ categories }) => categories[key])
       .filter(value => value !== null);
     if (values.length > 0 && values.every(value => value === values[0])) {
       common[key] = values[0];
@@ -101,6 +106,8 @@ export function ParadigmOptions({
   onBeforeSelect,
   onSaveManualCategories,
 }: ParadigmOptionsProps) {
+  const groups = useMemo(() => groupByPartOfSpeech(options), [options]);
+
   if (options.length === 0) {
     return (
       <div className="p-4 text-center text-gray-500">
@@ -134,8 +141,8 @@ export function ParadigmOptions({
 
   return (
     <div className="space-y-4">
-      {groupByPartOfSpeech(options).map(group => {
-        const commonCategories = getCommonCategories(group.options);
+      {groups.map(group => {
+        const { commonCategories } = group;
 
         return (
           <div key={group.partOfSpeech}>
@@ -146,7 +153,7 @@ export function ParadigmOptions({
               <div className="flex-1 h-px bg-gray-200 ml-3" />
             </div>
             <div className="space-y-2">
-              {group.options.map(option => {
+              {group.options.map(({ option, categories }) => {
                 const isSelected =
                   option.paradigmFormId === null
                     ? isCustomOptionSelected(selectedItem, option)
@@ -154,7 +161,6 @@ export function ParadigmOptions({
                         selectedParadigmFormId,
                         option.paradigmFormId
                       );
-                const categories = parseLinguisticTag(option.linguisticTag);
 
                 return (
                   <div

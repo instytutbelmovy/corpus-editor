@@ -1,6 +1,7 @@
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
+import { useClickOutside } from '@/app/hooks/useClickOutside';
 import { KebabIcon } from './icons';
 
 export interface MenuItem {
@@ -33,16 +34,19 @@ export function KebabMenu({
   } | null>(null);
   const isOpen = position !== null;
   const visibleItems = items.filter(item => !item.hidden);
+  const buttonRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Слухаем mousedown (useClickOutside), а не click: toggle спыняе click на кораню React'а, таму па кліку клікам іншыя адкрытыя меню не даведаліся б, што трэба зачыніцца
+  useClickOutside([buttonRef, menuRef], () => setPosition(null), isOpen);
 
   useEffect(() => {
     if (!isOpen) return;
 
     const close = () => setPosition(null);
-    document.addEventListener('click', close);
     window.addEventListener('resize', close);
     window.addEventListener('scroll', close, true);
     return () => {
-      document.removeEventListener('click', close);
       window.removeEventListener('resize', close);
       window.removeEventListener('scroll', close, true);
     };
@@ -62,7 +66,7 @@ export function KebabMenu({
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={buttonRef}>
       <button
         onClick={toggle}
         className={`transition-colors duration-150 p-1 rounded-full hover:bg-gray-100 ${buttonClassName}`}
@@ -75,13 +79,13 @@ export function KebabMenu({
         typeof document !== 'undefined' &&
         createPortal(
           <div
+            ref={menuRef}
             className="absolute w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200"
             style={{
               top: `${position.top}px`,
               left: `${position.left}px`,
               transform: 'translateX(-100%)',
             }}
-            onClick={event => event.stopPropagation()}
           >
             <div className="py-1">
               {visibleItems.map(item =>

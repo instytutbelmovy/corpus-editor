@@ -2,7 +2,8 @@ import { useEffect } from 'react';
 import { useUIStore } from '../uiStore';
 
 export function useKeyboardNavigation() {
-  const { selectedWord, clearSelectedWord } = useUIStore();
+  const selectedWord = useUIStore(state => state.selectedWord);
+  const clearSelectedWord = useUIStore(state => state.clearSelectedWord);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

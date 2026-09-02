@@ -5,8 +5,10 @@ import { LinguisticErrorType, LinguisticTag, ParadigmFormId } from '../types';
 
 // Абгортка над wordEditing: бярэ выбранае слова са store і трымае флагі захаваньня
 export function useWordEditing(documentId: string) {
-  const { selectedWord, setIsSavingText, setIsSavingManual, setIsSavingError } =
-    useUIStore();
+  const selectedWord = useUIStore(state => state.selectedWord);
+  const setIsSavingText = useUIStore(state => state.setIsSavingText);
+  const setIsSavingManual = useUIStore(state => state.setIsSavingManual);
+  const setIsSavingError = useUIStore(state => state.setIsSavingError);
 
   const handleSaveParadigm = useCallback(
     async (paradigmFormId: ParadigmFormId) => {

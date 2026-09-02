@@ -1,42 +1,18 @@
-import { useCallback } from 'react';
 import { useUIStore } from '../uiStore';
-import { useDocumentStore } from '../store';
-import { toSelectedWord } from '../wordEditing';
+import { selectWord } from '../wordEditing';
 
 export function useWordSelection() {
-  const {
-    selectedWord,
-    clearSelectedWord,
-    saveError,
-    clearSaveError,
-    pendingSaves,
-  } = useUIStore();
-
-  // Вяртае, ці было слова сапраўды знойдзена і выбрана
-  const selectWord = useCallback(
-    (paragraphId: number, sentenceId: number, wordIndex: number): boolean => {
-      const { documentData } = useDocumentStore.getState();
-      const paragraph = documentData?.paragraphs.find(
-        p => p.id === paragraphId
-      );
-      const sentence = paragraph?.sentences.find(s => s.id === sentenceId);
-      if (!paragraph || !sentence || !sentence.sentenceItems[wordIndex])
-        return false;
-
-      useUIStore
-        .getState()
-        .setSelectedWord(toSelectedWord(paragraph, sentence, wordIndex));
-      return true;
-    },
-    []
-  );
+  const selectedWord = useUIStore(state => state.selectedWord);
+  const clearSelectedWord = useUIStore(state => state.clearSelectedWord);
+  const saveError = useUIStore(state => state.saveError);
+  const clearSaveError = useUIStore(state => state.clearSaveError);
 
   return {
     selectedWord,
+    // Не падпісваемся на стор дзеля выбару: гэта простая функцыя з wordEditing
     selectWord,
     clearSelectedWord,
     saveError,
     clearSaveError,
-    pendingSaves,
   };
 }

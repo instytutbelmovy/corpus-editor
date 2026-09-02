@@ -20,7 +20,9 @@ export function InteractiveSpace({
   itemIndex,
 }: InteractiveSpaceProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { splitSentence, addLineBreak, setGlue } = useDocumentStore();
+  const splitSentence = useDocumentStore(state => state.splitSentence);
+  const addLineBreak = useDocumentStore(state => state.addLineBreak);
+  const setGlue = useDocumentStore(state => state.setGlue);
   const { handleAddWord, handleAddPunctuation } = useAddItem();
 
   const run = (action: () => void) => () => {

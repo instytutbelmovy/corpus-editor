@@ -1,21 +1,15 @@
-import {
-  Sentence as SentenceType,
-  SelectedWord,
-  SentenceItemType,
-} from '../types';
+import { memo } from 'react';
+import { Sentence as SentenceType, SentenceItemType } from '../types';
 import { LinguisticItem } from './LinguisticItem';
 import { InteractiveSpace } from './InteractiveSpace';
 import { HoverMenu } from './HoverMenu';
 import { useDocumentStore } from '../store';
 import { useAddItem } from '../hooks/useAddItem';
-import { wordKey } from '../wordEditing';
 import { WordClickHandler } from './DocumentContent';
 
 interface SentenceProps {
   sentence: SentenceType;
   paragraphId: number;
-  selectedWord: SelectedWord | null;
-  pendingSaves: Set<string>;
   onWordClick: WordClickHandler;
   isStructureEditingMode: boolean;
   index: number;
@@ -23,18 +17,18 @@ interface SentenceProps {
   nextSentenceId?: number;
 }
 
-export function Sentence({
+export const Sentence = memo(function Sentence({
   sentence,
   paragraphId,
-  selectedWord,
-  pendingSaves,
   onWordClick,
   isStructureEditingMode,
   index,
   isLastSentence,
   nextSentenceId,
 }: SentenceProps) {
-  const { splitParagraph, joinSentence, setGlue } = useDocumentStore();
+  const splitParagraph = useDocumentStore(state => state.splitParagraph);
+  const joinSentence = useDocumentStore(state => state.joinSentence);
+  const setGlue = useDocumentStore(state => state.setGlue);
   const { handleAddWord, handleAddPunctuation } = useAddItem();
 
   // У рэжыме структуры чаргуем фон сказаў
@@ -61,21 +55,6 @@ export function Sentence({
       {sentence.sentenceItems.map((sentenceItem, itemIndex) => {
         const currentItem = sentenceItem.linguisticItem;
         const nextItem = sentence.sentenceItems[itemIndex + 1]?.linguisticItem;
-        const isCurrentlyEditing = Boolean(
-          selectedWord &&
-            selectedWord.paragraphId === paragraphId &&
-            selectedWord.sentenceId === sentence.id &&
-            selectedWord.wordIndex === itemIndex
-        );
-        const isPendingSave =
-          currentItem.type === SentenceItemType.Word &&
-          pendingSaves.has(
-            wordKey({
-              paragraphId,
-              sentenceId: sentence.id,
-              wordIndex: itemIndex,
-            })
-          );
 
         // Зьляпленьне мае сэнс толькі побач з пунктуацыяй
         const canGlue = Boolean(
@@ -89,8 +68,6 @@ export function Sentence({
             <LinguisticItem
               item={currentItem}
               index={itemIndex}
-              isCurrentlyEditing={isCurrentlyEditing}
-              isPendingSave={isPendingSave}
               onWordClick={onWordClick}
               isStructureEditingMode={isStructureEditingMode}
               paragraphId={paragraphId}
@@ -163,4 +140,4 @@ export function Sentence({
       )}
     </span>
   );
-}
+});

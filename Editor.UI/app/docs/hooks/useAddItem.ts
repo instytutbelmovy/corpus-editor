@@ -1,12 +1,14 @@
 import { useDocumentStore } from '../store';
-import { useWordSelection } from './useWordSelection';
 import { useUIStore } from '../uiStore';
+import { selectWord } from '../wordEditing';
 
 // Дадае элемэнт і адразу ставіць курсор у яго для ўводу тэксту
 export function useAddItem() {
-  const { addWord, addPunctuation } = useDocumentStore();
-  const { selectWord } = useWordSelection();
-  const { setIsStructureTextEditing } = useUIStore();
+  const addWord = useDocumentStore(state => state.addWord);
+  const addPunctuation = useDocumentStore(state => state.addPunctuation);
+  const setIsStructureTextEditing = useUIStore(
+    state => state.setIsStructureTextEditing
+  );
 
   const addAndSelect = (
     add: (paragraphId: number, sentenceId: number, index: number) => void,

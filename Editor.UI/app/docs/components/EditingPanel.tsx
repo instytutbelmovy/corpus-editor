@@ -50,13 +50,11 @@ export function EditingPanel({
   onSaveComment,
   onSaveErrorType,
 }: EditingPanelProps) {
-  const {
-    displayMode,
-    setDisplayMode,
-    isSavingText,
-    isSavingManual,
-    isSavingError,
-  } = useUIStore();
+  const displayMode = useUIStore(state => state.displayMode);
+  const setDisplayMode = useUIStore(state => state.setDisplayMode);
+  const isSavingText = useUIStore(state => state.isSavingText);
+  const isSavingManual = useUIStore(state => state.isSavingManual);
+  const isSavingError = useUIStore(state => state.isSavingError);
   const [showManualInput, setShowManualInput] = useState(false);
   const [showErrorDropdown, setShowErrorDropdown] = useState(false);
 

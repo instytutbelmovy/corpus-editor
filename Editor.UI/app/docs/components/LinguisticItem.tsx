@@ -1,18 +1,17 @@
-import { useRef, useEffect } from 'react';
+import { memo, useRef, useEffect } from 'react';
 import {
   LinguisticItem as LinguisticItemType,
   SentenceItemType,
 } from '../types';
 import { useDocumentStore } from '../store';
 import { useUIStore } from '../uiStore';
+import { wordKey } from '../wordEditing';
 import { HoverMenu } from './HoverMenu';
 import { WordClickHandler } from './DocumentContent';
 
 interface LinguisticItemProps {
   item: LinguisticItemType;
   index: number;
-  isCurrentlyEditing: boolean;
-  isPendingSave: boolean;
   onWordClick: WordClickHandler;
   isStructureEditingMode: boolean;
   paragraphId: number;
@@ -22,23 +21,40 @@ interface LinguisticItemProps {
 // Знак націску, які ставіцца клавішай «+»
 const STRESS_MARK = '́';
 
-export function LinguisticItem({
+export const LinguisticItem = memo(function LinguisticItem({
   item,
   index,
-  isCurrentlyEditing,
-  isPendingSave,
   onWordClick,
   isStructureEditingMode,
   paragraphId,
   sentenceId,
 }: LinguisticItemProps) {
-  const { deleteItem, updateItemText } = useDocumentStore();
-  const { clearSelectedWord } = useUIStore();
+  const deleteItem = useDocumentStore(state => state.deleteItem);
+  const updateItemText = useDocumentStore(state => state.updateItemText);
+  const clearSelectedWord = useUIStore(state => state.clearSelectedWord);
   const spanRef = useRef<HTMLSpanElement>(null);
 
   const isWord = item.type === SentenceItemType.Word;
   const isPunctuation = item.type === SentenceItemType.Punctuation;
   const isLineBreak = item.type === SentenceItemType.LineBreak;
+
+  // Падпіска на сваё слова, а не прапс праз увесь дакумэнт: селектары вяртаюць булеан, таму перарэндарваюцца толькі тыя словы, у якіх сьцяг сапраўды зьмяніўся
+  const isCurrentlyEditing = useUIStore(state => {
+    const selected = state.selectedWord;
+    return (
+      selected !== null &&
+      selected.paragraphId === paragraphId &&
+      selected.sentenceId === sentenceId &&
+      selected.wordIndex === index
+    );
+  });
+  const isPendingSave = useUIStore(
+    state =>
+      isWord &&
+      state.pendingSaves.has(
+        wordKey({ paragraphId, sentenceId, wordIndex: index })
+      )
+  );
 
   // Пасьля дадаваньня слова курсор ставім у яго
   useEffect(() => {
@@ -164,7 +180,7 @@ export function LinguisticItem({
       ]}
     />
   );
-}
+});
 
 function insertStressMark() {
   const selection = window.getSelection();

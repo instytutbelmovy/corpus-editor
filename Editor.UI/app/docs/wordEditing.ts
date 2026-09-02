@@ -55,6 +55,26 @@ export function toSelectedWord(
   };
 }
 
+// Выбірае слова для панэлі рэдагаваньня. Абодва сторы чытаюцца праз getState, таму гэта звычайная функцыя — кампанэнтам не трэба на іх падпісвацца.
+// Вяртае, ці было слова сапраўды знойдзена і выбрана.
+export function selectWord(
+  paragraphId: number,
+  sentenceId: number,
+  wordIndex: number
+): boolean {
+  const { documentData } = useDocumentStore.getState();
+  const paragraph = documentData?.paragraphs.find(p => p.id === paragraphId);
+  const sentence = paragraph?.sentences.find(s => s.id === sentenceId);
+  if (!paragraph || !sentence || !sentence.sentenceItems[wordIndex]) {
+    return false;
+  }
+
+  useUIStore
+    .getState()
+    .setSelectedWord(toSelectedWord(paragraph, sentence, wordIndex));
+  return true;
+}
+
 // Наступнае неразьмечанае слова пасьля бягучага, з пераходам на пачатак дакумэнта.
 // Дакумэнт праходзіцца адзін раз; SelectedWord ствараецца толькі для знойдзеных слоў.
 export function findNextUnresolvedWord(

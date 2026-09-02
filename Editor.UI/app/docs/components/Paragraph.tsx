@@ -1,4 +1,5 @@
-import { Paragraph as ParagraphType, SelectedWord } from '../types';
+import { memo } from 'react';
+import { Paragraph as ParagraphType } from '../types';
 import { Sentence } from './Sentence';
 import { useDocumentStore } from '../store';
 import { HoverMenu } from './HoverMenu';
@@ -6,17 +7,14 @@ import { WordClickHandler } from './DocumentContent';
 
 interface ParagraphProps {
   paragraph: ParagraphType;
-  selectedWord: SelectedWord | null;
-  pendingSaves: Set<string>;
   onWordClick: WordClickHandler;
   isStructureEditingMode: boolean;
   index: number;
 }
 
-export function Paragraph({
+// memo: пры захаваньні разьметкі слова новую спасылку атрымлівае толькі яго ўласны абзац (updateSentenceItem капіюе адзін шлях), таму астатнія не перарэндарваюцца
+export const Paragraph = memo(function Paragraph({
   paragraph,
-  selectedWord,
-  pendingSaves,
   onWordClick,
   isStructureEditingMode,
   index,
@@ -34,8 +32,6 @@ export function Paragraph({
           <Sentence
             sentence={sentence}
             paragraphId={paragraph.id}
-            selectedWord={selectedWord}
-            pendingSaves={pendingSaves}
             onWordClick={onWordClick}
             isStructureEditingMode={isStructureEditingMode}
             index={sentenceIndex}
@@ -50,10 +46,10 @@ export function Paragraph({
       )}
     </div>
   );
-}
+});
 
 function ParagraphBoundary({ paragraphId }: { paragraphId: number }) {
-  const { joinParagraph } = useDocumentStore();
+  const joinParagraph = useDocumentStore(state => state.joinParagraph);
 
   return (
     <HoverMenu

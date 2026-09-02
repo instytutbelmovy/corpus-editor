@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import {
   DocumentData,
   DocumentHeader,
+  Paragraph,
   ParagraphOperation,
   OperationType,
   Sentence,
@@ -29,10 +30,14 @@ interface DocumentState {
   history: DocumentData[];
   historyIndex: number;
 
-  // Стан загрузкі
+  // Стан загрузкі.
+  // error — толькі фатальная памылка першай загрузкі: замяняе старонку.
+  // actionError — нефатальная (захаваньне структуры, дагрузка абзацаў): банэр па-над дакумэнтам.
   loading: boolean;
   loadingMore: boolean;
   error: string | null;
+  saving: boolean;
+  actionError: string | null;
 
   // Пагінацыя
   hasMore: boolean;
@@ -55,6 +60,7 @@ interface DocumentState {
   ) => void;
   clearDocument: () => void;
   setError: (error: string | null) => void;
+  clearActionError: () => void;
 
   // Рэдагаваньне структуры
   undo: () => void;
@@ -115,6 +121,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   loading: false,
   loadingMore: false,
   error: null,
+  saving: false,
+  actionError: null,
   hasMore: true,
   lastParagraphId: 0,
 
@@ -122,8 +130,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     try {
       set(
         isInitial
-          ? { loading: true, error: null }
-          : { loadingMore: true, error: null }
+          ? { loading: true, error: null, actionError: null }
+          : { loadingMore: true, actionError: null }
       );
 
       const data = await serviceLocator.documentService.fetchDocument(
@@ -144,27 +152,45 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
           historyIndex: -1,
         });
       } else {
-        set(state => ({
-          documentData: state.documentData
-            ? {
-                ...state.documentData,
-                paragraphs: [
-                  ...state.documentData.paragraphs,
-                  ...data.paragraphs,
-                ],
-              }
-            : data,
-          lastParagraphId,
-          hasMore,
-          loadingMore: false,
-        }));
+        // Усе здымкі дакумэнта мусяць апісваць адно і тое ж загружанае акно: інакш дыф па stamp'ах прыдумае Create для дагружаных абзацаў (а пасьля undo — Delete).
+        set(state => {
+          if (!state.documentData) {
+            return {
+              documentData: data,
+              lastParagraphId,
+              hasMore,
+              loadingMore: false,
+            };
+          }
+
+          const append = (doc: DocumentData, paragraphs: Paragraph[]) => ({
+            ...doc,
+            paragraphs: [...doc.paragraphs, ...paragraphs],
+          });
+
+          return {
+            documentData: append(state.documentData, data.paragraphs),
+            // Арыгінал усюды трымаецца глыбокай копіяй — не пачынаем дзяліць абзацы з жывым дрэвам
+            originalDocumentData: state.originalDocumentData
+              ? append(
+                  state.originalDocumentData,
+                  structuredClone(data.paragraphs)
+                )
+              : null,
+            history: state.history.map(entry => append(entry, data.paragraphs)),
+            lastParagraphId,
+            hasMore,
+            loadingMore: false,
+          };
+        });
       }
     } catch (err) {
-      set({
-        error: errorMessage(err),
-        loading: false,
-        loadingMore: false,
-      });
+      // Няўдалая дагрузка не мусіць зносіць ужо адкрыты дакумэнт
+      set(
+        isInitial
+          ? { error: errorMessage(err), loading: false }
+          : { actionError: errorMessage(err), loadingMore: false }
+      );
     }
   },
 
@@ -255,11 +281,14 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     set({
       documentData: null,
       error: null,
+      actionError: null,
       hasMore: true,
       lastParagraphId: 0,
     }),
 
   setError: (error: string | null) => set({ error }),
+
+  clearActionError: () => set({ actionError: null }),
 
   // Рэдагаваньне структуры
 
@@ -310,7 +339,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     if (operations.length === 0) return;
 
     try {
-      set({ loading: true });
+      // Не loading/error: старонка не мусіць разьбірацца, пакуль ідзе захаваньне - інакш пры памылцы (напр. 409) правкі застаюцца ў памяці, але недасяжныя
+      set({ saving: true, actionError: null });
 
       const response = await serviceLocator.documentService.saveDocument(
         documentData.header.n,
@@ -341,10 +371,10 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         originalDocumentData: structuredClone(newDocumentData),
         history: [],
         historyIndex: -1,
-        loading: false,
+        saving: false,
       });
     } catch (err) {
-      set({ error: errorMessage(err), loading: false });
+      set({ actionError: errorMessage(err), saving: false });
     }
   },
 

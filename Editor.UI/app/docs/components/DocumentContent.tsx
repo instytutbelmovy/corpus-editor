@@ -1,4 +1,4 @@
-import { DocumentData, SelectedWord } from '../types';
+import { DocumentData } from '../types';
 import { Paragraph } from './Paragraph';
 import { LoadingIndicator } from './LoadingIndicator';
 import { useUIStore } from '../uiStore';
@@ -11,8 +11,6 @@ export type WordClickHandler = (
 
 interface DocumentContentProps {
   documentData: DocumentData;
-  selectedWord: SelectedWord | null;
-  pendingSaves: Set<string>;
   loadingMore: boolean;
   hasMore: boolean;
   onWordClick: WordClickHandler;
@@ -21,14 +19,14 @@ interface DocumentContentProps {
 
 export function DocumentContent({
   documentData,
-  selectedWord,
-  pendingSaves,
   loadingMore,
   hasMore,
   onWordClick,
   observerRef,
 }: DocumentContentProps) {
-  const { isStructureEditingMode } = useUIStore();
+  const isStructureEditingMode = useUIStore(
+    state => state.isStructureEditingMode
+  );
 
   return (
     <div>
@@ -36,8 +34,6 @@ export function DocumentContent({
         <Paragraph
           key={paragraph.id}
           paragraph={paragraph}
-          selectedWord={selectedWord}
-          pendingSaves={pendingSaves}
           onWordClick={onWordClick}
           isStructureEditingMode={isStructureEditingMode}
           index={index}
