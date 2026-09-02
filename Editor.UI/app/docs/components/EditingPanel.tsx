@@ -65,13 +65,16 @@ export function EditingPanel({
     selectedWord?.item.metadata?.errorType ?? LinguisticErrorType.None;
   const showErrorType = Boolean(errorType) || showErrorDropdown;
 
+  // Ключ слова, а не сам аб'ект: фонавыя захаваньні перастварваюць selectedWord
+  const selectedKey = selectedWord ? wordKey(selectedWord) : '';
+
   const {
     value: comment,
     change: changeComment,
     flush: saveCommentImmediately,
   } = useDebouncedSave({
     value: selectedWord?.item.comment ?? '',
-    resetKey: selectedWord ? wordKey(selectedWord) : '',
+    resetKey: selectedKey,
     onSave: onSaveComment,
     delayMs: COMMENT_SAVE_DELAY_MS,
   });
@@ -86,7 +89,7 @@ export function EditingPanel({
   useEffect(() => {
     setShowErrorDropdown(false);
     setShowManualInput(isManuallyEdited);
-  }, [selectedWord, isManuallyEdited]);
+  }, [selectedKey, isManuallyEdited]);
 
   // Пачатковыя значэньні ручнога ўводу — коды з ужо існага тэгу
   const manualValues = useMemo((): ManualInputValues | null => {
@@ -130,6 +133,7 @@ export function EditingPanel({
     <div className="fixed bottom-0 left-0 w-full h-2/3 bg-white border-t border-gray-200 shadow-2xl z-50 rounded-t-2xl overflow-y-auto lg:sticky lg:top-6 lg:w-80 lg:h-[calc(100vh-3rem)] lg:border-t-0 lg:border-l lg:border-r-0 lg:border-b-0 lg:rounded-none lg:shadow-none">
       <div className="p-4">
         <WordTitle
+          key={selectedKey}
           text={selectedWord.item.text}
           isSaving={isSavingText}
           onSave={onUpdateWordText}

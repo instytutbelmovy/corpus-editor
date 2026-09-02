@@ -6,3 +6,4 @@ grammar-base/
 .vscode/
 wwwroot/
 *.user
+.playwright-mcp

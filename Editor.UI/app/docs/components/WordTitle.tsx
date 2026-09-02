@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useState } from 'react';
 import { PencilIcon } from '@/app/components/icons';
 
 interface WordTitleProps {
@@ -9,15 +9,12 @@ interface WordTitleProps {
   actions: ReactNode;
 }
 
-// Загаловак панэлі: тэкст слова і яго праўка на месцы
+// Загаловак панэлі: тэкст слова і яго праўка на месцы.
+// Стан праўкі скідаецца перамантаваньнем (key па слове), а не па тэксьце:
+// два розныя словы могуць мець аднолькавы тэкст.
 export function WordTitle({ text, isSaving, onSave, actions }: WordTitleProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState('');
-
-  useEffect(() => {
-    setIsEditing(false);
-    setEditText('');
-  }, [text]);
 
   const cancel = () => {
     setIsEditing(false);

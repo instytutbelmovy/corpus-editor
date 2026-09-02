@@ -103,6 +103,22 @@ describe('ручны ўвод', () => {
     expect(categoryOptions('A', 'case').map(o => o.value)).not.toContain('V');
   });
 
+  test('дзеепрыметнік мае толькі цяперашні і прошлы час', () => {
+    expect(categoryOptions('P', 'verbTense').map(o => o.value)).toEqual([
+      'R',
+      'P',
+    ]);
+    // У дзеяслова застаюцца ўсе часы, разам з загадным ладам і інфінітывам
+    expect(categoryOptions('V', 'verbTense').map(o => o.value)).toContain('0');
+  });
+
+  test('займеньнік можа быць нязьменным', () => {
+    // GrammarDB мае парадыгмы кшталту S0S0 — код «0» тут дапушчальны
+    expect(categoryOptions('S', 'inflectionType').map(o => o.value)).toContain(
+      '0'
+    );
+  });
+
   test('без часьціны мовы тэг пусты', () => {
     expect(buildTag('', {})).toEqual({ paradigmTag: '', formTag: null });
   });

@@ -348,7 +348,8 @@ const ALLOWED_CODES: Record<string, Partial<Record<CategoryKey, string>>> = {
   M: { gender: 'MFNP', case: 'NGDAIL' },
   S: { gender: 'MFN01', case: 'NGDAIL' },
   V: { gender: 'MFN' },
-  P: { gender: 'MFNP', case: 'NGDAIL' },
+  // Дзеепрыметнікі ў GrammarDB бываюць толькі цяперашняга і прошлага часу
+  P: { gender: 'MFNP', case: 'NGDAIL', verbTense: 'RP' },
 };
 
 // Катэгорыі, якія прапануюцца ў ручным уводзе для часьціны мовы

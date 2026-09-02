@@ -118,12 +118,17 @@ export function ParadigmOptions({
     );
   }
 
+  // Выклікаецца з onClick, таму памылку ловім тут: банэр пакажа wordEditing
   const handleSelect = async (option: GrammarInfo) => {
-    await onBeforeSelect?.();
-    if (option.paradigmFormId === null) {
-      await onSaveManualCategories?.(option.lemma, option.linguisticTag);
-    } else {
-      onSelect(option.paradigmFormId);
+    try {
+      await onBeforeSelect?.();
+      if (option.paradigmFormId === null) {
+        await onSaveManualCategories?.(option.lemma, option.linguisticTag);
+      } else {
+        onSelect(option.paradigmFormId);
+      }
+    } catch (error) {
+      console.error('Памылка захаваньня варыянту:', error);
     }
   };
 

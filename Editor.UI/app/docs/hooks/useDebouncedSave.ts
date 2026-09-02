@@ -8,6 +8,13 @@ interface UseDebouncedSaveOptions {
   delayMs: number;
 }
 
+// Адкладзенае захаваньне трымае ключ і апрацоўшчык таго слова, у якім тэкст быў набраны — інакш яно трапіць у наступнае выбранае слова
+interface PendingSave {
+  key: string;
+  value: string;
+  onSave: (value: string) => Promise<void>;
+}
+
 // Поле з аўтазахаваньнем пасьля паўзы ва ўводзе і магчымасьцю захаваць неадкладна
 export function useDebouncedSave({
   value: initialValue,
@@ -16,55 +23,68 @@ export function useDebouncedSave({
   delayMs,
 }: UseDebouncedSaveOptions) {
   const [value, setValue] = useState(initialValue);
-  const valueRef = useRef(initialValue);
   const lastSavedRef = useRef(initialValue);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingRef = useRef<PendingSave | null>(null);
+  const keyRef = useRef(resetKey);
   const onSaveRef = useRef(onSave);
   onSaveRef.current = onSave;
 
-  const setBoth = (next: string) => {
-    valueRef.current = next;
-    setValue(next);
-  };
+  // Захаваць адкладзенае зараз — перад пераходам на іншае слова ці закрыцьцём панэлі
+  const flush = useCallback(async () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
 
-  useEffect(() => {
-    setBoth(initialValue);
-    lastSavedRef.current = initialValue;
-    // Значэньне бярэцца пад новае слова, таму initialValue тут не залежнасьць
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resetKey]);
+    const pending = pendingRef.current;
+    pendingRef.current = null;
+    if (!pending || pending.value === lastSavedRef.current) return;
 
-  useEffect(
-    () => () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    },
-    []
-  );
-
-  const save = useCallback(async (next: string) => {
-    if (!onSaveRef.current || next === lastSavedRef.current) return;
     try {
-      await onSaveRef.current(next);
-      lastSavedRef.current = next;
+      await pending.onSave(pending.value);
+      // Слова ўжо магло зьмяніцца: тады база параўнаньня належыць іншаму слову
+      if (keyRef.current === pending.key) {
+        lastSavedRef.current = pending.value;
+      }
     } catch (error) {
       console.error('Памылка захаваньня:', error);
     }
   }, []);
 
-  const change = useCallback(
-    (next: string) => {
-      setBoth(next);
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => save(next), delayMs);
+  useEffect(() => {
+    // Тэкст, набраны для папярэдняга слова, захоўваецца ў яго, а не ў новае
+    flush();
+    keyRef.current = resetKey;
+    setValue(initialValue);
+    lastSavedRef.current = initialValue;
+    // Значэньне бярэцца пад новае слова, таму initialValue тут не залежнасьць
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetKey, flush]);
+
+  useEffect(
+    () => () => {
+      flush();
     },
-    [save, delayMs]
+    [flush]
   );
 
-  // Захаваць зараз — перад пераходам на наступнае слова ці закрыцьцём панэлі
-  const flush = useCallback(async () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    await save(valueRef.current);
-  }, [save]);
+  const change = useCallback(
+    (next: string) => {
+      setValue(next);
+      const handler = onSaveRef.current;
+      if (!handler) return;
+
+      pendingRef.current = {
+        key: keyRef.current,
+        value: next,
+        onSave: handler,
+      };
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(flush, delayMs);
+    },
+    [flush, delayMs]
+  );
 
   return { value, change, flush };
 }

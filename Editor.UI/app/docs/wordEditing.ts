@@ -55,42 +55,46 @@ export function toSelectedWord(
   };
 }
 
-const collectWords = (documentData: DocumentData): SelectedWord[] =>
-  documentData.paragraphs.flatMap(paragraph =>
-    paragraph.sentences.flatMap(sentence =>
-      sentence.sentenceItems
-        .map((_, index) => index)
-        .filter(
-          index =>
-            sentence.sentenceItems[index].linguisticItem.type ===
-            SentenceItemType.Word
-        )
-        .map(index => toSelectedWord(paragraph, sentence, index))
-    )
-  );
-
-// Наступнае неразьмечанае слова пасьля бягучага, з пераходам на пачатак дакумэнта
+// Наступнае неразьмечанае слова пасьля бягучага, з пераходам на пачатак дакумэнта.
+// Дакумэнт праходзіцца адзін раз; SelectedWord ствараецца толькі для знойдзеных слоў.
 export function findNextUnresolvedWord(
   documentData: DocumentData | null,
   current: WordPosition | null
 ): SelectedWord | null {
   if (!documentData) return null;
 
-  const words = collectWords(documentData);
-  if (words.length === 0) return null;
+  // Першае неразьмечанае слова да бягучага — куды пяройдзем, дайшоўшы да канца
+  let wrapAround: SelectedWord | null = null;
+  let passedCurrent = current === null;
 
-  const currentIndex = current
-    ? words.findIndex(word => isSameWord(word, current))
-    : -1;
+  for (const paragraph of documentData.paragraphs) {
+    for (const sentence of paragraph.sentences) {
+      for (let index = 0; index < sentence.sentenceItems.length; index++) {
+        const item = sentence.sentenceItems[index].linguisticItem;
+        if (item.type !== SentenceItemType.Word) continue;
 
-  for (let offset = 1; offset <= words.length; offset++) {
-    const word = words[(currentIndex + offset + words.length) % words.length];
-    if (!word.item.metadata?.resolvedOn) {
-      return word;
+        // Само бягучае слова не прапануем — нават калі яно яшчэ неразьмечанае
+        const position = {
+          paragraphId: paragraph.id,
+          sentenceId: sentence.id,
+          wordIndex: index,
+        };
+        if (current && isSameWord(position, current)) {
+          passedCurrent = true;
+          continue;
+        }
+
+        if (item.metadata?.resolvedOn) continue;
+
+        if (passedCurrent) {
+          return toSelectedWord(paragraph, sentence, index);
+        }
+        wrapAround ??= toSelectedWord(paragraph, sentence, index);
+      }
     }
   }
 
-  return null;
+  return wrapAround;
 }
 
 // Нязьменнае абнаўленьне лінгвістычнага элемэнта слова
@@ -159,13 +163,13 @@ export async function saveParadigmFormId(
   const { addPendingSave, removePendingSave, setSaveError } =
     useUIStore.getState();
 
-  snapshot();
-
-  // Паўторны выбар той самай парадыгмы — проста ідзем далей
+  // Паўторны выбар той самай парадыгмы — проста ідзем далей, нічога не мяняючы
   if (paradigmFormIdEquals(word.item.paradigmFormId, paradigmFormId)) {
     goToNextWord(word);
     return;
   }
+
+  snapshot();
 
   const previousItem = word.item;
   const key = wordKey(word);

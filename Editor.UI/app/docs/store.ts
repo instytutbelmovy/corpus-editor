@@ -360,12 +360,14 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     }
   },
 
-  // Здымак бягучага стану для undo перад разьметкай слова
+  // Здымак бягучага стану для undo перад разьметкай слова.
+  // Кладзецца спасылка: усе праўкі ствараюць новы аб'ект (гл. _edit і StructureEditor), таму роўнасьць спасылак азначае «нічога не зьмянілася з мінулага здымка».
   snapshot: () => {
-    const { documentData } = get();
-    if (documentData) {
-      get()._edit(() => structuredClone(documentData));
-    }
+    const { documentData, history, historyIndex } = get();
+    if (!documentData || history[historyIndex] === documentData) return;
+
+    const newHistory = [...history.slice(0, historyIndex + 1), documentData];
+    set({ history: newHistory, historyIndex: newHistory.length - 1 });
   },
 
   hasChanges: () => {
