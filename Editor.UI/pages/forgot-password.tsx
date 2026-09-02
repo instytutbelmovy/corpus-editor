@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useTurnstile } from '@/app/hooks/useTurnstile';
+import { serviceLocator } from '@/app/services/serviceLocator';
+import { errorMessage } from '@/app/utils/errors';
 
 export default function ForgotPassword() {
   const router = useRouter();
@@ -26,45 +28,18 @@ export default function ForgotPassword() {
     try {
       let turnstileToken: string | null = null;
       if (isReady) {
-        turnstileToken = await getToken();
+        turnstileToken = getToken();
         if (!turnstileToken) {
           setError('Заўершыце праверку Turnstile');
-          setIsLoading(false);
           return;
         }
       }
 
-      const response = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, turnstileToken }),
-      });
-
-      if (response.ok) {
-        setIsSuccess(true);
-      } else {
-        resetToken();
-        try {
-          const errorData = await response.json();
-          // Праверка розных фарматаў паведамленьняў пра памылкі
-          if (errorData.message) {
-            setError(errorData.message);
-          } else if (errorData.error) {
-            setError(errorData.error);
-          } else if (errorData.detail) {
-            setError(errorData.detail);
-          } else {
-            setError('Памылка адпраўкі email');
-          }
-        } catch {
-          setError('Памылка адпраўкі email');
-        }
-      }
-    } catch {
+      await serviceLocator.authService.forgotPassword(email, turnstileToken);
+      setIsSuccess(true);
+    } catch (err) {
       resetToken();
-      setError('Памылка злучэньня з серверам');
+      setError(errorMessage(err));
     } finally {
       setIsLoading(false);
     }

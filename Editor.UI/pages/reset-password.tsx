@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useTurnstile } from '@/app/hooks/useTurnstile';
+import { serviceLocator } from '@/app/services/serviceLocator';
+import { errorMessage } from '@/app/utils/errors';
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('');
@@ -43,50 +45,23 @@ export default function ResetPassword() {
     try {
       let turnstileToken: string | null = null;
       if (isReady) {
-        turnstileToken = await getToken();
+        turnstileToken = getToken();
         if (!turnstileToken) {
           setError('Заўершыце праверку Turnstile');
-          setIsLoading(false);
           return;
         }
       }
 
-      const response = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          token,
-          newPassword: password,
-          turnstileToken,
-        }),
-      });
-
-      if (response.ok) {
-        setIsSuccess(true);
-      } else {
-        resetToken();
-        try {
-          const errorData = await response.json();
-          // Праверка розных фарматаў паведамленьняў пра памылкі
-          if (errorData.message) {
-            setError(errorData.message);
-          } else if (errorData.error) {
-            setError(errorData.error);
-          } else if (errorData.detail) {
-            setError(errorData.detail);
-          } else {
-            setError('Памылка аднаўленьня паролю');
-          }
-        } catch {
-          setError('Памылка аднаўленьня паролю');
-        }
-      }
-    } catch {
+      await serviceLocator.authService.resetPassword(
+        email,
+        token,
+        password,
+        turnstileToken
+      );
+      setIsSuccess(true);
+    } catch (err) {
       resetToken();
-      setError('Памылка злучэньня з серверам');
+      setError(errorMessage(err));
     } finally {
       setIsLoading(false);
     }

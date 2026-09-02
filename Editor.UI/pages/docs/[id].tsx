@@ -15,16 +15,19 @@ import {
   Toolbar,
 } from '@/app/docs/components';
 import { LoadingScreen, ErrorScreen } from '@/app/components';
-import { useAuth } from '../_app';
 import { useEffect } from 'react';
 import { useUIStore } from '@/app/docs/uiStore';
 import { useDocumentStore } from '@/app/docs/store';
 import { WordEditingService } from '@/app/docs/wordEditingService';
+import { serviceLocator } from '@/app/services/serviceLocator';
+
+const wordEditingService = new WordEditingService(
+  serviceLocator.documentService
+);
 
 export default function DocumentPage() {
   const router = useRouter();
   const documentId = router.query.id as string;
-  const { documentService } = useAuth();
   const { isStructureEditingMode, setIsStructureEditingMode } = useUIStore();
 
   // Скідваем рэжым рэдагаваньня пры змене дакумэнта
@@ -54,8 +57,6 @@ export default function DocumentPage() {
     }
   }, [isStructureEditingMode, clearSelectedWord]);
 
-  // Ініцыялізуем WordEditingService
-  const wordEditingService = new WordEditingService(documentService!);
   const {
     handleSaveParadigm,
     handleUpdateWordText,

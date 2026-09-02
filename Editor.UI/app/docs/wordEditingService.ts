@@ -166,11 +166,7 @@ export class WordEditingService {
     try {
       await this.documentService.saveParadigmFormId(
         documentId,
-        selectedWord.paragraphId,
-        selectedWord.paragraphStamp,
-        selectedWord.sentenceId,
-        selectedWord.sentenceStamp,
-        selectedWord.wordIndex,
+        selectedWord,
         paradigmFormId
       );
 
@@ -247,11 +243,7 @@ export class WordEditingService {
       const newOptions: GrammarInfo[] =
         await this.documentService.updateWordText(
           documentId,
-          selectedWord.paragraphId,
-          selectedWord.paragraphStamp,
-          selectedWord.sentenceId,
-          selectedWord.sentenceStamp,
-          selectedWord.wordIndex,
+          selectedWord,
           text
         );
 
@@ -362,11 +354,7 @@ export class WordEditingService {
 
       await this.documentService.saveLemmaTag(
         documentId,
-        selectedWord.paragraphId,
-        selectedWord.paragraphStamp,
-        selectedWord.sentenceId,
-        selectedWord.sentenceStamp,
-        selectedWord.wordIndex,
+        selectedWord,
         lemma,
         tagString
       );
@@ -455,11 +443,7 @@ export class WordEditingService {
     try {
       await this.documentService.saveComment(
         documentId,
-        selectedWord.paragraphId,
-        selectedWord.paragraphStamp,
-        selectedWord.sentenceId,
-        selectedWord.sentenceStamp,
-        selectedWord.wordIndex,
+        selectedWord,
         comment
       );
 
@@ -518,11 +502,7 @@ export class WordEditingService {
     try {
       await this.documentService.saveErrorType(
         documentId,
-        selectedWord.paragraphId,
-        selectedWord.paragraphStamp,
-        selectedWord.sentenceId,
-        selectedWord.sentenceStamp,
-        selectedWord.wordIndex,
+        selectedWord,
         errorType
       );
 

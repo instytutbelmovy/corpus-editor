@@ -7,7 +7,7 @@ import {
   Sentence,
   SentenceItem,
 } from './types';
-import { DocumentService } from './service';
+import { serviceLocator } from '@/app/services/serviceLocator';
 import { StructureEditor, EditResult } from './structureEditor';
 import { useUIStore } from './uiStore';
 
@@ -30,11 +30,7 @@ interface DocumentState {
   hasMore: boolean;
   lastParagraphId: number;
 
-  // Сэрвіс
-  documentService: DocumentService | null;
-
   // Дзеяньні
-  setDocumentService: (service: DocumentService) => void;
   fetchDocument: (
     documentId: string,
     skipUpToId?: number,
@@ -114,27 +110,13 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   error: null,
   hasMore: true,
   lastParagraphId: 0,
-  documentService: null,
 
   // Дзеяньні
-  setDocumentService: (service: DocumentService) =>
-    set({ documentService: service }),
-
   fetchDocument: async (
     documentId: string,
     skipUpToId = 0,
     isInitial = false
   ) => {
-    const { documentService } = get();
-    if (!documentService) {
-      set({
-        error: 'Сэрвіс не ініцыялізаваны',
-        loading: false,
-        loadingMore: false,
-      });
-      return;
-    }
-
     try {
       if (isInitial) {
         set({ loading: true, error: null });
@@ -142,7 +124,10 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         set({ loadingMore: true, error: null });
       }
 
-      const data = await documentService.fetchDocument(documentId, skipUpToId);
+      const data = await serviceLocator.documentService.fetchDocument(
+        documentId,
+        skipUpToId
+      );
 
       if (isInitial) {
         set({
@@ -188,8 +173,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   reloadDocument: async (documentId: string) => {
-    const { documentService, documentData, lastParagraphId } = get();
-    if (!documentService || !documentData || lastParagraphId === 0) {
+    const { documentData, lastParagraphId } = get();
+    if (!documentData || lastParagraphId === 0) {
       return;
     }
 
@@ -199,7 +184,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       lastParagraphId
     );
 
-    const data = await documentService.fetchDocument(
+    const data = await serviceLocator.documentService.fetchDocument(
       documentId,
       0,
       maxParagraphId
@@ -219,15 +204,9 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   fetchDocuments: async () => {
-    const { documentService } = get();
-    if (!documentService) {
-      set({ error: 'Сэрвіс не ініцыялізаваны' });
-      return;
-    }
-
     try {
       set({ loading: true, error: null });
-      const documents = await documentService.fetchDocuments();
+      const documents = await serviceLocator.documentService.fetchDocuments();
       set({ documentsList: documents, loading: false });
     } catch (err) {
       const errorMessage =
@@ -237,13 +216,9 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   refreshDocumentHeader: async (documentId: number) => {
-    const { documentService } = get();
-    if (!documentService) {
-      return;
-    }
-
     try {
-      const updatedHeader = await documentService.refreshDocument(documentId);
+      const updatedHeader =
+        await serviceLocator.documentService.refreshDocument(documentId);
       set((state: DocumentState) => ({
         documentsList: state.documentsList.map((doc: DocumentHeader) =>
           doc.n === documentId ? updatedHeader : doc
@@ -256,14 +231,10 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   refreshDocumentsList: async () => {
-    const { documentService } = get();
-    if (!documentService) {
-      return;
-    }
-
     try {
       set({ loading: true, error: null });
-      const documents = await documentService.refreshDocumentsList();
+      const documents =
+        await serviceLocator.documentService.refreshDocumentsList();
       set({ documentsList: documents, loading: false });
     } catch (err) {
       const errorMessage =
@@ -345,8 +316,8 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   },
 
   saveEditing: async () => {
-    const { documentService, documentData, originalDocumentData } = get();
-    if (!documentService || !documentData || !originalDocumentData) return;
+    const { documentData, originalDocumentData } = get();
+    if (!documentData || !originalDocumentData) return;
 
     const operations = calculateOperations(originalDocumentData, documentData);
     if (operations.length === 0) return;
@@ -354,7 +325,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     try {
       set({ loading: true });
 
-      const response = await documentService.saveDocument(
+      const response = await serviceLocator.documentService.saveDocument(
         documentData.header.n,
         operations
       );

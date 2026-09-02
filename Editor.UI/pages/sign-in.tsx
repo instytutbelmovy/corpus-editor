@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useAuthStore } from '@/app/auth/store';
-import { isValidReturnUrl } from '@/utils/urlValidation';
+import { AuthStorage } from '@/app/auth/storage';
+import { getSafeReturnTo } from '@/app/utils/urlValidation';
 import { useTurnstile } from '@/app/hooks/useTurnstile';
 import { configService } from '@/app/services/configService';
-import { serviceLocator } from '@/app/services/serviceLocator';
 
 // Коды памылак, зь якімі бэкенд перанакіроўвае сюды пасьля няўдалага ўваходу праз Google
 const REDIRECT_ERRORS: Record<string, string> = {
@@ -16,7 +16,7 @@ const REDIRECT_ERRORS: Record<string, string> = {
 };
 
 export default function SignIn() {
-  const { authService, signIn: storeSignIn, checkAuthStatus } = useAuthStore();
+  const { signIn, checkAuthStatus } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -25,15 +25,14 @@ export default function SignIn() {
   const router = useRouter();
   const { containerRef, isReady, getToken, resetToken } =
     useTurnstile('signin');
+  const safeReturnTo = getSafeReturnTo(router.query);
 
   useEffect(() => {
-    if (!authService) return;
-
     configService
-      .getConfig(serviceLocator.apiClient)
+      .getConfig()
       .then(config => setGoogleSignInEnabled(config.googleSignInEnabled))
       .catch(() => setGoogleSignInEnabled(false));
-  }, [authService]);
+  }, []);
 
   useEffect(() => {
     const code = router.query.error;
@@ -42,75 +41,42 @@ export default function SignIn() {
     if (message) setError(message);
   }, [router.query.error]);
 
-  const googleSignInHref = (() => {
-    const returnTo = router.query.returnTo as string;
-    const safeReturnTo =
-      returnTo && isValidReturnUrl(decodeURIComponent(returnTo))
-        ? decodeURIComponent(returnTo)
-        : null;
-    return safeReturnTo
-      ? `/api/auth/google/login?returnTo=${encodeURIComponent(safeReturnTo)}`
-      : '/api/auth/google/login';
-  })();
+  const googleSignInHref = safeReturnTo
+    ? `/api/auth/google/login?returnTo=${encodeURIComponent(safeReturnTo)}`
+    : '/api/auth/google/login';
 
+  // Калі ёсьць лакальны кэш — правяраем сэсію на сэрвэры і, калі яна жывая, ідзем далей
   useEffect(() => {
-    // Праверка, ці ўжо ўвайшоў карыстальнік
-    const checkAuth = async () => {
-      if (!authService) return;
+    if (!AuthStorage.get()) return;
 
-      // Спачатку правяраем localStorage, каб пазбегнуць залішніх API выклікаў
-      const cachedUser = authService.getCurrentUser();
-      if (cachedUser) {
-        // Калі ёсць кэш, правяраем на сервере
-        const isAuthenticated = await checkAuthStatus();
-        if (isAuthenticated) {
-          const returnTo = router.query.returnTo as string;
-          if (returnTo && isValidReturnUrl(decodeURIComponent(returnTo))) {
-            router.push(decodeURIComponent(returnTo));
-          } else {
-            router.push('/');
-          }
-        } else {
-          // Калі сервер кажа, што не аўтэнтыфікаваны, ачысціць форму
-          setEmail('');
-          setPassword('');
-        }
+    checkAuthStatus().then(isAuthenticated => {
+      if (isAuthenticated) {
+        router.push(safeReturnTo ?? '/');
+      } else {
+        setEmail('');
+        setPassword('');
       }
-    };
-    checkAuth();
-  }, [router, authService, checkAuthStatus]);
+    });
+  }, [router, safeReturnTo, checkAuthStatus]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
 
-    if (!authService) {
-      setError('Сэрвіс не ініцыялізаваны');
-      setIsLoading(false);
-      return;
-    }
-
     try {
       let turnstileToken: string | null = null;
       if (isReady) {
-        turnstileToken = await getToken();
+        turnstileToken = getToken();
         if (!turnstileToken) {
           setError('Заўершыце праверку Turnstile');
-          setIsLoading(false);
           return;
         }
       }
 
-      const result = await storeSignIn(email, password, turnstileToken);
-
+      const result = await signIn(email, password, turnstileToken);
       if (result.success) {
-        const returnTo = router.query.returnTo as string;
-        if (returnTo && isValidReturnUrl(decodeURIComponent(returnTo))) {
-          router.push(decodeURIComponent(returnTo));
-        } else {
-          router.push('/');
-        }
+        router.push(safeReturnTo ?? '/');
       } else {
         resetToken();
         setError(result.message || 'Памылка ўваходу');

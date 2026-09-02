@@ -12,7 +12,6 @@ export default function Home() {
     loading,
     error,
     fetchDocuments,
-    documentService,
     refreshDocumentHeader,
     refreshDocumentsList,
   } = useDocumentStore();
@@ -22,10 +21,8 @@ export default function Home() {
   const isExpanded = displayMode === 'full';
 
   useEffect(() => {
-    if (documentService) {
-      fetchDocuments();
-    }
-  }, [fetchDocuments, documentService]);
+    fetchDocuments();
+  }, [fetchDocuments]);
 
   const handleToggleExpanded = () => {
     setDisplayMode(isExpanded ? 'compact' : 'full');

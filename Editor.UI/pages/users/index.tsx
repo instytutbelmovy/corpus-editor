@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { useAuth } from '../_app';
 import { UserList } from '@/app/users/components';
+import { serviceLocator } from '@/app/services/serviceLocator';
+import { errorMessage } from '@/app/utils/errors';
 import { EditorUserDto } from '@/app/users/types';
 import { LoadingScreen, ErrorScreen } from '@/app/components';
 import { BUTTON_STYLES } from '@/app/docs/styles';
 
 export default function UsersPage() {
-  const { userService } = useAuth();
   const router = useRouter();
   const [users, setUsers] = useState<EditorUserDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -15,23 +15,12 @@ export default function UsersPage() {
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!userService) {
-      return; // Не выклікаем fetchUsers, калі userService яшчэ не ініцыялізаваны
-    }
-
-    const fetchUsers = async () => {
-      try {
-        const usersData = await userService.fetchUsers();
-        setUsers(usersData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Невядомая памылка');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUsers();
-  }, [userService]);
+    serviceLocator.userService
+      .fetchUsers()
+      .then(setUsers)
+      .catch(err => setError(errorMessage(err)))
+      .finally(() => setLoading(false));
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = () => {
@@ -51,10 +40,8 @@ export default function UsersPage() {
   };
 
   const handleInviteUser = async (user: EditorUserDto) => {
-    if (!userService) return;
-
     try {
-      await userService.inviteUser(user.id);
+      await serviceLocator.userService.inviteUser(user.id);
       // Тут можна дадаць паведамленьне аб паспяховым дасыланьні
       alert(`Запрашэньне даслана на ${user.email}`);
     } catch (error) {
@@ -66,10 +53,6 @@ export default function UsersPage() {
   const handleCreateUser = () => {
     router.push('/users/new');
   };
-
-  if (!userService) {
-    return <LoadingScreen />;
-  }
 
   if (loading) {
     return <LoadingScreen />;

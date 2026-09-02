@@ -6,6 +6,7 @@ import {
   FormErrors,
 } from '../formTypes';
 import { BUTTON_STYLES } from '../styles';
+import { serviceLocator } from '@/app/services/serviceLocator';
 
 interface DocumentFormProps<T extends NewDocumentFormData | MetadataFormData> {
   initialData: T;
@@ -92,20 +93,14 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
   };
 
   useEffect(() => {
-    fetch('/api/registry-files/corpora')
-      .then(res => res.json())
-      .then(data => setCorpora(data))
-      .catch(err => console.error('Failed to fetch corpora:', err));
-
-    fetch('/api/registry-files/types')
-      .then(res => res.json())
-      .then(data => setTypes(data))
-      .catch(err => console.error('Failed to fetch types:', err));
-
-    fetch('/api/registry-files/styles')
-      .then(res => res.json())
-      .then(data => setStyles(data))
-      .catch(err => console.error('Failed to fetch styles:', err));
+    serviceLocator.documentService
+      .fetchLookups()
+      .then(lookups => {
+        setTypes(lookups.types);
+        setStyles(lookups.styles);
+        setCorpora(lookups.corpora);
+      })
+      .catch(err => console.error('Не ўдалося загрузіць даведнікі:', err));
   }, []);
 
   const validateForm = (): boolean => {
@@ -322,7 +317,7 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
               />
               {typeDropdownOpen && types.length > 0 && (
                 <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                  {Array.from(new Set(types)).map(option => (
+                  {types.map(option => (
                     <li
                       key={option}
                       onClick={() => {
@@ -358,7 +353,7 @@ export function DocumentForm<T extends NewDocumentFormData | MetadataFormData>({
               />
               {styleDropdownOpen && styles.length > 0 && (
                 <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                  {Array.from(new Set(styles)).map(option => (
+                  {styles.map(option => (
                     <li
                       key={option}
                       onClick={() => {

@@ -1,183 +1,73 @@
 import type { AppProps } from 'next/app';
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/router';
+import Router, { useRouter } from 'next/router';
+import { useEffect, useRef } from 'react';
 import '@/app/globals.css';
-import { UserService } from '@/app/users/service';
-import { AuthStorage } from '@/app/auth/storage';
 import { useAuthStore } from '@/app/auth/store';
-import { useDocumentStore } from '@/app/docs/store';
-import { AuthContextType } from '@/app/auth/types';
 import { Header } from '@/app/components';
-import { isValidReturnUrl } from '@/utils/urlValidation';
-import { configService } from '@/app/services/configService';
+import { isValidReturnUrl } from '@/app/utils/urlValidation';
+import { configService, FrontendConfig } from '@/app/services/configService';
 import { serviceLocator } from '@/app/services/serviceLocator';
 import * as Sentry from '@sentry/react';
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
 const publicPages = ['/sign-in', '/forgot-password', '/reset-password'];
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
-export default function App({ Component, pageProps }: AppProps) {
-  const router = useRouter();
-  const routerRef = useRef(router);
-  const hasCheckedAuth = useRef(false);
-
-  // Выкарыстоўваем store замест локальнага стану
-  const {
-    isAuthenticated,
-    isLoading,
-    authService,
-    signIn: storeSignIn,
-    signOut: storeSignOut,
-    checkAuthStatus,
-    setAuthService,
-  } = useAuthStore();
-
-  const { setDocumentService } = useDocumentStore();
-  const [userService, setUserService] = useState<UserService | null>(null);
-
-  // Абнаўляем ref пры змене router
-  useEffect(() => {
-    routerRef.current = router;
-  }, [router]);
-
-  // Функцыя для перанакіроўкі на ўваход з захаваньнем returnTo
-  const handleUnauthorizedRef = useRef(() => {
-    const currentPath = routerRef.current.asPath;
-    if (
-      currentPath.startsWith('/sign-in') ||
-      currentPath.includes('returnTo=')
-    ) {
-      routerRef.current.push('/sign-in');
-    } else {
-      // Правяраем лякальнасць URL перад захаваньнем
-      if (isValidReturnUrl(currentPath)) {
-        const returnTo = `?returnTo=${encodeURIComponent(currentPath)}`;
-        routerRef.current.push(`/sign-in${returnTo}`);
-      } else {
-        routerRef.current.push('/sign-in');
-      }
-    }
-  });
-
-  // Ініцыялізуем сервісы толькі адзін раз
-  useEffect(() => {
-    serviceLocator.initialize(handleUnauthorizedRef.current);
-
-    setAuthService(serviceLocator.authService);
-    setDocumentService(serviceLocator.documentService);
-    setUserService(serviceLocator.userService);
-
-    initSentry();
-
-    async function initSentry() {
-      const config = await configService.getConfig(serviceLocator.apiClient);
-
-      initializeSentry(config.sentryDsn, config.environment, config.version);
-    }
-  }, [setAuthService, setDocumentService]);
-
-  // Правяраем аўтэнтыфікацыю
-  useEffect(() => {
-    if (!authService || hasCheckedAuth.current) return;
-
-    const checkAuth = async () => {
-      hasCheckedAuth.current = true;
-      try {
-        // Спачатку правяраем localStorage
-        const cachedUser = AuthStorage.get();
-        if (cachedUser) {
-          // Аптымістычна ўсталёўваем як аўтэнтыфікаванага, пакуль ідзе праверка на сэрвэры
-          useAuthStore.getState().setAuthenticated(true);
-          useAuthStore.getState().setLoading(false);
-        }
-
-        // Заўсёды правяраем на сэрвэры: сэсія можа быць усталяваная і бяз лакальнага кэшу
-        // (напр. пасьля рэдырэкту з Google sign-in, дзе кука ставіцца бэкендам напрамую, мінаючы AuthStorage), таму адсутнасьць кэшу не азначае адсутнасьць сэсіі.
-        const serverAuth = await checkAuthStatus();
-        if (!serverAuth) {
-          hasCheckedAuth.current = false;
-        }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        useAuthStore.getState().setAuthenticated(false);
-        useAuthStore.getState().setLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, [authService, checkAuthStatus]);
-
-  const signIn = async (email: string, password: string) => {
-    const result = await storeSignIn(email, password);
-    if (result.success) {
-      // Перанакіроўка на returnTo або галоўную старонку
-      const returnTo = router.query.returnTo as string;
-      if (returnTo && isValidReturnUrl(decodeURIComponent(returnTo))) {
-        router.push(decodeURIComponent(returnTo));
-      } else {
-        router.push('/');
-      }
-    }
-    return result;
-  };
-
-  const signOut = async () => {
-    await storeSignOut();
-    hasCheckedAuth.current = false;
-    router.push('/sign-in');
-  };
-
-  const authContextValue: AuthContextType = {
-    isAuthenticated,
-    isLoading,
-    signIn,
-    signOut,
-    authService,
-    documentService: useDocumentStore.getState().documentService,
-    userService,
-  };
-
-  // Перанакіроўка на старонку ўваходу, калі карыстальнік не аўтэнтыфікаваны
-  useEffect(() => {
-    const isPublicPage = publicPages.includes(router.pathname);
-
-    if (
-      !isLoading &&
-      !isAuthenticated &&
-      !isPublicPage &&
-      hasCheckedAuth.current
-    ) {
-      handleUnauthorizedRef.current();
-    }
-  }, [isAuthenticated, isLoading, router]);
-
-  return (
-    <AuthContext.Provider value={authContextValue}>
-      {isAuthenticated && !publicPages.includes(router.pathname) && <Header />}
-      <Component {...pageProps} />
-    </AuthContext.Provider>
+// Перанакіраваньне на ўваход з захаваньнем returnTo. Рэгіструецца пры загрузцы модуля,
+// бо эфэкты дачэрніх старонак (і іх запыты) выконваюцца раней за эфэкты _app.
+function redirectToSignIn() {
+  const currentPath = Router.asPath;
+  const keepReturnTo =
+    !currentPath.startsWith('/sign-in') &&
+    !currentPath.includes('returnTo=') &&
+    isValidReturnUrl(currentPath);
+  Router.push(
+    keepReturnTo
+      ? `/sign-in?returnTo=${encodeURIComponent(currentPath)}`
+      : '/sign-in'
   );
 }
 
-function initializeSentry(
-  dsn: string,
-  environment: string,
-  version: string
-): void {
-  if (environment != 'development') {
+serviceLocator.setUnauthorizedHandler(redirectToSignIn);
+
+export default function App({ Component, pageProps }: AppProps) {
+  const router = useRouter();
+  const { isAuthenticated, isLoading, checkAuthStatus, hydrateFromCache } =
+    useAuthStore();
+  const authCheckStarted = useRef(false);
+  const isPublicPage = publicPages.includes(router.pathname);
+
+  useEffect(() => {
+    if (authCheckStarted.current) return;
+    authCheckStarted.current = true;
+
+    hydrateFromCache();
+    // Заўсёды правяраем на сэрвэры: сэсія можа быць усталяваная і бяз лакальнага кэшу
+    // (напр. пасьля рэдырэкту з Google sign-in, дзе кука ставіцца бэкендам напрамую)
+    checkAuthStatus();
+
+    configService.getConfig().then(initSentry);
+  }, [checkAuthStatus, hydrateFromCache]);
+
+  // Перанакіроўка на старонку ўваходу, калі карыстальнік не аўтэнтыфікаваны
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated && !isPublicPage) {
+      redirectToSignIn();
+    }
+  }, [isAuthenticated, isLoading, isPublicPage]);
+
+  return (
+    <>
+      {isAuthenticated && !isPublicPage && <Header />}
+      <Component {...pageProps} />
+    </>
+  );
+}
+
+function initSentry({ sentryDsn, environment, version }: FrontendConfig) {
+  if (environment !== 'development') {
     Sentry.init({
-      dsn: dsn,
+      dsn: sentryDsn,
       sendDefaultPii: false,
-      environment: environment,
+      environment,
       release: version,
     });
   }

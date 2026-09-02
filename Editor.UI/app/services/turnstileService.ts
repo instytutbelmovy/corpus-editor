@@ -1,5 +1,4 @@
-import { configService, FrontendConfig } from './configService';
-import { apiService } from './apiService';
+import { configService } from './configService';
 
 interface TurnstileRenderParams {
   sitekey: string;
@@ -21,14 +20,10 @@ declare global {
 
 class TurnstileService {
   private siteKey: string | null = null;
-  private configPromise: Promise<FrontendConfig> | null = null;
   private scriptPromise: Promise<void> | null = null;
 
   async initialize(): Promise<void> {
-    if (!this.configPromise) {
-      this.configPromise = this.loadConfig();
-    }
-    const config = await this.configPromise;
+    const config = await configService.getConfig();
     this.siteKey = config.turnstileSiteKey;
 
     if (!this.scriptPromise) {
@@ -37,13 +32,8 @@ class TurnstileService {
     await this.scriptPromise;
   }
 
-  private async loadConfig(): Promise<FrontendConfig> {
-    return configService.getConfig(apiService);
-  }
-
   private loadScript(): Promise<void> {
     return new Promise((resolve, reject) => {
-      // Правяраем, ці ўжо загружаны скрыпт
       if (window.turnstile) {
         resolve();
         return;

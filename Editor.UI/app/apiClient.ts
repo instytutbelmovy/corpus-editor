@@ -6,160 +6,109 @@ export interface ApiResponse<T = unknown> {
   status: number;
 }
 
+export interface RequestOptions {
+  // Не перанакіроўваць на ўваход пры 401 (для праверкі сэсіі і самога ўваходу)
+  skipUnauthorizedRedirect?: boolean;
+}
+
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
+
+// ApiClient сам не кідае памылак — гэта робяць сэрвісы праз unwrap.
+export function unwrap<T>(response: ApiResponse<T>): T {
+  if (response.error) {
+    throw new Error(response.error);
+  }
+  return response.data as T;
+}
+
 export class ApiClient {
-  private baseUrl: string;
-  private onUnauthorized: () => void;
+  constructor(private readonly onUnauthorized: () => void) {}
 
-  constructor(onUnauthorized: () => void) {
-    this.baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    this.onUnauthorized = onUnauthorized;
+  get<T>(url: string, options?: RequestOptions) {
+    return this.request<T>('GET', url, undefined, options);
   }
 
-  private buildUrl(url: string): string {
-    return `${this.baseUrl}/api${url}`;
+  post<T>(url: string, body?: unknown, options?: RequestOptions) {
+    return this.request<T>('POST', url, body, options);
   }
 
-  private async handleResponse<T>(
-    response: Response,
-    skipUnauthorizedRedirect = false
+  put<T>(url: string, body?: unknown, options?: RequestOptions) {
+    return this.request<T>('PUT', url, body, options);
+  }
+
+  delete<T>(url: string, options?: RequestOptions) {
+    return this.request<T>('DELETE', url, undefined, options);
+  }
+
+  postFormData<T>(url: string, formData: FormData, options?: RequestOptions) {
+    return this.request<T>('POST', url, formData, options);
+  }
+
+  private async request<T>(
+    method: HttpMethod,
+    url: string,
+    body: unknown,
+    { skipUnauthorizedRedirect = false }: RequestOptions = {}
   ): Promise<ApiResponse<T>> {
-    if (response.status === 401) {
-      // Ачысціць аўтэнтыфікацыю
-      AuthStorage.clear();
+    const isFormData = body instanceof FormData;
 
-      // Перанакіраваць на ўваход толькі калі гэта не праверка аўтэнтыфікацыі
+    let response: Response;
+    try {
+      response = await fetch(`/api${url}`, {
+        method,
+        credentials: 'include',
+        headers:
+          body != null && !isFormData
+            ? { 'Content-Type': 'application/json' }
+            : undefined,
+        body: isFormData
+          ? body
+          : body == null
+            ? undefined
+            : JSON.stringify(body),
+      });
+    } catch {
+      return { status: 0, error: 'Памылка злучэньня з серверам' };
+    }
+
+    if (response.status === 401) {
+      AuthStorage.clear();
       if (!skipUnauthorizedRedirect) {
         this.onUnauthorized();
       }
-
       return { status: 401, error: 'Unauthorized' };
     }
 
-    let data: T | undefined;
-    let error: string | undefined;
-
-    try {
-      if (response.ok) {
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          data = await response.json();
-        }
-      } else {
-        try {
-          const errorData = await response.json();
-          // Праверка розных фарматаў паведамленьняў пра памылкі
-          if (errorData.message) {
-            error = errorData.message;
-          } else if (errorData.error) {
-            error = errorData.error;
-          } else if (errorData.detail) {
-            error = errorData.detail;
-          } else {
-            error = `HTTP ${response.status}`;
-          }
-        } catch {
-          error = `HTTP ${response.status}`;
-        }
-      }
-    } catch {
-      error = 'Памылка апрацоўкі адказу';
+    if (!response.ok) {
+      return {
+        status: response.status,
+        error: await readErrorMessage(response),
+      };
     }
 
-    return {
-      data,
-      error,
-      status: response.status,
-    };
+    const isJson = response.headers
+      .get('content-type')
+      ?.includes('application/json');
+    try {
+      return {
+        status: response.status,
+        data: isJson ? await response.json() : undefined,
+      };
+    } catch {
+      return { status: response.status, error: 'Памылка апрацоўкі адказу' };
+    }
   }
+}
 
-  async get<T>(
-    url: string,
-    options: RequestInit = {},
-    skipUnauthorizedRedirect = false
-  ): Promise<ApiResponse<T>> {
-    const fullUrl = this.buildUrl(url);
-    const response = await fetch(fullUrl, {
-      method: 'GET',
-      credentials: 'include',
-      ...options,
-    });
-
-    return this.handleResponse<T>(response, skipUnauthorizedRedirect);
+// Бэкенд аддае ErrorResponse { code, message }; без цела (напр. 429 ад rate limiter) — код статусу
+async function readErrorMessage(response: Response): Promise<string> {
+  try {
+    const { message } = await response.json();
+    if (typeof message === 'string' && message) {
+      return message;
+    }
+  } catch {
+    // не JSON
   }
-
-  async post<T>(
-    url: string,
-    body?: unknown,
-    options: RequestInit = {},
-    skipUnauthorizedRedirect = false
-  ): Promise<ApiResponse<T>> {
-    const fullUrl = this.buildUrl(url);
-    const response = await fetch(fullUrl, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      body:
-        body === undefined || body === null ? undefined : JSON.stringify(body),
-      ...options,
-    });
-
-    return this.handleResponse<T>(response, skipUnauthorizedRedirect);
-  }
-
-  async put<T>(
-    url: string,
-    body?: unknown,
-    options: RequestInit = {},
-    skipUnauthorizedRedirect = false
-  ): Promise<ApiResponse<T>> {
-    const fullUrl = this.buildUrl(url);
-    const response = await fetch(fullUrl, {
-      method: 'PUT',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      body:
-        body === undefined || body === null ? undefined : JSON.stringify(body),
-      ...options,
-    });
-
-    return this.handleResponse<T>(response, skipUnauthorizedRedirect);
-  }
-
-  async delete<T>(
-    url: string,
-    options: RequestInit = {},
-    skipUnauthorizedRedirect = false
-  ): Promise<ApiResponse<T>> {
-    const fullUrl = this.buildUrl(url);
-    const response = await fetch(fullUrl, {
-      method: 'DELETE',
-      credentials: 'include',
-      ...options,
-    });
-
-    return this.handleResponse<T>(response, skipUnauthorizedRedirect);
-  }
-
-  async postFormData<T>(
-    url: string,
-    formData: FormData,
-    options: RequestInit = {},
-    skipUnauthorizedRedirect = false
-  ): Promise<ApiResponse<T>> {
-    const fullUrl = this.buildUrl(url);
-    const response = await fetch(fullUrl, {
-      method: 'POST',
-      credentials: 'include',
-      body: formData,
-      ...options,
-    });
-
-    return this.handleResponse<T>(response, skipUnauthorizedRedirect);
-  }
+  return `HTTP ${response.status}`;
 }

@@ -83,15 +83,20 @@ export interface DocumentData {
   paragraphs: Paragraph[];
 }
 
-export interface SelectedWord {
+// Адрас слова ў дакумэнце разам з concurrency stamp'амі абзаца і сказа
+export interface WordRef {
   paragraphId: number;
   paragraphStamp: string;
   sentenceId: number;
   sentenceStamp: string;
   wordIndex: number;
+}
+
+export interface SelectedWord extends WordRef {
   item: LinguisticItem;
   options: GrammarInfo[];
 }
+
 export enum OperationType {
   Delete = -1,
   Update = 0,
