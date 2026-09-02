@@ -14,7 +14,12 @@ import {
   EditingPanel,
   Toolbar,
 } from '@/app/docs/components';
-import { LoadingScreen, ErrorScreen } from '@/app/components';
+import {
+  Card,
+  ErrorScreen,
+  LoadingScreen,
+  PageShell,
+} from '@/app/components';
 import { useEffect } from 'react';
 import { useUIStore } from '@/app/docs/uiStore';
 import { useDocumentStore } from '@/app/docs/store';
@@ -108,45 +113,40 @@ export default function DocumentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="max-w-7xl mx-auto px-2 sm:px-2 lg:px-4 pt-4 pb-8 flex-1 flex flex-col">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex-1 flex flex-col">
-          {/* Загаловак */}
-          <DocumentHeader header={documentData.header} />
+    <PageShell fullHeight>
+      <Card className="p-6 flex-1 flex flex-col">
+        <DocumentHeader header={documentData.header} />
 
-          {/* Асноўны кантэнт з тэкстам і панэллю рэдагаваньня */}
-          {isStructureEditingMode && <Toolbar />}
-          <div className="flex flex-col lg:flex-row gap-6 flex-1">
-            {/* Тэкст дакумэнта */}
-            <div className="flex-1">
-              <DocumentContent
-                documentData={documentData}
-                selectedWord={selectedWord}
-                pendingSaves={pendingSaves}
-                loadingMore={loadingMore}
-                hasMore={hasMore}
-                onWordClick={handleWordClick}
-                observerRef={observerRef}
-              />
-            </div>
-
-            {/* Панэль рэдагаваньня (толькі ў рэжыме прагляду) */}
-            {!isStructureEditingMode && (
-              <EditingPanel
-                selectedWord={selectedWord}
-                saveError={saveError}
-                onClose={clearSelectedWord}
-                onSaveParadigm={handleSaveParadigm}
-                onClearError={clearSaveError}
-                onUpdateWordText={handleUpdateWordText}
-                onSaveManualCategories={handleSaveManualCategories}
-                onSaveComment={handleSaveComment}
-                onSaveErrorType={handleSaveErrorType}
-              />
-            )}
+        {isStructureEditingMode && <Toolbar />}
+        <div className="flex flex-col lg:flex-row gap-6 flex-1">
+          <div className="flex-1">
+            <DocumentContent
+              documentData={documentData}
+              selectedWord={selectedWord}
+              pendingSaves={pendingSaves}
+              loadingMore={loadingMore}
+              hasMore={hasMore}
+              onWordClick={handleWordClick}
+              observerRef={observerRef}
+            />
           </div>
+
+          {/* Панэль рэдагаваньня — толькі ў рэжыме прагляду */}
+          {!isStructureEditingMode && (
+            <EditingPanel
+              selectedWord={selectedWord}
+              saveError={saveError}
+              onClose={clearSelectedWord}
+              onSaveParadigm={handleSaveParadigm}
+              onClearError={clearSaveError}
+              onUpdateWordText={handleUpdateWordText}
+              onSaveManualCategories={handleSaveManualCategories}
+              onSaveComment={handleSaveComment}
+              onSaveErrorType={handleSaveErrorType}
+            />
+          )}
         </div>
-      </div>
-    </div>
+      </Card>
+    </PageShell>
   );
 }

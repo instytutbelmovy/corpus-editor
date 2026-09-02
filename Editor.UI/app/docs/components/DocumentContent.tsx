@@ -30,7 +30,7 @@ export function DocumentContent({
   const { isStructureEditingMode } = useUIStore();
 
   return (
-    <div className="prose max-w-none">
+    <div>
       {documentData.paragraphs.map((paragraph, index) => (
         <Paragraph
           key={paragraph.id}
