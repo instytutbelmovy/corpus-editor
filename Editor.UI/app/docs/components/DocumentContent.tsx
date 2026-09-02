@@ -1,12 +1,13 @@
-import {
-  DocumentData,
-  SelectedWord,
-  LinguisticItem as LinguisticItemType,
-} from '../types';
+import { DocumentData, SelectedWord } from '../types';
 import { Paragraph } from './Paragraph';
 import { LoadingIndicator } from './LoadingIndicator';
-
 import { useUIStore } from '../uiStore';
+
+export type WordClickHandler = (
+  paragraphId: number,
+  sentenceId: number,
+  wordIndex: number
+) => void;
 
 interface DocumentContentProps {
   documentData: DocumentData;
@@ -14,7 +15,7 @@ interface DocumentContentProps {
   pendingSaves: Set<string>;
   loadingMore: boolean;
   hasMore: boolean;
-  onWordClick: (item: LinguisticItemType) => void;
+  onWordClick: WordClickHandler;
   observerRef: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -43,7 +44,6 @@ export function DocumentContent({
         />
       ))}
 
-      {/* Індыкатар загрузкі */}
       <div ref={observerRef}>
         <LoadingIndicator
           loadingMore={loadingMore}

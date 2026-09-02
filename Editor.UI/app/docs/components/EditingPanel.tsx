@@ -5,13 +5,16 @@ import {
   LinguisticErrorType,
 } from '../types';
 import { parseLinguisticTag } from '../linguisticCategories';
-import { useDisplaySettings } from '../hooks/useDisplaySettings';
+import { useUIStore } from '../uiStore';
 import {
   ParadigmOptions,
   SettingsButton,
   ManualLinguisticInput,
 } from './index';
 import { useState, useEffect, useRef, useCallback } from 'react';
+
+// Аўтазахаваньне камэнтара пасьля паўзы ва ўводзе
+const COMMENT_SAVE_DELAY_MS = 1000;
 
 interface EditingPanelProps {
   selectedWord: SelectedWord | null;
@@ -39,14 +42,19 @@ export function EditingPanel({
   onSaveComment,
   onSaveErrorType,
 }: EditingPanelProps) {
-  const { displayMode, setDisplayMode, isSavingError } = useDisplaySettings();
+  // Флагі захаваньня жывуць у store — іх выстаўляе useWordEditing
+  const {
+    displayMode,
+    setDisplayMode,
+    isSavingText,
+    isSavingManual,
+    isSavingComment,
+    isSavingError,
+  } = useUIStore();
   const [isEditingText, setIsEditingText] = useState(false);
   const [editText, setEditText] = useState('');
-  const [isSavingText, setIsSavingText] = useState(false);
   const [showManualInput, setShowManualInput] = useState(false);
-  const [isSavingManual, setIsSavingManual] = useState(false);
   const [comment, setComment] = useState('');
-  const [isSavingComment, setIsSavingComment] = useState(false);
   const commentTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedCommentRef = useRef<string>('');
   const [showErrorDropdown, setShowErrorDropdown] = useState(false);
@@ -95,14 +103,11 @@ export function EditingPanel({
       if (commentTimeoutRef.current) {
         clearTimeout(commentTimeoutRef.current);
       }
-      setIsSavingComment(true);
       try {
         await onSaveComment(comment);
         lastSavedCommentRef.current = comment;
       } catch (error) {
         console.error('Памылка захаваньня камэнтара:', error);
-      } finally {
-        setIsSavingComment(false);
       }
     }
   }, [onSaveComment, selectedWord, comment]);
@@ -131,15 +136,12 @@ export function EditingPanel({
   const handleSaveText = async () => {
     if (!onUpdateWordText || !selectedWord || editText.trim() === '') return;
 
-    setIsSavingText(true);
     try {
       await onUpdateWordText(editText.trim());
       setIsEditingText(false);
       setEditText('');
     } catch (error) {
       console.error('Памылка захаваньня тэксту:', error);
-    } finally {
-      setIsSavingText(false);
     }
   };
 
@@ -156,18 +158,14 @@ export function EditingPanel({
   ) => {
     if (!onSaveManualCategories) return;
 
-    setIsSavingManual(true);
     try {
       await saveCommentImmediately(); // Захоўваем камэнтар перад пераходам
       await onSaveManualCategories(lemma, linguisticTag);
+      // Пасьля захаваньня вяртаемся да выбару прапанаваных опцый; слова цяпер
+      // пазначана як адрэдагаванае ўручную, кнопка ручнага ўводу застаецца даступнай
       setShowManualInput(false);
-      // Пасля захаваньня мы вяртаемся да выбару прапанаваных опцый
-      // Але слова цяпер пазначана як адрэдагаванае ўручную
-      // Кнопка "Вярнуцца да ручнага ўводу" будзе даступная
     } catch (error) {
       console.error('Памылка захаваньня лінгвістычных катэгорый:', error);
-    } finally {
-      setIsSavingManual(false);
     }
   };
 
@@ -195,17 +193,14 @@ export function EditingPanel({
         selectedWord &&
         newComment !== lastSavedCommentRef.current
       ) {
-        setIsSavingComment(true);
         try {
           await onSaveComment(newComment);
           lastSavedCommentRef.current = newComment;
         } catch (error) {
           console.error('Памылка захаваньня камэнтара:', error);
-        } finally {
-          setIsSavingComment(false);
         }
       }
-    }, 1000);
+    }, COMMENT_SAVE_DELAY_MS);
   };
 
   // Ачыстка таймаута пры размаўтаньні кампанента

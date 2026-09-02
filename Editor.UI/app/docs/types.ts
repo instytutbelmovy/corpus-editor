@@ -83,13 +83,17 @@ export interface DocumentData {
   paragraphs: Paragraph[];
 }
 
-// Адрас слова ў дакумэнце разам з concurrency stamp'амі абзаца і сказа
-export interface WordRef {
+// Пазыцыя слова ў дакумэнце
+export interface WordPosition {
   paragraphId: number;
-  paragraphStamp: string;
   sentenceId: number;
-  sentenceStamp: string;
   wordIndex: number;
+}
+
+// Пазыцыя разам з concurrency stamp'амі абзаца і сказа — адрас для API
+export interface WordRef extends WordPosition {
+  paragraphStamp: string;
+  sentenceStamp: string;
 }
 
 export interface SelectedWord extends WordRef {

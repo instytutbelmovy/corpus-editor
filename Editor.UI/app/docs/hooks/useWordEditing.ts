@@ -1,15 +1,12 @@
 import { useCallback } from 'react';
-import { useWordSelection } from './useWordSelection';
 import { useUIStore } from '../uiStore';
-import { WordEditingService } from '../wordEditingService';
-import { ParadigmFormId, LinguisticTag, LinguisticErrorType } from '../types';
+import * as wordEditing from '../wordEditing';
+import { LinguisticErrorType, LinguisticTag, ParadigmFormId } from '../types';
 
-export function useWordEditing(
-  documentId: string,
-  wordEditingService: WordEditingService
-) {
-  const { selectedWord } = useWordSelection();
+// Абгортка над wordEditing: бярэ выбранае слова са store і трымае флагі захаваньня
+export function useWordEditing(documentId: string) {
   const {
+    selectedWord,
     setIsSavingText,
     setIsSavingManual,
     setIsSavingComment,
@@ -19,9 +16,8 @@ export function useWordEditing(
   const handleSaveParadigm = useCallback(
     async (paradigmFormId: ParadigmFormId) => {
       if (!selectedWord || !documentId) return;
-
       try {
-        await wordEditingService.saveParadigmFormId(
+        await wordEditing.saveParadigmFormId(
           documentId,
           selectedWord,
           paradigmFormId
@@ -30,7 +26,7 @@ export function useWordEditing(
         console.error('Памылка захаваньня парадыгмы:', error);
       }
     },
-    [selectedWord, documentId, wordEditingService]
+    [selectedWord, documentId]
   );
 
   const handleUpdateWordText = useCallback(
@@ -39,15 +35,12 @@ export function useWordEditing(
 
       setIsSavingText(true);
       try {
-        await wordEditingService.updateWordText(documentId, selectedWord, text);
-      } catch (error) {
-        console.error('Памылка абнаўленьня тэксту:', error);
-        throw error;
+        await wordEditing.updateWordText(documentId, selectedWord, text);
       } finally {
         setIsSavingText(false);
       }
     },
-    [selectedWord, documentId, wordEditingService, setIsSavingText]
+    [selectedWord, documentId, setIsSavingText]
   );
 
   const handleSaveManualCategories = useCallback(
@@ -56,20 +49,17 @@ export function useWordEditing(
 
       setIsSavingManual(true);
       try {
-        await wordEditingService.saveManualCategories(
+        await wordEditing.saveManualCategories(
           documentId,
           selectedWord,
           lemma,
           linguisticTag
         );
-      } catch (error) {
-        console.error('Памылка захаваньня катэгорый:', error);
-        throw error;
       } finally {
         setIsSavingManual(false);
       }
     },
-    [selectedWord, documentId, wordEditingService, setIsSavingManual]
+    [selectedWord, documentId, setIsSavingManual]
   );
 
   const handleSaveComment = useCallback(
@@ -78,14 +68,12 @@ export function useWordEditing(
 
       setIsSavingComment(true);
       try {
-        await wordEditingService.saveComment(documentId, selectedWord, comment);
-      } catch (error) {
-        console.error('Памылка захаваньня камэнтара:', error);
+        await wordEditing.saveComment(documentId, selectedWord, comment);
       } finally {
         setIsSavingComment(false);
       }
     },
-    [selectedWord, documentId, wordEditingService, setIsSavingComment]
+    [selectedWord, documentId, setIsSavingComment]
   );
 
   const handleSaveErrorType = useCallback(
@@ -94,18 +82,12 @@ export function useWordEditing(
 
       setIsSavingError(true);
       try {
-        await wordEditingService.saveErrorType(
-          documentId,
-          selectedWord,
-          errorType
-        );
-      } catch (error) {
-        console.error('Памылка захаваньня тыпу памылкі:', error);
+        await wordEditing.saveErrorType(documentId, selectedWord, errorType);
       } finally {
         setIsSavingError(false);
       }
     },
-    [selectedWord, documentId, wordEditingService, setIsSavingError]
+    [selectedWord, documentId, setIsSavingError]
   );
 
   return {

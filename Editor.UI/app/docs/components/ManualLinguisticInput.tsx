@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { LinguisticTag } from '../types';
-import { BUTTON_STYLES } from '../styles';
+import { Button } from '@/app/components';
 
 interface ManualLinguisticInputProps {
   onSave: (lemma: string, linguisticTag: LinguisticTag) => void;
@@ -580,20 +580,23 @@ export function ManualLinguisticInput({
 
       {/* Кнопкі */}
       <div className="flex space-x-3 pt-4">
-        <button
+        <Button
           onClick={handleSave}
-          disabled={!lemma.trim() || !partOfSpeech || isSaving}
-          className={`flex-1 py-2 px-4 rounded-md ${BUTTON_STYLES.primary}`}
+          disabled={!lemma.trim() || !partOfSpeech}
+          loading={isSaving}
+          loadingText="Захаваньне..."
+          className="flex-1"
         >
-          {isSaving ? 'Захаваньне...' : 'Захаваць'}
-        </button>
-        <button
+          Захаваць
+        </Button>
+        <Button
+          variant="secondary"
           onClick={onCancel}
           disabled={isSaving}
-          className={`flex-1 py-2 px-4 rounded-md ${BUTTON_STYLES.secondary}`}
+          className="flex-1"
         >
           Назад
-        </button>
+        </Button>
       </div>
     </div>
   );

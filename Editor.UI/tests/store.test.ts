@@ -8,8 +8,8 @@ type VersionedData = DocumentData & { version: number };
 jest.mock('@/app/docs/structureEditor', () => ({
   StructureEditor: {
     addWord: jest.fn((data: VersionedData) => ({
-      newDocumentData: { ...data, version: data.version + 1 },
-      newOperations: [],
+      ...data,
+      version: data.version + 1,
     })),
   },
 }));
@@ -53,6 +53,7 @@ describe('DocumentStore Undo/Redo', () => {
     expect(currentVersion()).toBe(1);
     expect(useDocumentStore.getState().historyIndex).toBe(0);
 
+    // Ніжэй першага здымка вяртаемся да зыходнага стану
     store.undo();
     expect(currentVersion()).toBe(0);
     expect(useDocumentStore.getState().historyIndex).toBe(-1);
@@ -64,5 +65,28 @@ describe('DocumentStore Undo/Redo', () => {
     store.redo();
     expect(currentVersion()).toBe(2);
     expect(useDocumentStore.getState().historyIndex).toBe(1);
+  });
+
+  it('should drop the redo tail after a new edit', () => {
+    const initialData: VersionedData = {
+      header: { n: 1 } as DocumentHeader,
+      paragraphs: [],
+      version: 0,
+    };
+
+    useDocumentStore.setState({
+      documentData: initialData,
+      originalDocumentData: structuredClone(initialData),
+    });
+
+    const store = useDocumentStore.getState();
+    store.addWord(1, 1, 0);
+    store.addWord(1, 1, 0);
+    store.undo();
+    store.addWord(1, 1, 0);
+
+    expect(useDocumentStore.getState().history).toHaveLength(2);
+    expect(useDocumentStore.getState().historyIndex).toBe(1);
+    expect(currentVersion()).toBe(2);
   });
 });

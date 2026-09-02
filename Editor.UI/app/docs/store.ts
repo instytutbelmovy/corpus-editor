@@ -6,19 +6,27 @@ import {
   OperationType,
   Sentence,
   SentenceItem,
+  WordRef,
 } from './types';
 import { serviceLocator } from '@/app/services/serviceLocator';
-import { StructureEditor, EditResult } from './structureEditor';
+import { StructureEditor } from './structureEditor';
 import { useUIStore } from './uiStore';
+import { errorMessage } from '@/app/utils/errors';
+
+// Колькасьць абзацаў на старонку пры бясконцай пракрутцы
+const PAGE_SIZE = 20;
+
+type Editor = (data: DocumentData) => DocumentData;
 
 interface DocumentState {
   // Данныя дакумэнта
   documentData: DocumentData | null;
+  // Захаваны стан, ад якога лічацца апэрацыі рэдагаваньня структуры
   originalDocumentData: DocumentData | null;
   documentsList: DocumentHeader[];
 
-  // Гісторыя
-  history: { documentData: DocumentData }[];
+  // Гісторыя для undo/redo
+  history: DocumentData[];
   historyIndex: number;
 
   // Стан загрузкі
@@ -40,17 +48,22 @@ interface DocumentState {
   fetchDocuments: () => Promise<void>;
   refreshDocumentHeader: (documentId: number) => Promise<void>;
   refreshDocumentsList: () => Promise<void>;
-  updateDocument: (
-    updater: (prev: DocumentData | null) => DocumentData | null
+  // Нязьменнае абнаўленьне аднаго слова
+  updateSentenceItem: (
+    word: WordRef,
+    patch: (item: SentenceItem) => SentenceItem
   ) => void;
   clearDocument: () => void;
   setError: (error: string | null) => void;
 
-  // Structural Editing Actions
+  // Рэдагаваньне структуры
   undo: () => void;
   redo: () => void;
   cancelEditing: () => void;
   saveEditing: () => Promise<void>;
+  startEditing: () => void;
+  snapshot: () => void;
+  hasChanges: () => boolean;
 
   addWord: (paragraphId: number, sentenceId: number, wordIndex: number) => void;
   addPunctuation: (
@@ -90,12 +103,7 @@ interface DocumentState {
     replaceHistory?: boolean
   ) => void;
 
-  _applyEdit: (editResult: EditResult, replaceHistory?: boolean) => void;
-  snapshot: (replace?: boolean) => void;
-  startEditing: () => void;
-
-  // Helpers
-  hasChanges: () => boolean;
+  _edit: (editor: Editor, replaceHistory?: boolean) => void;
 }
 
 export const useDocumentStore = create<DocumentState>((set, get) => ({
@@ -111,39 +119,33 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   hasMore: true,
   lastParagraphId: 0,
 
-  // Дзеяньні
-  fetchDocument: async (
-    documentId: string,
-    skipUpToId = 0,
-    isInitial = false
-  ) => {
+  fetchDocument: async (documentId, skipUpToId = 0, isInitial = false) => {
     try {
-      if (isInitial) {
-        set({ loading: true, error: null });
-      } else {
-        set({ loadingMore: true, error: null });
-      }
+      set(
+        isInitial
+          ? { loading: true, error: null }
+          : { loadingMore: true, error: null }
+      );
 
       const data = await serviceLocator.documentService.fetchDocument(
         documentId,
         skipUpToId
       );
+      const lastParagraphId = data.paragraphs.at(-1)?.id ?? 0;
+      const hasMore = data.paragraphs.length === PAGE_SIZE;
 
       if (isInitial) {
         set({
           documentData: data,
-          originalDocumentData: JSON.parse(JSON.stringify(data)),
-          lastParagraphId:
-            data.paragraphs.length > 0
-              ? data.paragraphs[data.paragraphs.length - 1].id
-              : 0,
-          hasMore: data.paragraphs.length === 20,
+          originalDocumentData: structuredClone(data),
+          lastParagraphId,
+          hasMore,
           loading: false,
           history: [],
           historyIndex: -1,
         });
       } else {
-        set((state: DocumentState) => ({
+        set(state => ({
           documentData: state.documentData
             ? {
                 ...state.documentData,
@@ -153,52 +155,38 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
                 ],
               }
             : data,
-          lastParagraphId:
-            data.paragraphs.length > 0
-              ? data.paragraphs[data.paragraphs.length - 1].id
-              : 0,
-          hasMore: data.paragraphs.length === 20,
+          lastParagraphId,
+          hasMore,
           loadingMore: false,
         }));
       }
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Невядомая памылка';
       set({
-        error: errorMessage,
+        error: errorMessage(err),
         loading: false,
         loadingMore: false,
       });
     }
   },
 
+  // Перачытвае ўжо загружаныя абзацы (напр. каб падцягнуць новыя кастомныя словы)
   reloadDocument: async (documentId: string) => {
     const { documentData, lastParagraphId } = get();
-    if (!documentData || lastParagraphId === 0) {
-      return;
-    }
+    if (!documentData || lastParagraphId === 0) return;
 
-    // Знаходзім максімальны ID параграфа
-    const maxParagraphId = Math.max(
-      ...documentData.paragraphs.map((p: { id: number }) => p.id),
+    const take = Math.max(
+      ...documentData.paragraphs.map(p => p.id),
       lastParagraphId
     );
-
     const data = await serviceLocator.documentService.fetchDocument(
       documentId,
       0,
-      maxParagraphId
+      take
     );
 
-    const reloadedParagraphs = data.paragraphs;
-
-    set((state: DocumentState) => ({
+    set(state => ({
       documentData: state.documentData
-        ? {
-            ...state.documentData,
-            header: state.documentData.header,
-            paragraphs: reloadedParagraphs,
-          }
+        ? { ...state.documentData, paragraphs: data.paragraphs }
         : null,
     }));
   },
@@ -209,9 +197,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       const documents = await serviceLocator.documentService.fetchDocuments();
       set({ documentsList: documents, loading: false });
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Невядомая памылка';
-      set({ error: errorMessage, loading: false });
+      set({ error: errorMessage(err), loading: false });
     }
   },
 
@@ -219,14 +205,13 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     try {
       const updatedHeader =
         await serviceLocator.documentService.refreshDocument(documentId);
-      set((state: DocumentState) => ({
-        documentsList: state.documentsList.map((doc: DocumentHeader) =>
+      set(state => ({
+        documentsList: state.documentsList.map(doc =>
           doc.n === documentId ? updatedHeader : doc
         ),
       }));
     } catch (err) {
       console.error('Failed to refresh document:', err);
-      // Optionally handle error in UI
     }
   },
 
@@ -237,69 +222,72 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         await serviceLocator.documentService.refreshDocumentsList();
       set({ documentsList: documents, loading: false });
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Невядомая памылка';
-      set({ error: errorMessage, loading: false });
+      set({ error: errorMessage(err), loading: false });
     }
   },
 
-  updateDocument: (
-    updater: (prev: DocumentData | null) => DocumentData | null
-  ) => {
-    set((state: DocumentState) => ({
-      documentData: updater(state.documentData),
-    }));
-  },
+  updateSentenceItem: (word, patch) =>
+    set(state => {
+      const { documentData } = state;
+      if (!documentData) return {};
 
-  clearDocument: () => {
+      let changed = false;
+      const paragraphs = documentData.paragraphs.map(paragraph => {
+        if (paragraph.id !== word.paragraphId) return paragraph;
+        return {
+          ...paragraph,
+          sentences: paragraph.sentences.map(sentence => {
+            if (sentence.id !== word.sentenceId) return sentence;
+            const item = sentence.sentenceItems[word.wordIndex];
+            if (!item) return sentence;
+
+            changed = true;
+            const sentenceItems = [...sentence.sentenceItems];
+            sentenceItems[word.wordIndex] = patch(item);
+            return { ...sentence, sentenceItems };
+          }),
+        };
+      });
+
+      return changed ? { documentData: { ...documentData, paragraphs } } : {};
+    }),
+
+  clearDocument: () =>
     set({
       documentData: null,
       error: null,
       hasMore: true,
       lastParagraphId: 0,
-    });
-  },
+    }),
 
   setError: (error: string | null) => set({ error }),
 
-  // Structural Editing Implementation
+  // Рэдагаваньне структуры
 
   undo: () => {
     const { history, historyIndex, originalDocumentData } = get();
 
     if (historyIndex > 0) {
-      // Restore the previous state from history
-      const prev = history[historyIndex - 1];
       set({
-        documentData: prev.documentData,
+        documentData: history[historyIndex - 1],
         historyIndex: historyIndex - 1,
       });
-    } else if (historyIndex === 0) {
-      // Restore the original state
-      if (originalDocumentData) {
-        set({
-          documentData: JSON.parse(JSON.stringify(originalDocumentData)),
-          historyIndex: -1,
-        });
-      }
+    } else if (historyIndex === 0 && originalDocumentData) {
+      set({
+        documentData: structuredClone(originalDocumentData),
+        historyIndex: -1,
+      });
     }
     useUIStore.getState().clearSelectedWord();
   },
 
   redo: () => {
-    // To support redo, we need to keep the "future" in the history array, just move the index.
-    // When new action happens, we slice the history.
-
     const { history, historyIndex } = get();
     if (historyIndex < history.length - 1) {
-      const nextIndex = historyIndex + 1;
-      if (nextIndex < history.length) {
-        const nextState = history[nextIndex];
-        set({
-          documentData: nextState.documentData,
-          historyIndex: nextIndex,
-        });
-      }
+      set({
+        documentData: history[historyIndex + 1],
+        historyIndex: historyIndex + 1,
+      });
     }
     useUIStore.getState().clearSelectedWord();
   },
@@ -308,7 +296,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     const { originalDocumentData } = get();
     if (originalDocumentData) {
       set({
-        documentData: JSON.parse(JSON.stringify(originalDocumentData)),
+        documentData: structuredClone(originalDocumentData),
         history: [],
         historyIndex: -1,
       });
@@ -330,202 +318,34 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
         operations
       );
 
-      // Merge edited paragraphs into current data
-      const newParagraphs = [...documentData.paragraphs];
-
-      for (const editedP of response.editedParagraphs) {
-        const index = newParagraphs.findIndex(p => p.id === editedP.id);
-        if (index !== -1) {
-          newParagraphs[index] = editedP;
-        } else {
+      // Замяняем адрэдагаваныя абзацы на вернутыя бэкендам (зь іх новымі stamp'амі)
+      const editedById = new Map(
+        response.editedParagraphs.map(paragraph => [paragraph.id, paragraph])
+      );
+      for (const edited of response.editedParagraphs) {
+        if (!documentData.paragraphs.some(p => p.id === edited.id)) {
           console.error(
-            `Received update for unknown paragraph ID: ${editedP.id}`
+            `Received update for unknown paragraph ID: ${edited.id}`
           );
         }
       }
 
       const newDocumentData = {
         ...documentData,
-        paragraphs: newParagraphs,
+        paragraphs: documentData.paragraphs.map(
+          paragraph => editedById.get(paragraph.id) ?? paragraph
+        ),
       };
 
       set({
         documentData: newDocumentData,
-        originalDocumentData: JSON.parse(JSON.stringify(newDocumentData)), // New baseline
+        originalDocumentData: structuredClone(newDocumentData),
         history: [],
         historyIndex: -1,
         loading: false,
       });
     } catch (err) {
-      set({
-        error: err instanceof Error ? err.message : 'Save failed',
-        loading: false,
-      });
-    }
-  },
-
-  // Helper for applying edits
-  _applyEdit: (editResult: EditResult, replaceHistory = false) => {
-    const { newDocumentData } = editResult;
-    const { history, historyIndex } = get();
-
-    // Slice history if we are in the middle
-    const newHistory = history.slice(0, historyIndex + 1);
-
-    if (replaceHistory && historyIndex >= 0) {
-      // Replace the current history entry
-      newHistory[historyIndex] = {
-        documentData: newDocumentData,
-      };
-
-      set({
-        documentData: newDocumentData,
-        history: newHistory,
-        // historyIndex stays same
-      });
-    } else {
-      // Push new state
-      newHistory.push({
-        documentData: newDocumentData,
-      });
-
-      set({
-        documentData: newDocumentData,
-        history: newHistory,
-        historyIndex: newHistory.length - 1,
-      });
-    }
-  },
-
-  addWord: (pId: number, sId: number, wIdx: number) => {
-    const { documentData } = get();
-    if (!documentData) return;
-    const result = StructureEditor.addWord(documentData, pId, sId, wIdx);
-    get()._applyEdit(result);
-  },
-
-  addPunctuation: (pId: number, sId: number, wIdx: number) => {
-    const { documentData } = get();
-    if (!documentData) return;
-    const result = StructureEditor.addPunctuation(documentData, pId, sId, wIdx);
-    get()._applyEdit(result);
-    get().snapshot();
-  },
-
-  addLineBreak: (pId: number, sId: number, wIdx: number) => {
-    const { documentData } = get();
-    if (!documentData) return;
-    const result = StructureEditor.addLineBreak(documentData, pId, sId, wIdx);
-    get()._applyEdit(result);
-    get().snapshot();
-  },
-
-  splitSentence: (pId: number, sId: number, splitIdx: number) => {
-    const { documentData } = get();
-    if (!documentData) return;
-    const result = StructureEditor.splitSentence(
-      documentData,
-      pId,
-      sId,
-      splitIdx
-    );
-    get()._applyEdit(result);
-  },
-
-  splitParagraph: (pId: number, sId: number) => {
-    const { documentData } = get();
-    if (!documentData) return;
-    const result = StructureEditor.splitParagraph(documentData, pId, sId);
-    get()._applyEdit(result);
-  },
-
-  joinSentence: (pId: number, sId: number) => {
-    const { documentData } = get();
-    if (!documentData) return;
-    const result = StructureEditor.joinSentence(documentData, pId, sId);
-    get()._applyEdit(result);
-  },
-
-  joinParagraph: (pId: number) => {
-    const { documentData } = get();
-    if (!documentData) return;
-    const result = StructureEditor.joinParagraph(documentData, pId);
-    get()._applyEdit(result);
-  },
-
-  deleteItem: (pId: number, sId: number, itemIdx: number) => {
-    const { documentData } = get();
-    if (!documentData) return;
-    const result = StructureEditor.deleteItem(documentData, pId, sId, itemIdx);
-    get()._applyEdit(result);
-  },
-
-  setGlue: (pId: number, sId: number, itemIdx: number, glueNext: boolean) => {
-    const { documentData } = get();
-    if (!documentData) return;
-    const result = StructureEditor.setGlue(
-      documentData,
-      pId,
-      sId,
-      itemIdx,
-      glueNext
-    );
-    get()._applyEdit(result);
-    get().snapshot();
-  },
-
-  updateItemText: (
-    pId: number,
-    sId: number,
-    itemIdx: number,
-    text: string,
-    replaceHistory = false
-  ) => {
-    const { documentData } = get();
-    if (!documentData) return;
-    const result = StructureEditor.updateItemText(
-      documentData,
-      pId,
-      sId,
-      itemIdx,
-      text
-    );
-    get()._applyEdit(result, replaceHistory);
-  },
-
-  snapshot: (replace = false) => {
-    const { history, historyIndex, documentData } = get();
-    if (!documentData) return;
-
-    // Slice history if we are in the middle
-    const newHistory = history.slice(0, historyIndex + 1);
-
-    const newState = {
-      documentData: JSON.parse(JSON.stringify(documentData)),
-    };
-
-    // Deduplication: Check if the new state is identical to the previous one
-    if (historyIndex >= 0) {
-      const prevState = history[historyIndex];
-      const isIdentical =
-        JSON.stringify(prevState.documentData) ===
-        JSON.stringify(newState.documentData);
-
-      if (isIdentical && !replace) {
-        // If states are identical and we are not forcing a replacement, skip snapshot
-        return;
-      }
-    }
-
-    if (replace && historyIndex >= 0) {
-      newHistory[historyIndex] = newState;
-      set({ history: newHistory });
-    } else {
-      newHistory.push(newState);
-      set({
-        history: newHistory,
-        historyIndex: newHistory.length - 1,
-      });
+      set({ error: errorMessage(err), loading: false });
     }
   },
 
@@ -533,104 +353,190 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     const { documentData } = get();
     if (documentData) {
       set({
-        originalDocumentData: JSON.parse(JSON.stringify(documentData)),
+        originalDocumentData: structuredClone(documentData),
         history: [],
         historyIndex: -1,
       });
     }
   },
 
+  // Здымак бягучага стану для undo перад разьметкай слова
+  snapshot: () => {
+    const { documentData } = get();
+    if (documentData) {
+      get()._edit(() => structuredClone(documentData));
+    }
+  },
+
   hasChanges: () => {
     const { documentData, originalDocumentData } = get();
     if (!documentData || !originalDocumentData) return false;
-    const ops = calculateOperations(originalDocumentData, documentData);
-    return ops.length > 0;
+    return calculateOperations(originalDocumentData, documentData).length > 0;
+  },
+
+  addWord: (paragraphId, sentenceId, wordIndex) =>
+    get()._edit(data =>
+      StructureEditor.addWord(data, paragraphId, sentenceId, wordIndex)
+    ),
+
+  addPunctuation: (paragraphId, sentenceId, wordIndex) =>
+    get()._edit(data =>
+      StructureEditor.addPunctuation(data, paragraphId, sentenceId, wordIndex)
+    ),
+
+  addLineBreak: (paragraphId, sentenceId, wordIndex) =>
+    get()._edit(data =>
+      StructureEditor.addLineBreak(data, paragraphId, sentenceId, wordIndex)
+    ),
+
+  splitSentence: (paragraphId, sentenceId, splitIndex) =>
+    get()._edit(data =>
+      StructureEditor.splitSentence(data, paragraphId, sentenceId, splitIndex)
+    ),
+
+  splitParagraph: (paragraphId, sentenceId) =>
+    get()._edit(data =>
+      StructureEditor.splitParagraph(data, paragraphId, sentenceId)
+    ),
+
+  joinSentence: (paragraphId, sentenceId) =>
+    get()._edit(data =>
+      StructureEditor.joinSentence(data, paragraphId, sentenceId)
+    ),
+
+  joinParagraph: paragraphId =>
+    get()._edit(data => StructureEditor.joinParagraph(data, paragraphId)),
+
+  deleteItem: (paragraphId, sentenceId, itemIndex) =>
+    get()._edit(data =>
+      StructureEditor.deleteItem(data, paragraphId, sentenceId, itemIndex)
+    ),
+
+  setGlue: (paragraphId, sentenceId, itemIndex, glueNext) =>
+    get()._edit(data =>
+      StructureEditor.setGlue(
+        data,
+        paragraphId,
+        sentenceId,
+        itemIndex,
+        glueNext
+      )
+    ),
+
+  updateItemText: (
+    paragraphId,
+    sentenceId,
+    itemIndex,
+    text,
+    replaceHistory = false
+  ) =>
+    get()._edit(
+      data =>
+        StructureEditor.updateItemText(
+          data,
+          paragraphId,
+          sentenceId,
+          itemIndex,
+          text
+        ),
+      replaceHistory
+    ),
+
+  // Ужывае рэдагаваньне і кладзе новы стан у гісторыю.
+  // replaceHistory замяняе апошні запіс замест новага (набор тэксту ў толькі што дададзеным слове).
+  _edit: (editor, replaceHistory = false) => {
+    const { documentData, history, historyIndex } = get();
+    if (!documentData) return;
+
+    const newDocumentData = editor(documentData);
+    // Пасьля undo новае рэдагаваньне абразае «будучыню»
+    const newHistory = history.slice(0, historyIndex + 1);
+
+    if (replaceHistory && historyIndex >= 0) {
+      newHistory[historyIndex] = newDocumentData;
+      set({ documentData: newDocumentData, history: newHistory });
+    } else {
+      newHistory.push(newDocumentData);
+      set({
+        documentData: newDocumentData,
+        history: newHistory,
+        historyIndex: newHistory.length - 1,
+      });
+    }
   },
 }));
 
+// Дыф абзацаў па concurrencyStamp: што стварыць, што абнавіць, што выдаліць.
+// paragraphId у апэрацыі — гэта пазыцыя ў дакумэнце, які будуецца бэкендам.
 function calculateOperations(
   original: DocumentData,
   current: DocumentData
 ): ParagraphOperation[] {
   const operations: ParagraphOperation[] = [];
 
-  // Map original paragraphs by concurrencyStamp for quick lookup
-  const originalMap = new Map<string, number>();
+  const originalIndexByStamp = new Map<string, number>();
   original.paragraphs.forEach((p, index) =>
-    originalMap.set(p.concurrencyStamp, index)
+    originalIndexByStamp.set(p.concurrencyStamp, index)
   );
 
-  let virtualIndex = 0; // The index in 'original' we are currently matching against
+  // Пазыцыя ў `original`, зь якой шукаем супадзеньні далей
+  let virtualIndex = 0;
 
   for (let i = 0; i < current.paragraphs.length; i++) {
     const currentP = current.paragraphs[i];
-    const origIdx = originalMap.get(currentP.concurrencyStamp);
+    const origIdx = originalIndexByStamp.get(currentP.concurrencyStamp);
 
-    // Check if we found a matching paragraph in the remaining original paragraphs
-    if (origIdx !== undefined && origIdx >= virtualIndex) {
-      // We found a match (or a move forward).
-      // Any paragraphs between virtualIndex and origIdx were skipped/deleted.
-
-      // Generate Deletes for skipped paragraphs
-      for (let k = virtualIndex; k < origIdx; k++) {
-        const pToDelete = original.paragraphs[k];
-        operations.push({
-          paragraphId: i + 1, // The deletion happens at the current build position
-          operationType: OperationType.Delete,
-          replacementSentences: null,
-          concurrencyStamp: pToDelete.concurrencyStamp,
-        });
-      }
-
-      // Now we process the matched paragraph
-      const originalP = original.paragraphs[origIdx];
-      const originalContent = JSON.stringify(
-        originalP.sentences.map((s: Sentence) =>
-          s.sentenceItems.map((si: SentenceItem) => si.linguisticItem)
-        )
-      );
-      const currentContent = JSON.stringify(
-        currentP.sentences.map((s: Sentence) =>
-          s.sentenceItems.map((si: SentenceItem) => si.linguisticItem)
-        )
-      );
-
-      if (originalContent !== currentContent) {
-        operations.push({
-          paragraphId: i + 1,
-          operationType: OperationType.Update,
-          replacementSentences: currentP.sentences.map((s: Sentence) =>
-            s.sentenceItems.map((si: SentenceItem) => si.linguisticItem)
-          ),
-          concurrencyStamp: originalP.concurrencyStamp,
-        });
-      }
-
-      // Advance virtualIndex past the matched paragraph
-      virtualIndex = origIdx + 1;
-    } else {
-      // Not found in remaining originals -> Treat as Create
+    if (origIdx === undefined || origIdx < virtualIndex) {
+      // Няма ў астатку арыгінала — новы абзац
       operations.push({
         paragraphId: i + 1,
         operationType: OperationType.Create,
-        replacementSentences: currentP.sentences.map((s: Sentence) =>
-          s.sentenceItems.map((si: SentenceItem) => si.linguisticItem)
-        ),
+        replacementSentences: toSentenceItems(currentP.sentences),
         concurrencyStamp: null,
       });
+      continue;
     }
+
+    // Усё, што прапушчана паміж virtualIndex і origIdx, было выдалена
+    for (let k = virtualIndex; k < origIdx; k++) {
+      operations.push({
+        paragraphId: i + 1,
+        operationType: OperationType.Delete,
+        replacementSentences: null,
+        concurrencyStamp: original.paragraphs[k].concurrencyStamp,
+      });
+    }
+
+    const originalP = original.paragraphs[origIdx];
+    const originalContent = JSON.stringify(toSentenceItems(originalP.sentences));
+    const currentContent = JSON.stringify(toSentenceItems(currentP.sentences));
+
+    if (originalContent !== currentContent) {
+      operations.push({
+        paragraphId: i + 1,
+        operationType: OperationType.Update,
+        replacementSentences: toSentenceItems(currentP.sentences),
+        concurrencyStamp: originalP.concurrencyStamp,
+      });
+    }
+
+    virtualIndex = origIdx + 1;
   }
 
-  // Handle trailing deletes (any original paragraphs not reached)
+  // Абзацы ў хвасьце арыгінала, да якіх мы не дайшлі
   for (let k = virtualIndex; k < original.paragraphs.length; k++) {
-    const pToDelete = original.paragraphs[k];
     operations.push({
-      paragraphId: current.paragraphs.length + 1, // Deleting from the end
+      paragraphId: current.paragraphs.length + 1,
       operationType: OperationType.Delete,
       replacementSentences: null,
-      concurrencyStamp: pToDelete.concurrencyStamp,
+      concurrencyStamp: original.paragraphs[k].concurrencyStamp,
     });
   }
 
   return operations;
 }
+
+const toSentenceItems = (sentences: Sentence[]) =>
+  sentences.map(sentence =>
+    sentence.sentenceItems.map(item => item.linguisticItem)
+  );
