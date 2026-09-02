@@ -1,5 +1,8 @@
 import { useRef, useEffect } from 'react';
-import { LinguisticItem as LinguisticItemType, SentenceItemType } from '../types';
+import {
+  LinguisticItem as LinguisticItemType,
+  SentenceItemType,
+} from '../types';
 import { useDocumentStore } from '../store';
 import { useUIStore } from '../uiStore';
 import { HoverMenu } from './HoverMenu';
@@ -100,9 +103,7 @@ export function LinguisticItem({
         }`}
         title={title}
         onClick={
-          isWord
-            ? () => onWordClick(paragraphId, sentenceId, index)
-            : undefined
+          isWord ? () => onWordClick(paragraphId, sentenceId, index) : undefined
         }
       >
         {item.text}

@@ -15,7 +15,9 @@ export function PageShell({
   children,
 }: PageShellProps) {
   return (
-    <div className={`min-h-screen bg-gray-50 ${fullHeight ? 'flex flex-col' : ''}`}>
+    <div
+      className={`min-h-screen bg-gray-50 ${fullHeight ? 'flex flex-col' : ''}`}
+    >
       <div
         className={`${width === 'wide' ? 'max-w-7xl' : 'max-w-4xl'} mx-auto px-2 sm:px-2 lg:px-4 pt-4 pb-8 w-full ${
           fullHeight ? 'flex-1 flex flex-col' : ''

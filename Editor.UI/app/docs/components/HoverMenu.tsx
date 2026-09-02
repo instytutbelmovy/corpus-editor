@@ -64,7 +64,10 @@ export function HoverMenu({
         ? 'flex'
         : 'hidden';
 
-  const renderPanel = (items: HoverMenuItem[] | undefined, position: string) => {
+  const renderPanel = (
+    items: HoverMenuItem[] | undefined,
+    position: string
+  ) => {
     if (!items?.length) return null;
     return (
       <div

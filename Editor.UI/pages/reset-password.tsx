@@ -44,7 +44,9 @@ export default function ResetPassword() {
     }
 
     if (password.length < MIN_PASSWORD_LENGTH) {
-      setError(`Пароль павінен быць ня менш за ${MIN_PASSWORD_LENGTH} сымбаляў`);
+      setError(
+        `Пароль павінен быць ня менш за ${MIN_PASSWORD_LENGTH} сымбаляў`
+      );
       return;
     }
 

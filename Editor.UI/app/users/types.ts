@@ -13,9 +13,4 @@ export interface EditorUserCreateDto {
   role: Roles;
 }
 
-export interface FormErrors {
-  userName?: string;
-  email?: string;
-  role?: string;
-  submit?: string;
-}
+export type { FormErrors } from '@/app/types';

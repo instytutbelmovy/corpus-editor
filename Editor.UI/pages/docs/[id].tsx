@@ -13,12 +13,7 @@ import {
   EditingPanel,
   Toolbar,
 } from '@/app/docs/components';
-import {
-  Card,
-  ErrorScreen,
-  LoadingScreen,
-  PageShell,
-} from '@/app/components';
+import { Card, ErrorScreen, LoadingScreen, PageShell } from '@/app/components';
 import { useUIStore } from '@/app/docs/uiStore';
 import { useDocumentStore } from '@/app/docs/store';
 

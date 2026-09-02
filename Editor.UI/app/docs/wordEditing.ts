@@ -94,7 +94,10 @@ export function findNextUnresolvedWord(
 }
 
 // Нязьменнае абнаўленьне лінгвістычнага элемэнта слова
-function patchItem(word: WordRef, patch: (item: LinguisticItem) => LinguisticItem) {
+function patchItem(
+  word: WordRef,
+  patch: (item: LinguisticItem) => LinguisticItem
+) {
   useDocumentStore.getState().updateSentenceItem(word, sentenceItem => ({
     ...sentenceItem,
     linguisticItem: patch(sentenceItem.linguisticItem),

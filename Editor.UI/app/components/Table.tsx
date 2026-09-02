@@ -1,7 +1,9 @@
 import { ReactNode } from 'react';
 
 export function Table({ children }: { children: ReactNode }) {
-  return <table className="min-w-full divide-y divide-gray-200">{children}</table>;
+  return (
+    <table className="min-w-full divide-y divide-gray-200">{children}</table>
+  );
 }
 
 export function Thead({ children }: { children: ReactNode }) {
@@ -13,7 +15,9 @@ export function Thead({ children }: { children: ReactNode }) {
 }
 
 export function Tbody({ children }: { children: ReactNode }) {
-  return <tbody className="bg-white divide-y divide-gray-200">{children}</tbody>;
+  return (
+    <tbody className="bg-white divide-y divide-gray-200">{children}</tbody>
+  );
 }
 
 export function Th({ children }: { children?: ReactNode }) {
@@ -42,7 +46,9 @@ export function Tr({
   children: ReactNode;
 }) {
   return (
-    <tr className={`hover:bg-gray-50 transition-colors duration-150 ${className}`}>
+    <tr
+      className={`hover:bg-gray-50 transition-colors duration-150 ${className}`}
+    >
       {children}
     </tr>
   );

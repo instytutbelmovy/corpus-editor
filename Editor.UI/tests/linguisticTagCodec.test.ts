@@ -34,7 +34,10 @@ describe('parseTagCodes', () => {
     expect(gerund.verbTense).toBe('R');
     expect(gerund.verbMood).toBe('G');
 
-    const imperative = parseTagCodes({ paradigmTag: 'VPMN1..', formTag: 'I2S' });
+    const imperative = parseTagCodes({
+      paradigmTag: 'VPMN1..',
+      formTag: 'I2S',
+    });
     expect(imperative.verbTense).toBe('I');
     expect(imperative.person).toBe('2');
     expect(imperative.number).toBe('S');

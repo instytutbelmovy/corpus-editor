@@ -81,13 +81,7 @@ export const StructureEditor = {
     sentenceId: number,
     wordIndex: number
   ): DocumentData =>
-    insertItem(
-      data,
-      paragraphId,
-      sentenceId,
-      wordIndex,
-      SentenceItemType.Word
-    ),
+    insertItem(data, paragraphId, sentenceId, wordIndex, SentenceItemType.Word),
 
   addPunctuation: (
     data: DocumentData,

@@ -15,8 +15,11 @@ export function Toolbar() {
     loading,
   } = useDocumentStore();
 
-  const { isStructureEditingMode, setIsStructureEditingMode, isStructureTextEditing } =
-    useUIStore();
+  const {
+    isStructureEditingMode,
+    setIsStructureEditingMode,
+    isStructureTextEditing,
+  } = useUIStore();
 
   if (!isStructureEditingMode) {
     return null;
@@ -24,7 +27,10 @@ export function Toolbar() {
 
   // Пры праўцы тэксту здымаем фокус, каб onBlur пасьпеў зафіксаваць зьмену да undo/redo
   const withBlur = (action: () => void) => () => {
-    if (isStructureTextEditing && document.activeElement instanceof HTMLElement) {
+    if (
+      isStructureTextEditing &&
+      document.activeElement instanceof HTMLElement
+    ) {
       document.activeElement.blur();
     }
     action();

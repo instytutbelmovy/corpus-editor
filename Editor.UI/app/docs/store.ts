@@ -508,7 +508,9 @@ function calculateOperations(
     }
 
     const originalP = original.paragraphs[origIdx];
-    const originalContent = JSON.stringify(toSentenceItems(originalP.sentences));
+    const originalContent = JSON.stringify(
+      toSentenceItems(originalP.sentences)
+    );
     const currentContent = JSON.stringify(toSentenceItems(currentP.sentences));
 
     if (originalContent !== currentContent) {

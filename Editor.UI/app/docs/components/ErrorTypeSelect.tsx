@@ -30,7 +30,10 @@ export function ErrorTypeSelect({
         value={value}
         onChange={e => onChange(Number(e.target.value) as LinguisticErrorType)}
         disabled={isSaving}
-        className={inputClasses(false, 'disabled:bg-gray-100 disabled:text-gray-500')}
+        className={inputClasses(
+          false,
+          'disabled:bg-gray-100 disabled:text-gray-500'
+        )}
       >
         {Object.entries(ERROR_TYPE_LABELS).map(([errorType, label]) => (
           <option key={errorType} value={errorType}>

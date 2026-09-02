@@ -174,7 +174,9 @@ export function ParadigmOptions({
                                 key={key}
                                 categoryKey={key}
                                 value={categories[key]}
-                                isCommon={commonCategories[key] === categories[key]}
+                                isCommon={
+                                  commonCategories[key] === categories[key]
+                                }
                                 displayMode={displayMode}
                               />
                             ))}
