@@ -11,6 +11,7 @@ public static class Users
     {
         var group = builder.MapGroup("/api/users");
         group.MapGet("/", GetAllUsers).Admin();
+        group.MapGet("/{id}", GetUserById).Admin();
         group.MapPost("/", CreateUser).Validate<EditorUserCreateDto>().Admin();
         group.MapPut("/{id}", UpdateUser).Validate<EditorUserCreateDto>().Admin();
         group.MapPost("/{id}/invite", InviteUser).Validate<InviteUserRequest>().Admin();
@@ -18,6 +19,9 @@ public static class Users
 
     private static Task<IEnumerable<EditorUserDto>> GetAllUsers(IUserService userService)
         => userService.GetAllUsers();
+
+    private static Task<EditorUserDto> GetUserById([FromRoute] string id, IUserService userService)
+        => userService.GetUserById(id);
 
     private static Task<EditorUserDto> CreateUser([FromBody] EditorUserCreateDto request, IUserService userService)
         => userService.CreateUser(request);

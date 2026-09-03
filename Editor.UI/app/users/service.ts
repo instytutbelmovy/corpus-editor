@@ -1,52 +1,31 @@
-import { ApiClient } from '@/app/apiClient';
+import { ApiClient, unwrap } from '@/app/apiClient';
 import { EditorUserDto, EditorUserCreateDto } from './types';
 
 export class UserService {
-  private apiClient: ApiClient;
-
-  constructor(apiClient: ApiClient) {
-    this.apiClient = apiClient;
-  }
+  constructor(private readonly apiClient: ApiClient) {}
 
   async fetchUsers(): Promise<EditorUserDto[]> {
-    const response = await this.apiClient.get<EditorUserDto[]>('/users');
-    if (response.error) {
-      throw new Error(response.error);
-    }
-    return response.data!;
+    return unwrap(await this.apiClient.get<EditorUserDto[]>('/users'));
+  }
+
+  async fetchUser(id: string): Promise<EditorUserDto> {
+    return unwrap(await this.apiClient.get<EditorUserDto>(`/users/${id}`));
   }
 
   async createUser(userData: EditorUserCreateDto): Promise<EditorUserDto> {
-    const response = await this.apiClient.post<EditorUserDto>(
-      '/users',
-      userData
-    );
-    if (response.error) {
-      throw new Error(response.error);
-    }
-    return response.data!;
+    return unwrap(await this.apiClient.post<EditorUserDto>('/users', userData));
   }
 
   async updateUser(
     id: string,
     userData: EditorUserCreateDto
   ): Promise<EditorUserDto> {
-    const response = await this.apiClient.put<EditorUserDto>(
-      `/users/${id}`,
-      userData
+    return unwrap(
+      await this.apiClient.put<EditorUserDto>(`/users/${id}`, userData)
     );
-    if (response.error) {
-      throw new Error(response.error);
-    }
-    return response.data!;
   }
 
   async inviteUser(userId: string): Promise<void> {
-    const response = await this.apiClient.post(`/users/${userId}/invite`, {
-      userId,
-    });
-    if (response.error) {
-      throw new Error(response.error);
-    }
+    unwrap(await this.apiClient.post(`/users/${userId}/invite`, { userId }));
   }
 }

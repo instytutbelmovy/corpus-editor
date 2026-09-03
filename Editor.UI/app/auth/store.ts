@@ -1,105 +1,70 @@
 import { create } from 'zustand';
-import { AuthService } from './service';
+import { serviceLocator } from '@/app/services/serviceLocator';
 import { AuthStorage } from './storage';
-import { User } from './types';
+import { AuthResponse, User } from './types';
 
 interface AuthState {
-  // Стан аўтэнтыфікацыі
   isAuthenticated: boolean;
+  // true, пакуль не вядома ні з кэшу, ні з сэрвэра, ці ўвайшоў карыстальнік
   isLoading: boolean;
   user: User | null;
+  // true пасьля яўнага выхаду (кнопка "Выйсьці") — аднаразовы сыгнал для _app.tsx, каб не дадаваць returnTo да /sign-in, у адрозьненьне ад страты сэсіі (401)
+  explicitSignOut: boolean;
 
-  // Сэрвіс
-  authService: AuthService | null;
-
-  // Дзеяньні
-  setAuthService: (service: AuthService) => void;
   signIn: (
     email: string,
     password: string,
     turnstileToken?: string | null
-  ) => Promise<{ success: boolean; message?: string }>;
+  ) => Promise<AuthResponse>;
   signOut: () => Promise<void>;
   checkAuthStatus: () => Promise<boolean>;
-  setAuthenticated: (authenticated: boolean) => void;
-  setUser: (user: User | null) => void;
-  setLoading: (loading: boolean) => void;
+  // Аптымістычна лічым увайшоўшым па лакальным кэшы, пакуль ідзе праверка на сэрвэры
+  hydrateFromCache: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  // Пачатковы стан
+export const useAuthStore = create<AuthState>(set => ({
   isAuthenticated: false,
   isLoading: true,
   user: null,
-  authService: null,
-
-  // Дзеяньні
-  setAuthService: service => set({ authService: service }),
+  explicitSignOut: false,
 
   signIn: async (email, password, turnstileToken) => {
-    const { authService } = get();
-    if (!authService) {
-      return { success: false, message: 'Сэрвіс не ініцыялізаваны' };
-    }
-
-    const result = await authService.signIn(email, password, turnstileToken);
+    const result = await serviceLocator.authService.signIn(
+      email,
+      password,
+      turnstileToken
+    );
     if (result.success) {
-      const user = AuthStorage.get();
-      set({
-        isAuthenticated: true,
-        user: user || null,
-      });
+      set({ isAuthenticated: true, user: AuthStorage.get() });
     }
     return result;
   },
 
   signOut: async () => {
-    const { authService } = get();
-    if (authService) {
-      await authService.signOut();
-    }
-    set({
-      isAuthenticated: false,
-      user: null,
-    });
+    await serviceLocator.authService.signOut();
+    set({ isAuthenticated: false, user: null, explicitSignOut: true });
   },
 
   checkAuthStatus: async () => {
-    const { authService } = get();
-    if (!authService) {
-      set({ isAuthenticated: false, isLoading: false });
-      return false;
-    }
-
     try {
-      const isAuth = await authService.checkAuthStatus();
-      if (isAuth) {
-        const user = AuthStorage.get();
-        set({
-          isAuthenticated: true,
-          user: user || null,
-          isLoading: false,
-        });
-      } else {
-        set({
-          isAuthenticated: false,
-          user: null,
-          isLoading: false,
-        });
-      }
+      const isAuth = await serviceLocator.authService.checkAuthStatus();
+      set({
+        isAuthenticated: isAuth,
+        user: isAuth ? AuthStorage.get() : null,
+        isLoading: false,
+      });
       return isAuth;
     } catch (error) {
       console.error('Auth check failed:', error);
-      set({
-        isAuthenticated: false,
-        user: null,
-        isLoading: false,
-      });
+      set({ isAuthenticated: false, user: null, isLoading: false });
       return false;
     }
   },
 
-  setAuthenticated: authenticated => set({ isAuthenticated: authenticated }),
-  setUser: user => set({ user }),
-  setLoading: loading => set({ isLoading: loading }),
+  hydrateFromCache: () => {
+    const user = AuthStorage.get();
+    if (user) {
+      set({ isAuthenticated: true, user, isLoading: false });
+    }
+  },
 }));

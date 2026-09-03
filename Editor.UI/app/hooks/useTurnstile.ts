@@ -39,9 +39,7 @@ export const useTurnstile = (action: string) => {
     };
   }, [action]);
 
-  const getToken = useCallback(async (): Promise<string | null> => {
-    return tokenRef.current;
-  }, []);
+  const getToken = useCallback((): string | null => tokenRef.current, []);
 
   // Токены Turnstile аднаразовыя — скідаем віджэт, каб атрымаць новы токен
   // перад наступнай спробай пасьля няўдалай адпраўкі формы.

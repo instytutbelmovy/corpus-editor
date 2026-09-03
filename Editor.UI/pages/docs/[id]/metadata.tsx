@@ -1,116 +1,54 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { useAuth } from '../../_app';
 import { DocumentForm } from '@/app/docs/components';
 import { MetadataFormData, FormErrors } from '@/app/docs/formTypes';
+import { DocumentHeader } from '@/app/docs/types';
+import { LoadingScreen, ErrorScreen } from '@/app/components';
+import { serviceLocator } from '@/app/services/serviceLocator';
+import { errorMessage } from '@/app/utils/errors';
 
 export default function EditMetadata() {
-  const { documentService } = useAuth();
   const router = useRouter();
   const { id } = router.query;
-  const [loading, setLoading] = useState(true);
+  const [header, setHeader] = useState<DocumentHeader | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
-  const [documentInfo, setDocumentInfo] = useState<{
-    n: number;
-    percentCompletion: number;
-  } | null>(null);
-  const [initialData, setInitialData] = useState<MetadataFormData>({
-    title: '',
-    url: '',
-    publicationDate: undefined,
-    type: 'пісьмовы',
-    style: undefined,
-    corpus: undefined,
-  });
 
   useEffect(() => {
-    const fetchDocumentData = async () => {
-      if (!documentService) {
-        setErrors({ fetch: 'Сэрвіс не ініцыялізаваны' });
-        setLoading(false);
-        return;
-      }
+    if (typeof id !== 'string') return;
 
-      try {
-        const data = await documentService.fetchDocumentMetadata(Number(id));
-        setDocumentInfo({
-          n: data.n,
-          percentCompletion: data.percentCompletion,
-        });
-        setInitialData(data);
-      } catch (error) {
-        setErrors({
-          fetch: error instanceof Error ? error.message : 'Невядомая памылка',
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (id) {
-      fetchDocumentData();
-    }
-  }, [id, documentService]);
+    serviceLocator.documentService
+      .fetchDocumentMetadata(Number(id))
+      .then(setHeader)
+      .catch(err => setLoadError(errorMessage(err)));
+  }, [id]);
 
   const handleSubmit = async (data: MetadataFormData) => {
-    if (!documentService) {
-      setErrors({ submit: 'Сэрвіс не ініцыялізаваны' });
-      return;
-    }
-
     setSaving(true);
-
     try {
-      await documentService.updateMetadata(Number(id), data);
-
+      await serviceLocator.documentService.updateMetadata(Number(id), data);
       router.push('/');
-    } catch (error) {
-      setErrors({
-        submit: error instanceof Error ? error.message : 'Невядомая памылка',
-      });
+    } catch (err) {
+      setErrors({ submit: errorMessage(err) });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleCancel = () => {
-    router.push('/');
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Загрузка дакумэнта...</p>
-        </div>
-      </div>
-    );
+  if (loadError) {
+    return <ErrorScreen error={loadError} title="Памылка" />;
   }
 
-  if (errors.fetch) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-600 text-lg font-medium mb-2">Памылка</div>
-          <p className="text-gray-600 mb-4">{errors.fetch}</p>
-          <button
-            onClick={() => router.push('/')}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-          >
-            Вярнуцца на галоўную
-          </button>
-        </div>
-      </div>
-    );
+  if (!header) {
+    return <LoadingScreen message="Загрузка дакумэнта..." />;
   }
 
   return (
     <DocumentForm
-      initialData={initialData}
+      initialData={header}
       onSubmit={handleSubmit}
-      onCancel={handleCancel}
+      onCancel={() => router.push('/')}
       isSubmitting={saving}
       errors={errors}
       showFileUpload={false}
@@ -118,7 +56,7 @@ export default function EditMetadata() {
       submitButtonText="Захаваць зьмены"
       loadingButtonText="Захаваньне..."
       title="Рэдагаваць мэтаданыя"
-      subtitle={`Дакумэнт #${documentInfo?.n} • Прагрэс: ${documentInfo?.percentCompletion}%`}
+      subtitle={`Дакумэнт #${header.n} • Прагрэс: ${header.percentCompletion}%`}
     />
   );
 }

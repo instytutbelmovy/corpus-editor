@@ -8,46 +8,35 @@ interface UIState {
   // Выбранае слова
   selectedWord: SelectedWord | null;
 
-  // Налады адлюстраваньня
+  // Налады адлюстраваньня (захоўваюцца ў localStorage)
   displayMode: DisplayMode;
 
-  // Стан рэдагаваньня
-  isEditingText: boolean;
+  // Ці ідзе праўка тэксту слова проста ў тэксьце (рэжым рэдагаваньня структуры)
+  isStructureTextEditing: boolean;
+
+  // Флагі захаваньня палёў панэлі рэдагаваньня.
+  // Камэнтар — выключэньне: яго флаг вяртае useDebouncedSave, каб трымацца слова
   isSavingText: boolean;
   isSavingManual: boolean;
-  isSavingComment: boolean;
   isSavingError: boolean;
-  showManualInput: boolean;
 
-  // Памылкі
+  // Памылка захаваньня разьметкі
   saveError: string | null;
 
-  // Чакаючыя захаваньні
+  // Словы, чые правкі яшчэ ляцяць на сэрвэр (ключ wordKey)
   pendingSaves: Set<string>;
 
-  // Дзеяньні для выбару слоў
   setSelectedWord: (word: SelectedWord | null) => void;
   clearSelectedWord: () => void;
-
-  // Дзеяньні для налад
-  setDisplayMode: (mode: 'full' | 'compact') => void;
-
-  // Дзеяньні для рэдагаваньня
-  setIsEditingText: (editing: boolean) => void;
+  setDisplayMode: (mode: DisplayMode) => void;
+  setIsStructureTextEditing: (editing: boolean) => void;
   setIsSavingText: (saving: boolean) => void;
   setIsSavingManual: (saving: boolean) => void;
-  setIsSavingComment: (saving: boolean) => void;
   setIsSavingError: (saving: boolean) => void;
-  setShowManualInput: (show: boolean) => void;
-
-  // Дзеяньні для памылак
   setSaveError: (error: string | null) => void;
   clearSaveError: () => void;
-
-  // Дзеяньні для чакаючых захаваньняў
   addPendingSave: (key: string) => void;
   removePendingSave: (key: string) => void;
-  clearPendingSaves: () => void;
 
   // Рэжым рэдагаваньня структуры
   isStructureEditingMode: boolean;
@@ -57,57 +46,41 @@ interface UIState {
 export const useUIStore = create<UIState>()(
   persist(
     set => ({
-      // Пачатковы стан
       selectedWord: null,
       displayMode: 'compact',
-      isEditingText: false,
+      isStructureTextEditing: false,
       isSavingText: false,
       isSavingManual: false,
-      isSavingComment: false,
       isSavingError: false,
-      showManualInput: false,
       saveError: null,
       pendingSaves: new Set(),
+      isStructureEditingMode: false,
 
-      // Дзеяньні для выбару слоў
       setSelectedWord: word => set({ selectedWord: word }),
       clearSelectedWord: () =>
-        set({ selectedWord: null, isEditingText: false }),
+        set({ selectedWord: null, isStructureTextEditing: false }),
 
-      // Дзеяньні для налад
       setDisplayMode: mode => set({ displayMode: mode }),
 
-      // Дзеяньні для рэдагаваньня
-      setIsEditingText: editing => set({ isEditingText: editing }),
+      setIsStructureTextEditing: editing =>
+        set({ isStructureTextEditing: editing }),
       setIsSavingText: saving => set({ isSavingText: saving }),
       setIsSavingManual: saving => set({ isSavingManual: saving }),
-      setIsSavingComment: saving => set({ isSavingComment: saving }),
       setIsSavingError: saving => set({ isSavingError: saving }),
-      setShowManualInput: show => set({ showManualInput: show }),
 
-      // Дзеяньні для памылак
       setSaveError: error => set({ saveError: error }),
       clearSaveError: () => set({ saveError: null }),
 
-      // Дзеяньні для чакаючых захаваньняў
-      addPendingSave: key => {
-        set(state => ({
-          pendingSaves: new Set([...state.pendingSaves, key]),
-        }));
-      },
+      addPendingSave: key =>
+        set(state => ({ pendingSaves: new Set(state.pendingSaves).add(key) })),
 
-      removePendingSave: key => {
+      removePendingSave: key =>
         set(state => {
-          const newSet = new Set(state.pendingSaves);
-          newSet.delete(key);
-          return { pendingSaves: newSet };
-        });
-      },
+          const pendingSaves = new Set(state.pendingSaves);
+          pendingSaves.delete(key);
+          return { pendingSaves };
+        }),
 
-      clearPendingSaves: () => set({ pendingSaves: new Set() }),
-
-      // Рэжым рэдагаваньня структуры
-      isStructureEditingMode: false,
       setIsStructureEditingMode: mode => set({ isStructureEditingMode: mode }),
     }),
     {

@@ -1,57 +1,18 @@
 import { useUIStore } from '../uiStore';
-import { useDocumentStore } from '../store';
-import { LinguisticItem, SelectedWord } from '../types';
+import { selectWord } from '../wordEditing';
 
 export function useWordSelection() {
-  const {
-    selectedWord,
-    setSelectedWord,
-    clearSelectedWord,
-    saveError,
-    setSaveError,
-    clearSaveError,
-    pendingSaves,
-  } = useUIStore();
-
-  const selectWord = (
-    item: LinguisticItem,
-    paragraphId: number,
-    sentenceId: number,
-    wordIndex: number
-  ) => {
-    const { documentData } = useDocumentStore.getState();
-    if (!documentData) return;
-
-    // Знаходзім параграф і сказ
-    const paragraph = documentData.paragraphs.find(p => p.id === paragraphId);
-    if (!paragraph) return;
-
-    const sentence = paragraph.sentences.find(s => s.id === sentenceId);
-    if (!sentence) return;
-
-    const sentenceItem = sentence.sentenceItems[wordIndex];
-    if (!sentenceItem) return;
-
-    const newSelectedWord: SelectedWord = {
-      paragraphId,
-      paragraphStamp: paragraph.concurrencyStamp,
-      sentenceId,
-      sentenceStamp: sentence.concurrencyStamp,
-      wordIndex,
-      item,
-      options: sentenceItem.options,
-    };
-
-    setSelectedWord(newSelectedWord);
-  };
+  const selectedWord = useUIStore(state => state.selectedWord);
+  const clearSelectedWord = useUIStore(state => state.clearSelectedWord);
+  const saveError = useUIStore(state => state.saveError);
+  const clearSaveError = useUIStore(state => state.clearSaveError);
 
   return {
     selectedWord,
+    // Не падпісваемся на стор дзеля выбару: гэта простая функцыя з wordEditing
     selectWord,
     clearSelectedWord,
     saveError,
-    setSaveError,
     clearSaveError,
-    pendingSaves,
   };
 }

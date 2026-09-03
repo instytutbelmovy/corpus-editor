@@ -1,12 +1,13 @@
+import { ApiClient, unwrap } from '@/app/apiClient';
 import {
   DocumentData,
-  ParadigmFormId,
-  GrammarInfo,
-  DocumentHeader,
-  ParagraphOperation,
   DocumentEditResponse,
+  DocumentHeader,
+  GrammarInfo,
+  ParadigmFormId,
+  ParagraphOperation,
+  WordRef,
 } from './types';
-import { ApiClient } from '@/app/apiClient';
 
 interface CreateDocumentData {
   n: number;
@@ -19,22 +20,51 @@ interface CreateDocumentData {
   file: File;
 }
 
-export class DocumentService {
-  private apiClient: ApiClient;
+export interface DocumentLookups {
+  types: string[];
+  styles: string[];
+  corpora: string[];
+}
 
-  constructor(apiClient: ApiClient) {
-    this.apiClient = apiClient;
-  }
+const byN = (a: DocumentHeader, b: DocumentHeader) => a.n - b.n;
+const unique = (values: string[]) => Array.from(new Set(values));
+
+export class DocumentService {
+  constructor(private readonly apiClient: ApiClient) {}
 
   async fetchDocuments(): Promise<DocumentHeader[]> {
-    const response =
-      await this.apiClient.get<DocumentHeader[]>('/registry-files');
-    if (response.error) {
-      throw new Error(response.error);
-    }
-    const data = response.data!;
-    data.sort((a: DocumentHeader, b: DocumentHeader) => a.n - b.n);
-    return data;
+    return unwrap(
+      await this.apiClient.get<DocumentHeader[]>('/registry-files')
+    ).sort(byN);
+  }
+
+  async refreshDocumentsList(): Promise<DocumentHeader[]> {
+    return unwrap(
+      await this.apiClient.post<DocumentHeader[]>('/registry-files/refresh', {})
+    ).sort(byN);
+  }
+
+  async refreshDocument(documentId: number): Promise<DocumentHeader> {
+    return unwrap(
+      await this.apiClient.post<DocumentHeader>(
+        `/registry-files/${documentId}/refresh`,
+        {}
+      )
+    );
+  }
+
+  // Даведнікі для формы дакумэнта
+  async fetchLookups(): Promise<DocumentLookups> {
+    const [types, styles, corpora] = await Promise.all([
+      this.apiClient.get<string[]>('/registry-files/types'),
+      this.apiClient.get<string[]>('/registry-files/styles'),
+      this.apiClient.get<string[]>('/registry-files/corpora'),
+    ]);
+    return {
+      types: unique(unwrap(types)),
+      styles: unique(unwrap(styles)),
+      corpora: unique(unwrap(corpora)),
+    };
   }
 
   async createDocument(documentData: CreateDocumentData): Promise<void> {
@@ -49,14 +79,7 @@ export class DocumentService {
     if (documentData.corpus) formData.append('corpus', documentData.corpus);
     formData.append('file', documentData.file);
 
-    const response = await this.apiClient.postFormData(
-      '/registry-files',
-      formData
-    );
-
-    if (response.error) {
-      throw new Error(response.error);
-    }
+    unwrap(await this.apiClient.postFormData('/registry-files', formData));
   }
 
   async fetchDocument(
@@ -64,23 +87,19 @@ export class DocumentService {
     skipUpToId: number = 0,
     take: number = 20
   ): Promise<DocumentData> {
-    const url = `/registry-files/${documentId}?skipUpToId=${skipUpToId}&take=${take}`;
-
-    const response = await this.apiClient.get<DocumentData>(url);
-    if (response.error) {
-      throw new Error(response.error);
-    }
-    return response.data!;
+    return unwrap(
+      await this.apiClient.get<DocumentData>(
+        `/registry-files/${documentId}?skipUpToId=${skipUpToId}&take=${take}`
+      )
+    );
   }
 
   async fetchDocumentMetadata(documentId: number): Promise<DocumentHeader> {
-    const response = await this.apiClient.get<DocumentHeader>(
-      `/registry-files/${documentId}/metadata`
+    return unwrap(
+      await this.apiClient.get<DocumentHeader>(
+        `/registry-files/${documentId}/metadata`
+      )
     );
-    if (response.error) {
-      throw new Error(response.error);
-    }
-    return response.data!;
   }
 
   async updateMetadata(
@@ -90,149 +109,92 @@ export class DocumentService {
       'n' | 'percentCompletion' | 'author' | 'language'
     >
   ): Promise<void> {
-    const response = await this.apiClient.put(
-      `/registry-files/${documentId}/metadata`,
-      metadata
+    unwrap(
+      await this.apiClient.put(
+        `/registry-files/${documentId}/metadata`,
+        metadata
+      )
     );
-
-    if (response.error) {
-      throw new Error(response.error);
-    }
-  }
-
-  async refreshDocument(documentId: number): Promise<DocumentHeader> {
-    const response = await this.apiClient.post<DocumentHeader>(
-      `/registry-files/${documentId}/refresh`,
-      {}
-    );
-
-    if (response.error) {
-      throw new Error(response.error);
-    }
-    return response.data!;
-  }
-
-  async refreshDocumentsList(): Promise<DocumentHeader[]> {
-    const response = await this.apiClient.post<DocumentHeader[]>(
-      '/registry-files/refresh',
-      {}
-    );
-
-    if (response.error) {
-      throw new Error(response.error);
-    }
-    const data = response.data!;
-    data.sort((a: DocumentHeader, b: DocumentHeader) => a.n - b.n);
-    return data;
-  }
-
-  async saveParadigmFormId(
-    documentId: string,
-    paragraphId: number,
-    paragraphStamp: string,
-    sentenceId: number,
-    sentenceStamp: string,
-    wordIndex: number,
-    paradigmFormId: ParadigmFormId
-  ): Promise<void> {
-    const url = `/registry-files/${documentId}/${paragraphId}.${paragraphStamp}/${sentenceId}.${sentenceStamp}/${wordIndex}/paradigm-form-id`;
-
-    const response = await this.apiClient.put(url, paradigmFormId);
-
-    if (response.error) {
-      throw new Error(response.error);
-    }
-  }
-
-  async updateWordText(
-    documentId: string,
-    paragraphId: number,
-    paragraphStamp: string,
-    sentenceId: number,
-    sentenceStamp: string,
-    wordIndex: number,
-    text: string
-  ): Promise<GrammarInfo[]> {
-    const url = `/registry-files/${documentId}/${paragraphId}.${paragraphStamp}/${sentenceId}.${sentenceStamp}/${wordIndex}/text`;
-
-    const response = await this.apiClient.put<GrammarInfo[]>(url, text);
-
-    if (response.error) {
-      throw new Error(response.error);
-    }
-
-    return response.data!;
-  }
-
-  async saveLemmaTag(
-    documentId: string,
-    paragraphId: number,
-    paragraphStamp: string,
-    sentenceId: number,
-    sentenceStamp: string,
-    wordIndex: number,
-    lemma: string,
-    linguisticTag: string
-  ): Promise<void> {
-    const url = `/registry-files/${documentId}/${paragraphId}.${paragraphStamp}/${sentenceId}.${sentenceStamp}/${wordIndex}/lemma-tag`;
-
-    const response = await this.apiClient.put(url, { lemma, linguisticTag });
-
-    if (response.error) {
-      throw new Error(response.error);
-    }
-  }
-
-  async saveComment(
-    documentId: string,
-    paragraphId: number,
-    paragraphStamp: string,
-    sentenceId: number,
-    sentenceStamp: string,
-    wordIndex: number,
-    comment: string
-  ): Promise<void> {
-    const url = `/registry-files/${documentId}/${paragraphId}.${paragraphStamp}/${sentenceId}.${sentenceStamp}/${wordIndex}/comment`;
-
-    const response = await this.apiClient.put(url, comment);
-
-    if (response.error) {
-      throw new Error(response.error);
-    }
-  }
-
-  async saveErrorType(
-    documentId: string,
-    paragraphId: number,
-    paragraphStamp: string,
-    sentenceId: number,
-    sentenceStamp: string,
-    wordIndex: number,
-    errorType: number
-  ): Promise<void> {
-    const url = `/registry-files/${documentId}/${paragraphId}.${paragraphStamp}/${sentenceId}.${sentenceStamp}/${wordIndex}/error-type`;
-
-    const response = await this.apiClient.put(url, errorType);
-
-    if (response.error) {
-      throw new Error(response.error);
-    }
   }
 
   async saveDocument(
     documentId: number,
     operations: ParagraphOperation[]
   ): Promise<DocumentEditResponse> {
-    const url = `/registry-files/${documentId}/edit`;
-    const response = await this.apiClient.post<DocumentEditResponse>(url, {
-      operations,
-    });
+    return unwrap(
+      await this.apiClient.post<DocumentEditResponse>(
+        `/registry-files/${documentId}/edit`,
+        { operations }
+      )
+    );
+  }
 
-    if (response.error) {
-      throw new Error(response.error);
-    }
-    return response.data!;
+  // Разьметка асобнага слова: PUT на адрас слова з concurrency stamp'амі абзаца і сказа
+
+  async saveParadigmFormId(
+    documentId: string,
+    word: WordRef,
+    paradigmFormId: ParadigmFormId
+  ): Promise<void> {
+    unwrap(
+      await this.apiClient.put(
+        wordUrl(documentId, word, 'paradigm-form-id'),
+        paradigmFormId
+      )
+    );
+  }
+
+  async updateWordText(
+    documentId: string,
+    word: WordRef,
+    text: string
+  ): Promise<GrammarInfo[]> {
+    return unwrap(
+      await this.apiClient.put<GrammarInfo[]>(
+        wordUrl(documentId, word, 'text'),
+        text
+      )
+    );
+  }
+
+  async saveLemmaTag(
+    documentId: string,
+    word: WordRef,
+    lemma: string,
+    linguisticTag: string
+  ): Promise<void> {
+    unwrap(
+      await this.apiClient.put(wordUrl(documentId, word, 'lemma-tag'), {
+        lemma,
+        linguisticTag,
+      })
+    );
+  }
+
+  async saveComment(
+    documentId: string,
+    word: WordRef,
+    comment: string
+  ): Promise<void> {
+    unwrap(
+      await this.apiClient.put(wordUrl(documentId, word, 'comment'), comment)
+    );
+  }
+
+  async saveErrorType(
+    documentId: string,
+    word: WordRef,
+    errorType: number
+  ): Promise<void> {
+    unwrap(
+      await this.apiClient.put(
+        wordUrl(documentId, word, 'error-type'),
+        errorType
+      )
+    );
   }
 }
 
-// Экспарт класа, а не экземпляра
+function wordUrl(documentId: string, word: WordRef, suffix: string): string {
+  return `/registry-files/${documentId}/${word.paragraphId}.${word.paragraphStamp}/${word.sentenceId}.${word.sentenceStamp}/${word.wordIndex}/${suffix}`;
+}

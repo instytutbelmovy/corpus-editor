@@ -8,6 +8,7 @@ namespace Editor.Services.Users;
 public interface IUserService
 {
     Task<IEnumerable<EditorUserDto>> GetAllUsers();
+    Task<EditorUserDto> GetUserById(string id);
     Task<EditorUserDto> CreateUser(EditorUserCreateDto request);
     Task<EditorUserDto> UpdateUser(string id, EditorUserCreateDto request);
     Task InviteUser(string inviteeUserId, string inviterUserId);
@@ -28,6 +29,15 @@ public class UserService(
             user.Email!,
             user.Role
         ));
+    }
+
+    public async Task<EditorUserDto> GetUserById(string id)
+    {
+        var user = await userManager.FindByIdAsync(id);
+        if (user == null)
+            throw new NotFoundException("Карыстальнік ня знойдзены");
+
+        return new EditorUserDto(user.Id, user.UserName!, user.Email!, user.Role);
     }
 
     public async Task<EditorUserDto> CreateUser(EditorUserCreateDto request)

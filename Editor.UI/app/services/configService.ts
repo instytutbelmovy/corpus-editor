@@ -1,4 +1,4 @@
-import { ApiClient } from '@/app/apiClient';
+import { serviceLocator } from './serviceLocator';
 
 export interface FrontendConfig {
   turnstileSiteKey: string;
@@ -11,11 +11,40 @@ export interface FrontendConfig {
 // Ключ для захаваньня канфігу ў localStorage
 const CONFIG_STORAGE_KEY = 'editor-config';
 
+// Канфіг з проду як fallback: так імаверней заўважу, што нешта пайшло ня так
+const FALLBACK_CONFIG: FrontendConfig = {
+  turnstileSiteKey: '',
+  sentryDsn:
+    'https://659ec7317863b18f497a2ec253dad619@o4509997938638848.ingest.de.sentry.io/4509998009876560',
+  environment: 'production',
+  version: '0.0.42',
+  googleSignInEnabled: false,
+};
+
 class ConfigService {
   private config: FrontendConfig | null = null;
   private configPromise: Promise<FrontendConfig> | null = null;
 
-  // Функцыі для працы з localStorage
+  // Аддае кэшаваны канфіг адразу (каб не чакаць сэрвэр), але заўсёды запытвае свежы
+  // і перагружае старонку, калі ён зьмяніўся
+  async getConfig(): Promise<FrontendConfig> {
+    if (!this.configPromise) {
+      this.configPromise = this.loadConfig();
+    }
+
+    if (this.config) {
+      return this.config;
+    }
+
+    const cachedConfig = this.getConfigFromStorage();
+    if (cachedConfig) {
+      this.config = cachedConfig;
+      return cachedConfig;
+    }
+
+    return await this.configPromise;
+  }
+
   private getConfigFromStorage(): FrontendConfig | null {
     if (typeof window === 'undefined') return null;
 
@@ -23,8 +52,7 @@ class ConfigService {
       const stored = localStorage.getItem(CONFIG_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored) as FrontendConfig;
-        // Правяраем, ці ёсць усе неабходныя палі
-        if (parsed.turnstileSiteKey && parsed.sentryDsn) {
+        if (this.isConfigComplete(parsed)) {
           return parsed;
         }
       }
@@ -50,80 +78,43 @@ class ConfigService {
     );
   }
 
-  private configsAreDifferent(
-    config1: FrontendConfig,
-    config2: FrontendConfig
-  ): boolean {
+  // Вэрсія ня лічыцца дастатковаю прычынаю каб перагружаць старонку
+  private configsAreDifferent(a: FrontendConfig, b: FrontendConfig): boolean {
     return (
-      config1.turnstileSiteKey !== config2.turnstileSiteKey ||
-      config1.sentryDsn !== config2.sentryDsn ||
-      config1.environment !== config2.environment ||
-      config1.googleSignInEnabled !== config2.googleSignInEnabled
-      //|| config1.version !== config2.version // Вэрсія ня лічыцца дастатковаю прычынаю каб перагружаць старонку
+      a.turnstileSiteKey !== b.turnstileSiteKey ||
+      a.sentryDsn !== b.sentryDsn ||
+      a.environment !== b.environment ||
+      a.googleSignInEnabled !== b.googleSignInEnabled
     );
   }
 
-  async getConfig(apiClient: ApiClient): Promise<FrontendConfig> {
-    if (!this.configPromise) {
-      this.configPromise = this.loadConfig(apiClient);
-    }
-
-    if (this.config) {
-      return this.config;
-    }
-
-    const cachedConfig = this.getConfigFromStorage();
-    if (cachedConfig && this.isConfigComplete(cachedConfig)) {
-      this.config = cachedConfig;
-      return cachedConfig;
-    }
-
-    return await this.configPromise;
-  }
-
-  private async loadConfig(apiClient: ApiClient): Promise<FrontendConfig> {
+  private async loadConfig(): Promise<FrontendConfig> {
     try {
-      const response = await apiClient.get<FrontendConfig>('/auth/config');
+      const response =
+        await serviceLocator.apiClient.get<FrontendConfig>('/auth/config');
       if (!response.data) {
         throw new Error('Сэрвер не аддаў канфіг о_О');
       }
-
-      const reseivedConfig = {
-        turnstileSiteKey: response.data.turnstileSiteKey,
-        sentryDsn: response.data.sentryDsn,
-        environment: response.data.environment,
-        version: response.data.version,
-        googleSignInEnabled: response.data.googleSignInEnabled,
-      };
+      const receivedConfig = response.data;
 
       const cachedConfig = this.getConfigFromStorage();
-      this.setConfigToStorage(reseivedConfig);
+      this.setConfigToStorage(receivedConfig);
       if (
         cachedConfig &&
-        this.isConfigComplete(cachedConfig) &&
-        this.configsAreDifferent(cachedConfig, reseivedConfig)
+        this.configsAreDifferent(cachedConfig, receivedConfig)
       ) {
-        console.log('Канфіг змяніўся, захоўваем і перагружаем старонку');
-
-        // Перагружаем старонку бо мы ўжо збрахалі іншым кампанэнтам які насамрэч ёсьць канфіг
+        console.log('Канфіг зьмяніўся, захоўваем і перагружаем старонку');
+        // Перагружаем старонку, бо мы ўжо збрахалі іншым кампанэнтам, які насамрэч ёсьць канфіг
         if (typeof window !== 'undefined') {
           window.location.reload();
         }
       }
 
-      this.config = reseivedConfig;
-      return reseivedConfig;
+      this.config = receivedConfig;
+      return receivedConfig;
     } catch (error) {
       console.error('Памылка загрузкі канфігу:', error);
-      // Fallback да значэньняў па змаўчаньні, канфігурацыя з проду. Таму што так я імаверней пачну разьбірацца што пайло ня так
-      return {
-        turnstileSiteKey: '',
-        sentryDsn:
-          'https://659ec7317863b18f497a2ec253dad619@o4509997938638848.ingest.de.sentry.io/4509998009876560',
-        environment: 'production',
-        version: '0.0.42',
-        googleSignInEnabled: false,
-      };
+      return FALLBACK_CONFIG;
     }
   }
 }

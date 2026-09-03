@@ -1,111 +1,140 @@
 import { LinguisticTag } from './types';
 
-// Лінгвістычныя катэгорыі для разбору тэгаў
-export interface LinguisticCategories {
-  partOfSpeech: string | null; // 1 - частка мовы
-  properName: string | null; // 2 - уласнае/агульнае
-  animacy: string | null; // 3 - адушаўлёнасць
-  personhood: string | null; // 4 - асабовасць
-  abbreviation: string | null; // 5 - скарачэньне
-  gender: string | null; // 6 - род
-  declension: string | null; // 7 - скланеньне
-  case: string | null; // 8 - склон
-  number: string | null; // 9 - лік
-  adjectiveType: string | null; // 10 - тып прыметніка
-  degree: string | null; // 11 - ступень
-  adverbFunction: string | null; // 12 - функцыя прыслоўя
-  inflectionType: string | null; // 13 - тып змены
-  numeralType: string | null; // 14 - тып лічэбніка
-  numeralStructure: string | null; // 15 - структура лічэбніка
-  numeralInflection: string | null; // 16 - зменлівасць лічэбніка
-  pronounType: string | null; // 17 - тып займеньніка
-  person: string | null; // 18 - асоба
-  verbTransitivity: string | null; // 19 - пераходнасць дзеяслова
-  verbAspect: string | null; // 20 - від дзеяслова
-  verbReflexivity: string | null; // 21 - зваротнасць дзеяслова
-  verbConjugation: string | null; // 22 - спражэньне дзеяслова
-  verbTense: string | null; // 23 - час дзеяслова
-  verbMood: string | null; // 24 - лад дзеяслова
-  participleType: string | null; // 25 - тып дзеепрыметніка
-  participleForm: string | null; // 26 - форма дзеепрыметніка
-  adverbOrigin: string | null; // 27 - паходжаньне прыслоўя
-  conjunctionType: string | null; // 28 - тып злучніка
+// Адзінае апісаньне граматычных тэгаў GrammarDB: коды, назвы і пазыцыі ў тэгу.
+// Адсюль жывуць і разбор тэгу (для паказу), і зборка тэгу (ручны ўвод).
+
+export type CategoryKey =
+  | 'partOfSpeech'
+  | 'properName'
+  | 'animacy'
+  | 'personhood'
+  | 'abbreviation'
+  | 'gender'
+  | 'declension'
+  | 'formGender'
+  | 'case'
+  | 'number'
+  | 'adjectiveType'
+  | 'degree'
+  | 'adverbFunction'
+  | 'inflectionType'
+  | 'numeralType'
+  | 'numeralStructure'
+  | 'numeralInflection'
+  | 'pronounType'
+  | 'person'
+  | 'verbTransitivity'
+  | 'verbAspect'
+  | 'verbReflexivity'
+  | 'verbConjugation'
+  | 'verbTense'
+  | 'verbMood'
+  | 'participleType'
+  | 'participleForm'
+  | 'adverbOrigin'
+  | 'conjunctionType';
+
+export type LinguisticCategories = Record<CategoryKey, string | null>;
+
+// Коды катэгорый ня трэба паказваць у сьпісе варыянтаў — толькі ў ручным уводзе
+interface CodeOption {
+  value: string;
+  label: string;
+  hideInSummary?: boolean;
 }
 
-// Функцыя для разбору LinguisticTag на катэгорыі
-export function parseLinguisticTag(tag: LinguisticTag): LinguisticCategories {
-  const categories: LinguisticCategories = {
-    partOfSpeech: null,
-    properName: null,
-    animacy: null,
-    personhood: null,
-    abbreviation: null,
-    gender: null,
-    declension: null,
-    case: null,
-    number: null,
-    adjectiveType: null,
-    degree: null,
-    adverbFunction: null,
-    inflectionType: null,
-    numeralType: null,
-    numeralStructure: null,
-    numeralInflection: null,
-    pronounType: null,
-    person: null,
-    verbTransitivity: null,
-    verbAspect: null,
-    verbReflexivity: null,
-    verbConjugation: null,
-    verbTense: null,
-    verbMood: null,
-    participleType: null,
-    participleForm: null,
-    adverbOrigin: null,
-    conjunctionType: null,
-  };
+// Пусты код: значэньне не пазначана ў тэгу
+const EMPTY_CODES = ['.', 'X'];
 
-  if (!tag.paradigmTag || tag.paradigmTag.length === 0) {
-    return categories;
-  }
+export const PART_OF_SPEECH_LABELS: Record<string, string> = {
+  N: 'назоўнік',
+  A: 'прыметнік',
+  M: 'лічэбнік',
+  S: 'займеньнік',
+  V: 'дзеяслоў',
+  P: 'дзеепрыметнік',
+  R: 'прыслоўе',
+  C: 'злучнік',
+  I: 'прыназоўнік',
+  E: 'часціца',
+  Y: 'выклічнік',
+  Z: 'пабочнае слова',
+  W: 'прэдыкатыў',
+  F: 'частка',
+  K: 'абрэвіятура',
+};
 
-  const pos = tag.paradigmTag[0];
-  if (pos === '.' || pos === 'X') {
-    return categories;
-  }
+export const CATEGORY_LABELS: Record<CategoryKey, string> = {
+  partOfSpeech: 'Частка мовы',
+  properName: 'Уласнае/агульнае',
+  animacy: 'Адушаўлёнасць',
+  personhood: 'Асабовасць',
+  abbreviation: 'Скарачэньне',
+  gender: 'Род',
+  declension: 'Скланеньне',
+  formGender: 'Род формы',
+  case: 'Склон',
+  number: 'Лік',
+  adjectiveType: 'Тып прыметніка',
+  degree: 'Ступень',
+  adverbFunction: 'Функцыя прыслоўя',
+  inflectionType: 'Тып змены',
+  numeralType: 'Тып лічэбніка',
+  numeralStructure: 'Структура лічэбніка',
+  numeralInflection: 'Зменлівасць лічэбніка',
+  pronounType: 'Тып займеньніка',
+  person: 'Асоба',
+  verbTransitivity: 'Пераходнасць дзеяслова',
+  verbAspect: 'Від дзеяслова',
+  verbReflexivity: 'Зваротнасць дзеяслова',
+  verbConjugation: 'Спражэньне дзеяслова',
+  verbTense: 'Час дзеяслова',
+  verbMood: 'Лад дзеяслова',
+  participleType: 'Тып дзеепрыметніка',
+  participleForm: 'Форма дзеепрыметніка',
+  adverbOrigin: 'Паходжаньне прыслоўя',
+  conjunctionType: 'Тып злучніка',
+};
 
-  // Слоўнікі для перакладу
-  const posMapping: Record<string, string> = {
-    N: 'назоўнік',
-    A: 'прыметнік',
-    M: 'лічэбнік',
-    S: 'займеньнік',
-    V: 'дзеяслоў',
-    P: 'дзеепрыметнік',
-    R: 'прыслоўе',
-    C: 'злучнік',
-    I: 'прыназоўнік',
-    E: 'часціца',
-    Y: 'выклічнік',
-    Z: 'пабочнае слова',
-    W: 'прэдыкатыў',
-    F: 'частка',
-    K: 'абрэвіятура',
-  };
+const options = (entries: Record<string, string>): CodeOption[] =>
+  Object.entries(entries).map(([value, label]) => ({ value, label }));
 
-  const genderMapping: Record<string, string> = {
-    M: 'мужчынскі',
-    F: 'жаночы',
-    N: 'ніякі',
-    C: 'агульны',
-    S: 'субстантываваны',
-    U: 'субстантываны множналікавы',
-    P: 'толькі множны лік/адсутны',
-    '0': 'адсутнасьць роду',
-    '1': 'адсутнасьць форм',
-  };
+// Пазыцыя роду ў парадыгме (N: адзін код на ўвесь лемы) і ў форме (N: код на канкрэтную словаформу) — розныя катэгорыі, але адны і тыя ж коды
+const GENDER_LABELS: Record<string, string> = {
+  M: 'мужчынскі',
+  F: 'жаночы',
+  N: 'ніякі',
+  C: 'агульны',
+  S: 'субстантываваны',
+  U: 'субстантываны множналікавы',
+  P: 'толькі множны лік/адсутны',
+  '0': 'адсутнасьць роду',
+  '1': 'адсутнасьць форм',
+};
 
-  const caseMapping: Record<string, string> = {
+export const CATEGORY_CODES: Record<CategoryKey, CodeOption[]> = {
+  partOfSpeech: options(PART_OF_SPEECH_LABELS),
+  properName: options({ C: 'агульны', P: 'уласны' }),
+  animacy: options({ A: 'адушаўлёны', I: 'неадушаўлёны' }),
+  personhood: options({ P: 'асабовы', I: 'неасабовы' }),
+  abbreviation: [
+    { value: 'B', label: 'скарачэньне' },
+    // Адсутнасьць скарачэньня асобна не паказваем
+    { value: 'N', label: 'не скарачэньне', hideInSummary: true },
+  ],
+  gender: options(GENDER_LABELS),
+  declension: options({
+    '0': 'нескланяльны',
+    '1': '1 скланеньне',
+    '2': '2 скланеньне',
+    '3': '3 скланеньне',
+    '4': 'рознаскланяльны',
+    '5': "ад'ектыўны тып скланеньня",
+    '6': 'зьмешаны тып скланеньня',
+    '7': 'множналікавы',
+  }),
+  formGender: options(GENDER_LABELS),
+  case: options({
     N: 'назоўны',
     G: 'родны',
     D: 'давальны',
@@ -113,524 +142,290 @@ export function parseLinguisticTag(tag: LinguisticTag): LinguisticCategories {
     I: 'творны',
     L: 'месны',
     V: 'клічны',
-  };
-
-  const numberMapping: Record<string, string> = {
-    S: 'адзіночны',
-    P: 'множны',
-  };
-
-  const degreeMapping: Record<string, string> = {
-    P: 'станоўчая',
-    C: 'вышэйшая',
-    S: 'найвышэйшая',
-  };
-
-  const inflectionTypeMapping: Record<string, string> = {
+  }),
+  number: options({ S: 'адзіночны', P: 'множны' }),
+  adjectiveType: options({
+    Q: 'якасны',
+    R: 'адносны',
+    P: 'прыналежны',
+    '0': 'нескланяльны',
+  }),
+  degree: options({ P: 'станоўчая', C: 'вышэйшая', S: 'найвышэйшая' }),
+  adverbFunction: options({ R: 'у функцыі прыслоўя' }),
+  inflectionType: options({
     N: 'як у назоўніка',
     A: 'як у прыметніка',
     '0': 'нязьменны',
-  };
-
-  const personMapping: Record<string, string> = {
+  }),
+  numeralType: options({
+    C: 'колькасны',
+    O: 'парадкавы',
+    K: 'зборны',
+    F: 'дробавы',
+  }),
+  numeralStructure: options({ S: 'просты', C: 'складаны' }),
+  numeralInflection: options({ '0': 'нескланяльны' }),
+  pronounType: options({
+    P: 'асабовы',
+    R: 'зваротны',
+    S: 'прыналежны',
+    D: 'указальны',
+    E: 'азначальны',
+    L: 'пытальна-адносны',
+    N: 'адмоўны',
+    F: 'няпэўны',
+  }),
+  person: options({
     '1': 'першая',
     '2': 'другая',
     '3': 'трэцяя',
     '0': 'безасабовы',
-  };
-
-  const aspectMapping: Record<string, string> = {
-    P: 'закончанае',
-    M: 'незакончанае',
-  };
-
-  const tenseMapping: Record<string, string> = {
+  }),
+  verbTransitivity: options({
+    T: 'пераходны',
+    I: 'непераходны',
+    D: 'пераходны/непераходны',
+  }),
+  verbAspect: options({ P: 'закончанае', M: 'незакончанае' }),
+  verbReflexivity: options({ R: 'зваротны', N: 'незваротны' }),
+  verbConjugation: options({
+    '1': 'першае',
+    '2': 'другое',
+    '3': 'рознаспрагальны',
+  }),
+  verbTense: options({
     R: 'цяперашні',
     P: 'прошлы',
     F: 'будучы',
     I: 'загадны',
     '0': 'інфінітыў',
+  }),
+  verbMood: options({ G: 'дзеепрыслоўе' }),
+  participleType: options({ A: 'незалежны', P: 'залежны' }),
+  participleForm: options({ R: 'кароткая форма' }),
+  adverbOrigin: options({
+    N: 'ад назоўнікаў',
+    A: 'ад прыметнікаў',
+    M: 'ад лічэбнікаў',
+    S: 'ад займеньнікаў',
+    G: 'ад дзеепрыслоўяў',
+    V: 'ад дзеясловаў',
+    E: 'ад часціц',
+    I: 'ад прыназоўнікаў',
+  }),
+  conjunctionType: options({ S: 'падпарадкавальны', K: 'злучальны' }),
+};
+
+// Пазыцыі катэгорый у paradigmTag пасьля літары часьціны мовы
+const PARADIGM_SCHEMA: Record<string, CategoryKey[]> = {
+  N: [
+    'properName',
+    'animacy',
+    'personhood',
+    'abbreviation',
+    'gender',
+    'declension',
+  ],
+  A: ['adjectiveType', 'degree'],
+  M: ['inflectionType', 'numeralType', 'numeralStructure'],
+  S: ['inflectionType', 'pronounType', 'person'],
+  V: ['verbTransitivity', 'verbAspect', 'verbReflexivity', 'verbConjugation'],
+  P: ['participleType', 'verbTense', 'verbAspect'],
+  R: ['adverbOrigin'],
+  C: ['conjunctionType'],
+};
+
+type Codes = Partial<Record<CategoryKey, string>>;
+
+interface FormCodec {
+  // Катэгорыі, якія бяруцца з formTag (для ручнога ўводу)
+  keys: CategoryKey[];
+  parse: (formTag: string) => Codes;
+  build: (codes: Codes) => string;
+}
+
+const readPositions = (formTag: string, keys: CategoryKey[]): Codes => {
+  const codes: Codes = {};
+  keys.forEach((key, index) => {
+    const code = formTag[index];
+    if (code && !EMPTY_CODES.includes(code)) {
+      codes[key] = code;
+    }
+  });
+  return codes;
+};
+
+const writePositions = (codes: Codes, keys: CategoryKey[]): string =>
+  keys.map(key => codes[key] || '.').join('');
+
+const GENDER_CASE_NUMBER: CategoryKey[] = ['gender', 'case', 'number'];
+
+// Формы, у якіх пачатковы сымбаль азначае асаблівы выпадак (кароткая форма, нескланяльнасьць);
+// астатнія пазыцыі (калі ёсьць) у гэтым выпадку не разьбіраюцца
+const withSpecialSingleCode = (
+  specialKey: CategoryKey,
+  specialCode: string,
+  keys: CategoryKey[] = GENDER_CASE_NUMBER
+): FormCodec => ({
+  keys: [specialKey, ...keys],
+  parse: formTag =>
+    formTag[0] === specialCode
+      ? { [specialKey]: specialCode }
+      : readPositions(formTag, keys),
+  build: codes =>
+    codes[specialKey] ? specialCode : writePositions(codes, keys),
+});
+
+const positional = (keys: CategoryKey[]): FormCodec => ({
+  keys,
+  parse: formTag => readPositions(formTag, keys),
+  build: codes => writePositions(codes, keys),
+});
+
+const FORM_SCHEMA: Record<string, FormCodec> = {
+  // Назоўнік: два сымбалі (склон, лік) або тры (род формы, склон, лік).
+  // Род формы — асобная катэгорыя ад роду парадыгмы: субстантываваныя і множналікавыя
+  // назоўнікі маюць адзін род для лемы (парадыгмы) і другі для канкрэтнай словаформы.
+  N: {
+    keys: ['formGender', 'case', 'number'],
+    parse: formTag =>
+      formTag.length === 3
+        ? readPositions(formTag, ['formGender', 'case', 'number'])
+        : readPositions(formTag, ['case', 'number']),
+    build: codes =>
+      codes.formGender
+        ? writePositions(codes, ['formGender', 'case', 'number'])
+        : writePositions(codes, ['case', 'number']),
+  },
+  A: withSpecialSingleCode('adverbFunction', 'R'),
+  M: withSpecialSingleCode('numeralInflection', '0'),
+  S: positional(GENDER_CASE_NUMBER),
+  P: withSpecialSingleCode('participleForm', 'R'),
+  R: positional(['degree']),
+  V: {
+    keys: ['verbTense', 'verbMood', 'person', 'gender', 'number'],
+    parse: formTag => {
+      if (!formTag) return {};
+      // Інфінітыў
+      if (formTag.length === 1 && formTag[0] === '0') {
+        return { verbTense: '0' };
+      }
+      // Загадны лад: асоба і лік
+      if (formTag[0] === 'I') {
+        return {
+          verbTense: 'I',
+          ...readPositions(formTag.slice(1), ['person', 'number']),
+        };
+      }
+      // Дзеепрыслоўе
+      if (formTag.length === 2 && formTag[1] === 'G') {
+        return {
+          ...readPositions(formTag, ['verbTense']),
+          verbMood: 'G',
+        };
+      }
+      // Прошлы час: род і лік
+      if (formTag[0] === 'P') {
+        return {
+          verbTense: 'P',
+          ...readPositions(formTag.slice(1), ['gender', 'number']),
+        };
+      }
+      // Астатнія часы: асоба і лік
+      return readPositions(formTag, ['verbTense', 'person', 'number']);
+    },
+    build: codes => {
+      if (codes.verbTense === '0') return '0';
+      if (codes.verbTense === 'I') {
+        return 'I' + writePositions(codes, ['person', 'number']);
+      }
+      if (codes.verbMood === 'G') {
+        return (codes.verbTense || '.') + 'G';
+      }
+      if (codes.verbTense === 'P') {
+        return 'P' + writePositions(codes, ['gender', 'number']);
+      }
+      if (codes.verbTense === 'R' || codes.verbTense === 'F') {
+        return codes.verbTense + writePositions(codes, ['person', 'number']);
+      }
+      return '';
+    },
+  },
+};
+
+// Коды, дапушчальныя для катэгорыі пры пэўнай частцы мовы
+const ALLOWED_CODES: Record<string, Partial<Record<CategoryKey, string>>> = {
+  N: { gender: 'MFNCSUP', formGender: 'MFNP', case: 'NGDAILV' },
+  A: { gender: 'MFNP', case: 'NGDAIL' },
+  M: { gender: 'MFNP', case: 'NGDAIL' },
+  S: { gender: 'MFN01', case: 'NGDAIL' },
+  V: { gender: 'MFN' },
+  // Дзеепрыметнікі ў GrammarDB бываюць толькі цяперашняга і прошлага часу
+  P: { gender: 'MFNP', case: 'NGDAIL', verbTense: 'RP' },
+};
+
+// Катэгорыі, якія прапануюцца ў ручным уводзе для часьціны мовы
+export function manualCategoryKeys(partOfSpeech: string): CategoryKey[] {
+  return [
+    ...(PARADIGM_SCHEMA[partOfSpeech] ?? []),
+    ...(FORM_SCHEMA[partOfSpeech]?.keys ?? []),
+  ];
+}
+
+export function categoryOptions(
+  partOfSpeech: string,
+  key: CategoryKey
+): CodeOption[] {
+  const allowed = ALLOWED_CODES[partOfSpeech]?.[key];
+  const all = CATEGORY_CODES[key];
+  if (!allowed) return all;
+
+  return [...allowed]
+    .map(code => all.find(option => option.value === code))
+    .filter((option): option is CodeOption => option !== undefined);
+}
+
+// Тэг → коды катэгорый (тое, што трэба ручному ўводу)
+export function parseTagCodes(tag: LinguisticTag): Codes {
+  const partOfSpeech = tag.paradigmTag?.[0];
+  if (!partOfSpeech || EMPTY_CODES.includes(partOfSpeech)) {
+    return {};
+  }
+
+  return {
+    partOfSpeech,
+    ...readPositions(
+      tag.paradigmTag.slice(1),
+      PARADIGM_SCHEMA[partOfSpeech] ?? []
+    ),
+    ...(tag.formTag ? FORM_SCHEMA[partOfSpeech]?.parse(tag.formTag) : {}),
   };
+}
 
-  // Усталяваньне часткі мовы
-  categories.partOfSpeech = posMapping[pos] || null;
+// Коды катэгорый → тэг
+export function buildTag(partOfSpeech: string, codes: Codes): LinguisticTag {
+  if (!partOfSpeech) {
+    return { paradigmTag: '', formTag: null };
+  }
 
-  // Разбор у залежнасці ад часткі мовы
-  if (pos === 'N') {
-    // Назоўнік
-    if (
-      tag.paradigmTag.length > 1 &&
-      tag.paradigmTag[1] !== '.' &&
-      tag.paradigmTag[1] !== 'X'
-    ) {
-      categories.properName = tag.paradigmTag[1] === 'C' ? 'агульны' : 'уласны';
-    }
-    if (
-      tag.paradigmTag.length > 2 &&
-      tag.paradigmTag[2] !== '.' &&
-      tag.paradigmTag[2] !== 'X'
-    ) {
-      categories.animacy =
-        tag.paradigmTag[2] === 'A' ? 'адушаўлёны' : 'неадушаўлёны';
-    }
-    if (
-      tag.paradigmTag.length > 3 &&
-      tag.paradigmTag[3] !== '.' &&
-      tag.paradigmTag[3] !== 'X'
-    ) {
-      categories.personhood =
-        tag.paradigmTag[3] === 'P' ? 'асабовы' : 'неасабовы';
-    }
-    if (
-      tag.paradigmTag.length > 4 &&
-      tag.paradigmTag[4] !== '.' &&
-      tag.paradigmTag[4] !== 'X'
-    ) {
-      categories.abbreviation = tag.paradigmTag[4] === 'B' ? 'скарачэньне' : '';
-    }
-    if (
-      tag.paradigmTag.length > 5 &&
-      tag.paradigmTag[5] !== '.' &&
-      tag.paradigmTag[5] !== 'X'
-    ) {
-      categories.gender = genderMapping[tag.paradigmTag[5]] || null;
-    }
-    if (
-      tag.paradigmTag.length > 6 &&
-      tag.paradigmTag[6] !== '.' &&
-      tag.paradigmTag[6] !== 'X'
-    ) {
-      const declensionMap: Record<string, string> = {
-        '0': 'нескланяльны',
-        '1': '1 скланеньне',
-        '2': '2 скланеньне',
-        '3': '3 скланеньне',
-        '4': 'рознаскланяльны',
-        '5': "ад'ектыўны тып скланеньня",
-        '6': 'зьмешаны тып скланеньня',
-        '7': 'множналікавы',
-      };
-      categories.declension = declensionMap[tag.paradigmTag[6]] || null;
-    }
+  const paradigmTag =
+    partOfSpeech + writePositions(codes, PARADIGM_SCHEMA[partOfSpeech] ?? []);
+  const formTag = FORM_SCHEMA[partOfSpeech]?.build(codes) || '';
 
-    // Разбор formTag для назоўніка
-    if (tag.formTag) {
-      if (tag.formTag.length === 2) {
-        if (tag.formTag[0] !== '.' && tag.formTag[0] !== 'X') {
-          categories.case = caseMapping[tag.formTag[0]] || null;
-        }
-        if (tag.formTag[1] !== '.' && tag.formTag[1] !== 'X') {
-          categories.number = numberMapping[tag.formTag[1]] || null;
-        }
-      } else if (tag.formTag.length === 3) {
-        if (tag.formTag[0] !== '.' && tag.formTag[0] !== 'X') {
-          categories.gender = genderMapping[tag.formTag[0]] || null;
-        }
-        if (tag.formTag[1] !== '.' && tag.formTag[1] !== 'X') {
-          categories.case = caseMapping[tag.formTag[1]] || null;
-        }
-        if (tag.formTag[2] !== '.' && tag.formTag[2] !== 'X') {
-          categories.number = numberMapping[tag.formTag[2]] || null;
-        }
-      }
-    }
-  } else if (pos === 'A') {
-    // Прыметнік
-    if (
-      tag.paradigmTag.length > 1 &&
-      tag.paradigmTag[1] !== '.' &&
-      tag.paradigmTag[1] !== 'X'
-    ) {
-      const adjTypeMap: Record<string, string> = {
-        Q: 'якасны',
-        R: 'адносны',
-        P: 'прыналежны',
-        '0': 'нескланяльны',
-      };
-      categories.adjectiveType = adjTypeMap[tag.paradigmTag[1]] || null;
-    }
-    if (
-      tag.paradigmTag.length > 2 &&
-      tag.paradigmTag[2] !== '.' &&
-      tag.paradigmTag[2] !== 'X'
-    ) {
-      categories.degree = degreeMapping[tag.paradigmTag[2]] || null;
-    }
+  return { paradigmTag, formTag: formTag || null };
+}
 
-    // Разбор formTag для прыметніка
-    if (tag.formTag) {
-      if (
-        tag.formTag.length === 1 &&
-        tag.formTag[0] !== '.' &&
-        tag.formTag[0] !== 'X'
-      ) {
-        if (tag.formTag[0] === 'R') {
-          categories.adverbFunction = 'у функцыі прыслоўя';
-        }
-      } else {
-        if (
-          tag.formTag.length > 0 &&
-          tag.formTag[0] !== '.' &&
-          tag.formTag[0] !== 'X'
-        ) {
-          categories.gender = genderMapping[tag.formTag[0]] || null;
-        }
-        if (
-          tag.formTag.length > 1 &&
-          tag.formTag[1] !== '.' &&
-          tag.formTag[1] !== 'X'
-        ) {
-          categories.case = caseMapping[tag.formTag[1]] || null;
-        }
-        if (
-          tag.formTag.length > 2 &&
-          tag.formTag[2] !== '.' &&
-          tag.formTag[2] !== 'X'
-        ) {
-          categories.number = numberMapping[tag.formTag[2]] || null;
-        }
-      }
-    }
-  } else if (pos === 'M') {
-    // Лічэбнік
-    if (
-      tag.paradigmTag.length > 1 &&
-      tag.paradigmTag[1] !== '.' &&
-      tag.paradigmTag[1] !== 'X'
-    ) {
-      categories.inflectionType =
-        inflectionTypeMapping[tag.paradigmTag[1]] || null;
-    }
-    if (
-      tag.paradigmTag.length > 2 &&
-      tag.paradigmTag[2] !== '.' &&
-      tag.paradigmTag[2] !== 'X'
-    ) {
-      const numeralTypeMap: Record<string, string> = {
-        C: 'колькасны',
-        O: 'парадкавы',
-        K: 'зборны',
-        F: 'дробавы',
-      };
-      categories.numeralType = numeralTypeMap[tag.paradigmTag[2]] || null;
-    }
-    if (
-      tag.paradigmTag.length > 3 &&
-      tag.paradigmTag[3] !== '.' &&
-      tag.paradigmTag[3] !== 'X'
-    ) {
-      const structureMap: Record<string, string> = {
-        S: 'просты',
-        C: 'складаны',
-      };
-      categories.numeralStructure = structureMap[tag.paradigmTag[3]] || null;
-    }
+// Тэг → назвы катэгорый па-беларуску (для паказу ў сьпісе варыянтаў)
+export function parseLinguisticTag(tag: LinguisticTag): LinguisticCategories {
+  const categories = Object.fromEntries(
+    (Object.keys(CATEGORY_LABELS) as CategoryKey[]).map(key => [key, null])
+  ) as LinguisticCategories;
 
-    // Разбор formTag для лічэбніка
-    if (tag.formTag) {
-      if (
-        tag.formTag.length === 1 &&
-        tag.formTag[0] !== '.' &&
-        tag.formTag[0] !== 'X'
-      ) {
-        if (tag.formTag[0] === '0') {
-          categories.numeralInflection = 'нескланяльны';
-        }
-      } else {
-        if (
-          tag.formTag.length > 0 &&
-          tag.formTag[0] !== '.' &&
-          tag.formTag[0] !== 'X'
-        ) {
-          categories.gender = genderMapping[tag.formTag[0]] || null;
-        }
-        if (
-          tag.formTag.length > 1 &&
-          tag.formTag[1] !== '.' &&
-          tag.formTag[1] !== 'X'
-        ) {
-          categories.case = caseMapping[tag.formTag[1]] || null;
-        }
-        if (
-          tag.formTag.length > 2 &&
-          tag.formTag[2] !== '.' &&
-          tag.formTag[2] !== 'X'
-        ) {
-          categories.number = numberMapping[tag.formTag[2]] || null;
-        }
-      }
-    }
-  } else if (pos === 'S') {
-    // Займеньнік
-    if (
-      tag.paradigmTag.length > 1 &&
-      tag.paradigmTag[1] !== '.' &&
-      tag.paradigmTag[1] !== 'X'
-    ) {
-      categories.inflectionType =
-        inflectionTypeMapping[tag.paradigmTag[1]] || null;
-    }
-    if (
-      tag.paradigmTag.length > 2 &&
-      tag.paradigmTag[2] !== '.' &&
-      tag.paradigmTag[2] !== 'X'
-    ) {
-      const pronounTypeMap: Record<string, string> = {
-        P: 'асабовы',
-        R: 'зваротны',
-        S: 'прыналежны',
-        D: 'указальны',
-        E: 'азначальны',
-        L: 'пытальна-адносны',
-        N: 'адмоўны',
-        F: 'няпэўны',
-      };
-      categories.pronounType = pronounTypeMap[tag.paradigmTag[2]] || null;
-    }
-    if (
-      tag.paradigmTag.length > 3 &&
-      tag.paradigmTag[3] !== '.' &&
-      tag.paradigmTag[3] !== 'X'
-    ) {
-      categories.person = personMapping[tag.paradigmTag[3]] || null;
-    }
-
-    // Разбор formTag для займеньніка
-    if (tag.formTag) {
-      if (
-        tag.formTag.length > 0 &&
-        tag.formTag[0] !== '.' &&
-        tag.formTag[0] !== 'X'
-      ) {
-        categories.gender = genderMapping[tag.formTag[0]] || null;
-      }
-      if (
-        tag.formTag.length > 1 &&
-        tag.formTag[1] !== '.' &&
-        tag.formTag[1] !== 'X'
-      ) {
-        categories.case = caseMapping[tag.formTag[1]] || null;
-      }
-      if (
-        tag.formTag.length > 2 &&
-        tag.formTag[2] !== '.' &&
-        tag.formTag[2] !== 'X'
-      ) {
-        categories.number = numberMapping[tag.formTag[2]] || null;
-      }
-    }
-  } else if (pos === 'V') {
-    // Дзеяслоў
-    if (
-      tag.paradigmTag.length > 1 &&
-      tag.paradigmTag[1] !== '.' &&
-      tag.paradigmTag[1] !== 'X'
-    ) {
-      const transitivityMap: Record<string, string> = {
-        T: 'пераходны',
-        I: 'непераходны',
-        D: 'пераходны/непераходны',
-      };
-      categories.verbTransitivity = transitivityMap[tag.paradigmTag[1]] || null;
-    }
-    if (
-      tag.paradigmTag.length > 2 &&
-      tag.paradigmTag[2] !== '.' &&
-      tag.paradigmTag[2] !== 'X'
-    ) {
-      categories.verbAspect = aspectMapping[tag.paradigmTag[2]] || null;
-    }
-    if (
-      tag.paradigmTag.length > 3 &&
-      tag.paradigmTag[3] !== '.' &&
-      tag.paradigmTag[3] !== 'X'
-    ) {
-      const reflexivityMap: Record<string, string> = {
-        R: 'зваротны',
-        N: 'незваротны',
-      };
-      categories.verbReflexivity = reflexivityMap[tag.paradigmTag[3]] || null;
-    }
-    if (
-      tag.paradigmTag.length > 4 &&
-      tag.paradigmTag[4] !== '.' &&
-      tag.paradigmTag[4] !== 'X'
-    ) {
-      const conjugationMap: Record<string, string> = {
-        '1': 'першае',
-        '2': 'другое',
-        '3': 'рознаспрагальны',
-      };
-      categories.verbConjugation = conjugationMap[tag.paradigmTag[4]] || null;
-    }
-
-    // Разбор formTag для дзеяслова
-    if (tag.formTag) {
-      if (tag.formTag.length === 1 && tag.formTag[0] === '0') {
-        categories.verbTense = tenseMapping[tag.formTag[0]] || null;
-      } else if (tag.formTag.length > 0) {
-        if (tag.formTag[0] === 'I') {
-          // Загадны лад
-          categories.verbTense = tenseMapping[tag.formTag[0]] || null;
-          if (
-            tag.formTag.length > 1 &&
-            tag.formTag[1] !== '.' &&
-            tag.formTag[1] !== 'X'
-          ) {
-            categories.person = personMapping[tag.formTag[1]] || null;
-          }
-          if (
-            tag.formTag.length > 2 &&
-            tag.formTag[2] !== '.' &&
-            tag.formTag[2] !== 'X'
-          ) {
-            categories.number = numberMapping[tag.formTag[2]] || null;
-          }
-        } else if (tag.formTag.length === 2 && tag.formTag[1] === 'G') {
-          // Дзеепрыслоўе
-          categories.verbTense = tenseMapping[tag.formTag[0]] || null;
-          categories.verbMood = 'дзеепрыслоўе';
-        } else if (tag.formTag[0] === 'P') {
-          // Мінулы час
-          categories.verbTense = tenseMapping[tag.formTag[0]] || null;
-          if (
-            tag.formTag.length > 1 &&
-            tag.formTag[1] !== '.' &&
-            tag.formTag[1] !== 'X'
-          ) {
-            categories.gender = genderMapping[tag.formTag[1]] || null;
-          }
-          if (
-            tag.formTag.length > 2 &&
-            tag.formTag[2] !== '.' &&
-            tag.formTag[2] !== 'X'
-          ) {
-            categories.number = numberMapping[tag.formTag[2]] || null;
-          }
-        } else {
-          // Іншыя формы
-          if (
-            tag.formTag.length > 0 &&
-            tag.formTag[0] !== '.' &&
-            tag.formTag[0] !== 'X'
-          ) {
-            categories.verbTense = tenseMapping[tag.formTag[0]] || null;
-          }
-          if (
-            tag.formTag.length > 1 &&
-            tag.formTag[1] !== '.' &&
-            tag.formTag[1] !== 'X'
-          ) {
-            categories.person = personMapping[tag.formTag[1]] || null;
-          }
-          if (
-            tag.formTag.length > 2 &&
-            tag.formTag[2] !== '.' &&
-            tag.formTag[2] !== 'X'
-          ) {
-            categories.number = numberMapping[tag.formTag[2]] || null;
-          }
-        }
-      }
-    }
-  } else if (pos === 'P') {
-    // Дзеепрыметнік
-    if (
-      tag.paradigmTag.length > 1 &&
-      tag.paradigmTag[1] !== '.' &&
-      tag.paradigmTag[1] !== 'X'
-    ) {
-      const participleTypeMap: Record<string, string> = {
-        A: 'незалежны',
-        P: 'залежны',
-      };
-      categories.participleType = participleTypeMap[tag.paradigmTag[1]] || null;
-    }
-    if (
-      tag.paradigmTag.length > 2 &&
-      tag.paradigmTag[2] !== '.' &&
-      tag.paradigmTag[2] !== 'X'
-    ) {
-      categories.verbTense = tenseMapping[tag.paradigmTag[2]] || null;
-    }
-    if (
-      tag.paradigmTag.length > 3 &&
-      tag.paradigmTag[3] !== '.' &&
-      tag.paradigmTag[3] !== 'X'
-    ) {
-      categories.verbAspect = aspectMapping[tag.paradigmTag[3]] || null;
-    }
-
-    // Разбор formTag для дзеепрыметніка
-    if (tag.formTag) {
-      if (tag.formTag.length > 0 && tag.formTag[0] === 'R') {
-        categories.participleForm = 'кароткая форма';
-      } else {
-        if (
-          tag.formTag.length > 0 &&
-          tag.formTag[0] !== '.' &&
-          tag.formTag[0] !== 'X'
-        ) {
-          categories.gender = genderMapping[tag.formTag[0]] || null;
-        }
-        if (
-          tag.formTag.length > 1 &&
-          tag.formTag[1] !== '.' &&
-          tag.formTag[1] !== 'X'
-        ) {
-          categories.case = caseMapping[tag.formTag[1]] || null;
-        }
-        if (
-          tag.formTag.length > 2 &&
-          tag.formTag[2] !== '.' &&
-          tag.formTag[2] !== 'X'
-        ) {
-          categories.number = numberMapping[tag.formTag[2]] || null;
-        }
-      }
-    }
-  } else if (pos === 'R') {
-    // Прыслоўе
-    if (
-      tag.paradigmTag.length > 1 &&
-      tag.paradigmTag[1] !== '.' &&
-      tag.paradigmTag[1] !== 'X'
-    ) {
-      const originMap: Record<string, string> = {
-        N: 'ад назоўнікаў',
-        A: 'ад прыметнікаў',
-        M: 'ад лічэбнікаў',
-        S: 'ад займеньнікаў',
-        G: 'ад дзеепрыслоўяў',
-        V: 'ад дзеясловаў',
-        E: 'ад часціц',
-        I: 'ад прыназоўнікаў',
-      };
-      categories.adverbOrigin = originMap[tag.paradigmTag[1]] || null;
-    }
-
-    // Разбор formTag для прыслоўя
-    if (
-      tag.formTag &&
-      tag.formTag.length > 0 &&
-      tag.formTag[0] !== '.' &&
-      tag.formTag[0] !== 'X'
-    ) {
-      categories.degree = degreeMapping[tag.formTag[0]] || null;
-    }
-  } else if (pos === 'C') {
-    // Злучнік
-    if (
-      tag.paradigmTag.length > 1 &&
-      tag.paradigmTag[1] !== '.' &&
-      tag.paradigmTag[1] !== 'X'
-    ) {
-      const conjunctionTypeMap: Record<string, string> = {
-        S: 'падпарадкавальны',
-        K: 'злучальны',
-      };
-      categories.conjunctionType =
-        conjunctionTypeMap[tag.paradigmTag[1]] || null;
+  const codes = parseTagCodes(tag);
+  for (const [key, code] of Object.entries(codes) as [CategoryKey, string][]) {
+    const option = CATEGORY_CODES[key].find(entry => entry.value === code);
+    if (option && !option.hideInSummary) {
+      categories[key] = option.label;
     }
   }
 

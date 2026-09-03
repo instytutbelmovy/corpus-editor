@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { useAuth } from '../_app';
 import { UserForm } from '@/app/users/components';
 import {
   EditorUserDto,
@@ -8,94 +7,58 @@ import {
   FormErrors,
 } from '@/app/users/types';
 import { LoadingScreen, ErrorScreen } from '@/app/components';
+import { serviceLocator } from '@/app/services/serviceLocator';
+import { errorMessage } from '@/app/utils/errors';
 
 export default function EditUserPage() {
-  const { userService } = useAuth();
   const router = useRouter();
   const { id } = router.query;
   const [user, setUser] = useState<EditorUserDto | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
 
   useEffect(() => {
-    const fetchUser = async () => {
-      if (!userService || !id || typeof id !== 'string') {
-        setError('Сэрвіс карыстальнікаў не ініцыялізаваны або ID не зададзены');
-        setLoading(false);
-        return;
-      }
+    if (typeof id !== 'string') return;
 
-      try {
-        const users = await userService.fetchUsers();
-        const foundUser = users.find(u => u.id === id);
-
-        if (!foundUser) {
-          setError('Карыстальнік не знойдзены');
-          setLoading(false);
-          return;
-        }
-
-        setUser(foundUser);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Невядомая памылка');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUser();
-  }, [userService, id]);
+    serviceLocator.userService
+      .fetchUser(id)
+      .then(setUser)
+      .catch(err => setLoadError(errorMessage(err)));
+  }, [id]);
 
   const handleSubmit = async (data: EditorUserCreateDto) => {
-    if (!userService || !id || typeof id !== 'string') {
-      setFormErrors({ submit: 'Сэрвіс не ініцыялізаваны' });
-      return;
-    }
+    if (typeof id !== 'string') return;
 
     setIsSubmitting(true);
     setFormErrors({});
-
     try {
-      await userService.updateUser(id, data);
+      await serviceLocator.userService.updateUser(id, data);
       router.push('/users');
     } catch (err) {
-      setFormErrors({
-        submit: err instanceof Error ? err.message : 'Невядомая памылка',
-      });
+      setFormErrors({ submit: errorMessage(err) });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleCancel = () => {
-    router.push('/users');
-  };
-
-  if (loading) {
-    return <LoadingScreen />;
-  }
-
-  if (error) {
-    return <ErrorScreen error={error} />;
+  if (loadError) {
+    return <ErrorScreen error={loadError} />;
   }
 
   if (!user) {
-    return <ErrorScreen error="Карыстальнік не знойдзены" />;
+    return <LoadingScreen />;
   }
-
-  const initialData: EditorUserCreateDto = {
-    userName: user.userName,
-    email: user.email,
-    role: user.role,
-  };
 
   return (
     <UserForm
-      initialData={initialData}
+      initialData={{
+        userName: user.userName,
+        email: user.email,
+        role: user.role,
+      }}
       onSubmit={handleSubmit}
-      onCancel={handleCancel}
+      onCancel={() => router.push('/users')}
       isSubmitting={isSubmitting}
       errors={formErrors}
       submitButtonText="Захаваць зьмены"
