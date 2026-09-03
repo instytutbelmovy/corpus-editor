@@ -1,49 +1,34 @@
 import { useDocumentStore } from '../store';
-import { useWordSelection } from './useWordSelection';
 import { useUIStore } from '../uiStore';
+import { selectWord } from '../wordEditing';
 
+// Дадае элемэнт і адразу ставіць курсор у яго для ўводу тэксту
 export function useAddItem() {
-  const { addWord, addPunctuation } = useDocumentStore();
-  const { selectWord } = useWordSelection();
-  const { setIsEditingText } = useUIStore();
+  const addWord = useDocumentStore(state => state.addWord);
+  const addPunctuation = useDocumentStore(state => state.addPunctuation);
+  const setIsStructureTextEditing = useUIStore(
+    state => state.setIsStructureTextEditing
+  );
 
-  const handleAddWord = (
+  const addAndSelect = (
+    add: (paragraphId: number, sentenceId: number, index: number) => void,
     paragraphId: number,
     sentenceId: number,
     index: number
   ) => {
-    addWord(paragraphId, sentenceId, index);
-    selectNewItem(paragraphId, sentenceId, index + 1);
-  };
-
-  const handleAddPunctuation = (
-    paragraphId: number,
-    sentenceId: number,
-    index: number
-  ) => {
-    addPunctuation(paragraphId, sentenceId, index);
-    selectNewItem(paragraphId, sentenceId, index + 1);
-  };
-
-  const selectNewItem = (
-    paragraphId: number,
-    sentenceId: number,
-    newIndex: number
-  ) => {
-    const { documentData } = useDocumentStore.getState();
-    if (documentData) {
-      const paragraph = documentData.paragraphs.find(p => p.id === paragraphId);
-      const sentence = paragraph?.sentences.find(s => s.id === sentenceId);
-      const newItem = sentence?.sentenceItems[newIndex]?.linguisticItem;
-      if (newItem) {
-        selectWord(newItem, paragraphId, sentenceId, newIndex);
-        setIsEditingText(true);
-      }
+    add(paragraphId, sentenceId, index);
+    if (selectWord(paragraphId, sentenceId, index + 1)) {
+      setIsStructureTextEditing(true);
     }
   };
 
   return {
-    handleAddWord,
-    handleAddPunctuation,
+    handleAddWord: (paragraphId: number, sentenceId: number, index: number) =>
+      addAndSelect(addWord, paragraphId, sentenceId, index),
+    handleAddPunctuation: (
+      paragraphId: number,
+      sentenceId: number,
+      index: number
+    ) => addAndSelect(addPunctuation, paragraphId, sentenceId, index),
   };
 }

@@ -1,4 +1,4 @@
-import { parseLinguisticTag } from '../types/linguisticCategories';
+import { parseLinguisticTag } from '@/app/docs/linguisticCategories';
 
 describe('parseLinguisticTag', () => {
   test('разбор назоўніка', () => {

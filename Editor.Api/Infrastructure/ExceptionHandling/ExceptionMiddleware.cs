@@ -30,6 +30,16 @@ public static class ExceptionMiddleware
             if (!context.Response.HasStarted)
                 context.Response.StatusCode = statusCode;
         }
+        catch (LockedException e)
+        {
+            var statusCode = (int)HttpStatusCode.Locked;
+            LogInfo(e, statusCode);
+            if (!context.Response.HasStarted)
+            {
+                context.Response.StatusCode = statusCode;
+                await JsonSerializer.SerializeAsync(context.Response.BodyWriter, new ErrorResponse(statusCode, e.Message), InfrastructureJsonSerializerContext.Default.ErrorResponse);
+            }
+        }
         catch (ServiceUnavailableException e)
         {
             var statusCode = (int)HttpStatusCode.ServiceUnavailable;

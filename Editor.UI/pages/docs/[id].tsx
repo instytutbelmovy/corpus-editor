@@ -1,6 +1,5 @@
 import { useRouter } from 'next/router';
-import { useCallback } from 'react';
-import { LinguisticItem as LinguisticItemType } from '@/app/docs/types';
+import { useEffect } from 'react';
 import {
   useDocument,
   useWordSelection,
@@ -14,39 +13,51 @@ import {
   EditingPanel,
   Toolbar,
 } from '@/app/docs/components';
-import { LoadingScreen, ErrorScreen } from '@/app/components';
-import { useAuth } from '../_app';
-import { useEffect } from 'react';
+import {
+  Alert,
+  Card,
+  ErrorScreen,
+  LoadingScreen,
+  PageShell,
+} from '@/app/components';
 import { useUIStore } from '@/app/docs/uiStore';
 import { useDocumentStore } from '@/app/docs/store';
-import { WordEditingService } from '@/app/docs/wordEditingService';
 
 export default function DocumentPage() {
   const router = useRouter();
   const documentId = router.query.id as string;
-  const { documentService } = useAuth();
-  const { isStructureEditingMode, setIsStructureEditingMode } = useUIStore();
+  const isStructureEditingMode = useUIStore(
+    state => state.isStructureEditingMode
+  );
+  const setIsStructureEditingMode = useUIStore(
+    state => state.setIsStructureEditingMode
+  );
 
-  // Скідваем рэжым рэдагаваньня пры змене дакумэнта
+  // Скідваем рэжым рэдагаваньня пры зьмене дакумэнта
   useEffect(() => {
     setIsStructureEditingMode(false);
   }, [documentId, setIsStructureEditingMode]);
 
-  // Хукі для работы з дакумэнтам
-  const { documentData, loading, error, loadingMore, hasMore, fetchDocument } =
-    useDocument(documentId);
+  const {
+    documentData,
+    loading,
+    error,
+    loadingMore,
+    hasMore,
+    actionError,
+    clearActionError,
+    fetchDocument,
+  } = useDocument(documentId);
 
-  // Хукі для выбару і рэдагаваньня слоў
   const {
     selectedWord,
     selectWord,
     clearSelectedWord,
     saveError,
     clearSaveError,
-    pendingSaves,
   } = useWordSelection();
 
-  // Скідваем выбранае слова пры змене рэжыму рэдагаваньня структуры
+  // Пры пераключэньні рэжыму структуры скідваем выбар і бярэм новы baseline
   useEffect(() => {
     clearSelectedWord();
     if (isStructureEditingMode) {
@@ -54,46 +65,20 @@ export default function DocumentPage() {
     }
   }, [isStructureEditingMode, clearSelectedWord]);
 
-  // Ініцыялізуем WordEditingService
-  const wordEditingService = new WordEditingService(documentService!);
   const {
     handleSaveParadigm,
     handleUpdateWordText,
     handleSaveManualCategories,
     handleSaveComment,
     handleSaveErrorType,
-  } = useWordEditing(documentId, wordEditingService);
+  } = useWordEditing(documentId);
 
-  // Хук для клавіятурнай навігацыі
   useKeyboardNavigation();
 
-  // Хук для бясконцай пракруткі
   const observerRef = useInfiniteScroll({
     onLoadMore: skipUpToId => fetchDocument(documentId, skipUpToId, false),
   });
 
-  // Функцыя для выбару слова для рэдагаваньня
-  const handleWordClick = useCallback(
-    (item: LinguisticItemType) => {
-      if (item.type !== 1 || !documentData) return;
-
-      // Знаходзім параграф, сказ і індекс слова
-      for (const paragraph of documentData.paragraphs) {
-        for (const sentence of paragraph.sentences) {
-          const wordIndex = sentence.sentenceItems.findIndex(
-            sentenceItem => sentenceItem.linguisticItem === item
-          );
-          if (wordIndex !== -1) {
-            selectWord(item, paragraph.id, sentence.id, wordIndex);
-            return;
-          }
-        }
-      }
-    },
-    [documentData, selectWord]
-  );
-
-  // Станы загрузкі і памылак
   if (loading) {
     return <LoadingScreen />;
   }
@@ -107,45 +92,47 @@ export default function DocumentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="max-w-7xl mx-auto px-2 sm:px-2 lg:px-4 pt-4 pb-8 flex-1 flex flex-col">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex-1 flex flex-col">
-          {/* Загаловак */}
-          <DocumentHeader header={documentData.header} />
+    <PageShell fullHeight>
+      <Card className="p-6 flex-1 flex flex-col">
+        <DocumentHeader header={documentData.header} />
 
-          {/* Асноўны кантэнт з тэкстам і панэллю рэдагаваньня */}
-          {isStructureEditingMode && <Toolbar />}
-          <div className="flex flex-col lg:flex-row gap-6 flex-1">
-            {/* Тэкст дакумэнта */}
-            <div className="flex-1">
-              <DocumentContent
-                documentData={documentData}
-                selectedWord={selectedWord}
-                pendingSaves={pendingSaves}
-                loadingMore={loadingMore}
-                hasMore={hasMore}
-                onWordClick={handleWordClick}
-                observerRef={observerRef}
-              />
-            </div>
-
-            {/* Панэль рэдагаваньня (толькі ў рэжыме прагляду) */}
-            {!isStructureEditingMode && (
-              <EditingPanel
-                selectedWord={selectedWord}
-                saveError={saveError}
-                onClose={clearSelectedWord}
-                onSaveParadigm={handleSaveParadigm}
-                onClearError={clearSaveError}
-                onUpdateWordText={handleUpdateWordText}
-                onSaveManualCategories={handleSaveManualCategories}
-                onSaveComment={handleSaveComment}
-                onSaveErrorType={handleSaveErrorType}
-              />
-            )}
+        {/* Нефатальныя памылкі (захаваньне структуры, дагрузка абзацаў) — банэр, а не замена старонкі */}
+        {actionError && (
+          <div className="mb-4">
+            <Alert title="Памылка:" onClose={clearActionError}>
+              {actionError}
+            </Alert>
           </div>
+        )}
+
+        {isStructureEditingMode && <Toolbar />}
+        <div className="flex flex-col lg:flex-row gap-6 flex-1">
+          <div className="flex-1">
+            <DocumentContent
+              documentData={documentData}
+              loadingMore={loadingMore}
+              hasMore={hasMore}
+              onWordClick={selectWord}
+              observerRef={observerRef}
+            />
+          </div>
+
+          {/* Панэль рэдагаваньня — толькі ў рэжыме прагляду */}
+          {!isStructureEditingMode && (
+            <EditingPanel
+              selectedWord={selectedWord}
+              saveError={saveError}
+              onClose={clearSelectedWord}
+              onSaveParadigm={handleSaveParadigm}
+              onClearError={clearSaveError}
+              onUpdateWordText={handleUpdateWordText}
+              onSaveManualCategories={handleSaveManualCategories}
+              onSaveComment={handleSaveComment}
+              onSaveErrorType={handleSaveErrorType}
+            />
+          )}
         </div>
-      </div>
-    </div>
+      </Card>
+    </PageShell>
   );
 }

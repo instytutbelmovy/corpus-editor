@@ -1,14 +1,10 @@
-import { Roles } from './types';
-
-interface AuthUser {
-  id: string;
-  role: Roles;
-}
+import { User } from './types';
 
 const AUTH_STORAGE_KEY = 'editor-auth-user';
 
+// Лакальны кэш карыстальніка для аптымістычнай аўтэнтыфікацыі; памылкі localStorage ігнаруем
 export class AuthStorage {
-  static get(): AuthUser | null {
+  static get(): User | null {
     if (typeof window === 'undefined') return null;
 
     try {
@@ -19,13 +15,13 @@ export class AuthStorage {
     }
   }
 
-  static set(user: AuthUser): void {
+  static set(user: User): void {
     if (typeof window === 'undefined') return;
 
     try {
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
     } catch {
-      // Ігнаруем памылкі localStorage
+      // ігнаруем
     }
   }
 
@@ -35,11 +31,7 @@ export class AuthStorage {
     try {
       localStorage.removeItem(AUTH_STORAGE_KEY);
     } catch {
-      // Ігнаруем памылкі localStorage
+      // ігнаруем
     }
-  }
-
-  static isAuthenticated(): boolean {
-    return this.get() !== null;
   }
 }

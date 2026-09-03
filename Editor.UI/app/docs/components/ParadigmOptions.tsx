@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   GrammarInfo,
   ParadigmFormId,
@@ -6,15 +7,20 @@ import {
 } from '../types';
 import {
   parseLinguisticTag,
+  CATEGORY_LABELS,
+  CategoryKey,
   LinguisticCategories,
 } from '../linguisticCategories';
+import { paradigmFormIdEquals } from '../wordEditing';
+import { DisplayMode } from '../uiStore';
+import { CheckIcon, PencilIcon } from '@/app/components/icons';
 
 interface ParadigmOptionsProps {
   options: GrammarInfo[];
   selectedParadigmFormId: ParadigmFormId | null;
   selectedItem?: LinguisticItem | null;
-  displayMode: 'full' | 'compact';
-  onSelect: (paradigmFormId: ParadigmFormId) => void;
+  displayMode: DisplayMode;
+  onSelect: (paradigmFormId: ParadigmFormId) => Promise<void>;
   onManualInput?: () => void;
   onBeforeSelect?: () => Promise<void>;
   onSaveManualCategories?: (
@@ -23,117 +29,71 @@ interface ParadigmOptionsProps {
   ) => Promise<void>;
 }
 
-interface GroupedOptions {
-  partOfSpeech: string;
-  options: GrammarInfo[];
+const CATEGORY_KEYS = Object.keys(CATEGORY_LABELS) as CategoryKey[];
+
+// Кастомнае (уведзенае ўручную) слова не мае paradigmFormId — параўноўваем лему і тэг
+const isCustomOptionSelected = (
+  item: LinguisticItem | null | undefined,
+  option: GrammarInfo
+) =>
+  !!item &&
+  item.paradigmFormId === null &&
+  item.lemma === option.lemma &&
+  item.linguisticTag !== null &&
+  item.linguisticTag.paradigmTag === option.linguisticTag.paradigmTag &&
+  item.linguisticTag.formTag === option.linguisticTag.formTag;
+
+const optionKey = (option: GrammarInfo) =>
+  option.paradigmFormId === null
+    ? `custom-${option.lemma}-${option.linguisticTag.paradigmTag}-${option.linguisticTag.formTag || ''}`
+    : `${option.paradigmFormId.paradigmId}-${option.paradigmFormId.variantId}-${option.paradigmFormId.formTag}`;
+
+// Тэг разьбіраецца адзін раз на варыянт і далей перадаецца разам зь ім
+interface ParsedOption {
+  option: GrammarInfo;
+  categories: LinguisticCategories;
 }
 
-// Функцыя для групоўкі опцый па частках мовы
-function groupOptionsByPartOfSpeech(options: GrammarInfo[]): GroupedOptions[] {
-  const groups: Record<string, GrammarInfo[]> = {};
+// Варыянты групуюцца па частках мовы
+function groupByPartOfSpeech(options: GrammarInfo[]) {
+  const groups = new Map<string, ParsedOption[]>();
 
-  options.forEach(option => {
+  for (const option of options) {
     const categories = parseLinguisticTag(option.linguisticTag);
     const partOfSpeech = categories.partOfSpeech || 'Невызначана';
-
-    if (!groups[partOfSpeech]) {
-      groups[partOfSpeech] = [];
+    const group = groups.get(partOfSpeech);
+    if (group) {
+      group.push({ option, categories });
+    } else {
+      groups.set(partOfSpeech, [{ option, categories }]);
     }
-    groups[partOfSpeech].push(option);
-  });
+  }
 
-  return Object.entries(groups).map(([partOfSpeech, options]) => ({
+  return [...groups.entries()].map(([partOfSpeech, groupOptions]) => ({
     partOfSpeech,
-    options,
+    options: groupOptions,
+    commonCategories: getCommonCategories(groupOptions),
   }));
 }
 
-// Функцыя для вызначэньня агульных катэгорый у групе
+// Катэгорыі, аднолькавыя для ўсёй групы: у скарочаным рэжыме іх не паказваем
 function getCommonCategories(
-  options: GrammarInfo[]
+  parsedOptions: ParsedOption[]
 ): Partial<LinguisticCategories> {
-  if (options.length <= 1) {
-    return {};
-  }
+  if (parsedOptions.length <= 1) return {};
 
-  const allCategories = options.map(option =>
-    parseLinguisticTag(option.linguisticTag)
-  );
-  const commonCategories: Partial<LinguisticCategories> = {};
+  const common: Partial<LinguisticCategories> = {};
 
-  // Правяраем кожную катэгорыю
-  const categoryKeys = Object.keys(
-    allCategories[0]
-  ) as (keyof LinguisticCategories)[];
-
-  categoryKeys.forEach(key => {
-    const values = allCategories
-      .map(cat => cat[key])
-      .filter(val => val !== null);
-    if (values.length > 0 && values.every(val => val === values[0])) {
-      commonCategories[key] = values[0];
+  for (const key of CATEGORY_KEYS) {
+    const values = parsedOptions
+      .map(({ categories }) => categories[key])
+      .filter(value => value !== null);
+    if (values.length > 0 && values.every(value => value === values[0])) {
+      common[key] = values[0];
     }
-  });
-
-  return commonCategories;
-}
-
-// Функцыя для адлюстраваньня катэгорыі
-function renderCategory(
-  key: string,
-  value: string | null,
-  isCommon: boolean,
-  displayMode: 'full' | 'compact'
-) {
-  if (!value || (displayMode === 'compact' && isCommon)) {
-    return null;
   }
 
-  const categoryLabels: Record<string, string> = {
-    partOfSpeech: 'Частка мовы',
-    properName: 'Уласнае/агульнае',
-    animacy: 'Адушаўлёнасць',
-    personhood: 'Асабовасць',
-    abbreviation: 'Скарачэньне',
-    gender: 'Род',
-    declension: 'Скланеньне',
-    case: 'Склон',
-    number: 'Лік',
-    adjectiveType: 'Тып прыметніка',
-    degree: 'Ступень',
-    adverbFunction: 'Функцыя прыслоўя',
-    inflectionType: 'Тып змены',
-    numeralType: 'Тып лічэбніка',
-    numeralStructure: 'Структура лічэбніка',
-    numeralInflection: 'Зменлівасць лічэбніка',
-    pronounType: 'Тып займеньніка',
-    person: 'Асоба',
-    verbTransitivity: 'Пераходнасць дзеяслова',
-    verbAspect: 'Від дзеяслова',
-    verbReflexivity: 'Зваротнасць дзеяслова',
-    verbConjugation: 'Спражэньне дзеяслова',
-    verbTense: 'Час дзеяслова',
-    verbMood: 'Лад дзеяслова',
-    participleType: 'Тып дзеепрыметніка',
-    participleForm: 'Форма дзеепрыметніка',
-    adverbOrigin: 'Паходжаньне прыслоўя',
-    conjunctionType: 'Тып злучніка',
-  };
-
-  const label = categoryLabels[key] || key;
-  const textColor = isCommon ? 'text-gray-500' : 'text-gray-900';
-  const fontWeight =
-    !isCommon && displayMode === 'full' ? 'font-semibold' : 'font-normal';
-
-  return (
-    <span
-      key={key}
-      className={`text-xs ${textColor} ${fontWeight} mr-2`}
-      title={label}
-    >
-      {value}
-    </span>
-  );
+  return common;
 }
 
 export function ParadigmOptions({
@@ -146,7 +106,7 @@ export function ParadigmOptions({
   onBeforeSelect,
   onSaveManualCategories,
 }: ParadigmOptionsProps) {
-  const groupedOptions = groupOptionsByPartOfSpeech(options);
+  const groups = useMemo(() => groupByPartOfSpeech(options), [options]);
 
   if (options.length === 0) {
     return (
@@ -165,10 +125,24 @@ export function ParadigmOptions({
     );
   }
 
+  // Выклікаецца з onClick, таму памылку ловім тут: банэр пакажа wordEditing
+  const handleSelect = async (option: GrammarInfo) => {
+    try {
+      await onBeforeSelect?.();
+      if (option.paradigmFormId === null) {
+        await onSaveManualCategories?.(option.lemma, option.linguisticTag);
+      } else {
+        await onSelect(option.paradigmFormId);
+      }
+    } catch (error) {
+      console.error('Памылка захаваньня варыянту:', error);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      {groupedOptions.map(group => {
-        const commonCategories = getCommonCategories(group.options);
+      {groups.map(group => {
+        const { commonCategories } = group;
 
         return (
           <div key={group.partOfSpeech}>
@@ -176,64 +150,27 @@ export function ParadigmOptions({
               <h4 className="font-medium text-gray-700 text-sm">
                 {group.partOfSpeech}
               </h4>
-              <div className="flex-1 h-px bg-gray-200 ml-3"></div>
+              <div className="flex-1 h-px bg-gray-200 ml-3" />
             </div>
             <div className="space-y-2">
-              {group.options.map(option => {
-                // Правяраем, ці выбрана опцыя
+              {group.options.map(({ option, categories }) => {
                 const isSelected =
                   option.paradigmFormId === null
-                    ? // Для кастомных словаў правяраем lemma і linguisticTag
-                      selectedItem !== null &&
-                      selectedItem !== undefined &&
-                      selectedItem.paradigmFormId === null &&
-                      selectedItem.lemma === option.lemma &&
-                      selectedItem.linguisticTag !== null &&
-                      selectedItem.linguisticTag.paradigmTag ===
-                        option.linguisticTag.paradigmTag &&
-                      selectedItem.linguisticTag.formTag ===
-                        option.linguisticTag.formTag
-                    : // Для звычайных парадыгм правяраем paradigmFormId
-                      selectedParadigmFormId !== null &&
-                      selectedParadigmFormId.paradigmId ===
-                        option.paradigmFormId.paradigmId &&
-                      selectedParadigmFormId.variantId ===
-                        option.paradigmFormId.variantId &&
-                      selectedParadigmFormId.formTag ===
-                        option.paradigmFormId.formTag;
-
-                const categories = parseLinguisticTag(option.linguisticTag);
-
-                // Генеруем унікальны ключ для опцыі
-                const optionKey =
-                  option.paradigmFormId === null
-                    ? `custom-${option.lemma}-${option.linguisticTag.paradigmTag}-${option.linguisticTag.formTag || ''}`
-                    : `${option.paradigmFormId.paradigmId}-${option.paradigmFormId.variantId}-${option.paradigmFormId.formTag}`;
+                    ? isCustomOptionSelected(selectedItem, option)
+                    : paradigmFormIdEquals(
+                        selectedParadigmFormId,
+                        option.paradigmFormId
+                      );
 
                 return (
                   <div
-                    key={optionKey}
+                    key={optionKey(option)}
                     className={`border rounded-lg p-3 transition-colors cursor-pointer ${
                       isSelected
                         ? 'border-green-500 bg-green-50'
                         : 'border-gray-200 hover:border-blue-300'
                     }`}
-                    onClick={async () => {
-                      if (onBeforeSelect) {
-                        await onBeforeSelect();
-                      }
-                      // Калі paradigmFormId null, гэта кастомнае слова - выклікаем захаваньне ручных катэгорый
-                      if (option.paradigmFormId === null) {
-                        if (onSaveManualCategories) {
-                          await onSaveManualCategories(
-                            option.lemma,
-                            option.linguisticTag
-                          );
-                        }
-                      } else {
-                        onSelect(option.paradigmFormId);
-                      }
-                    }}
+                    onClick={() => handleSelect(option)}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -243,20 +180,17 @@ export function ParadigmOptions({
                           </div>
 
                           <div className="flex flex-wrap gap-1 ml-2 md:ml-0">
-                            {Object.entries(categories).map(([key, value]) => {
-                              if (!value || key === 'partOfSpeech') return null;
-                              const isCommon =
-                                key in commonCategories &&
-                                commonCategories[
-                                  key as keyof LinguisticCategories
-                                ] === value;
-                              return renderCategory(
-                                key,
-                                value,
-                                isCommon,
-                                displayMode
-                              );
-                            })}
+                            {CATEGORY_KEYS.map(key => (
+                              <Category
+                                key={key}
+                                categoryKey={key}
+                                value={categories[key]}
+                                isCommon={
+                                  commonCategories[key] === categories[key]
+                                }
+                                displayMode={displayMode}
+                              />
+                            ))}
                           </div>
                         </div>
 
@@ -268,35 +202,9 @@ export function ParadigmOptions({
                       </div>
 
                       {isSelected ? (
-                        <div className="ml-2 text-green-500">
-                          <svg
-                            className="w-5 h-5"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </div>
+                        <CheckIcon className="w-5 h-5 ml-2 text-green-500" />
                       ) : option.paradigmFormId === null ? (
-                        <div className="ml-2 text-gray-400">
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                            />
-                          </svg>
-                        </div>
+                        <PencilIcon className="w-5 h-5 ml-2 text-gray-400" />
                       ) : null}
                     </div>
                   </div>
@@ -307,30 +215,49 @@ export function ParadigmOptions({
         );
       })}
 
-      {/* Кнопка ручнага ўводу */}
       {onManualInput && (
         <div className="pt-4 border-t border-gray-200">
           <button
             onClick={onManualInput}
             className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2"
           >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-              />
-            </svg>
+            <PencilIcon />
             <span>Ручны ўвод катэгорый</span>
           </button>
         </div>
       )}
     </div>
+  );
+}
+
+// Частка мовы паказваецца загалоўкам групы, таму ў радку яе няма
+function Category({
+  categoryKey,
+  value,
+  isCommon,
+  displayMode,
+}: {
+  categoryKey: CategoryKey;
+  value: string | null;
+  isCommon: boolean;
+  displayMode: DisplayMode;
+}) {
+  if (
+    !value ||
+    categoryKey === 'partOfSpeech' ||
+    (displayMode === 'compact' && isCommon)
+  ) {
+    return null;
+  }
+
+  return (
+    <span
+      className={`text-xs mr-2 ${isCommon ? 'text-gray-500' : 'text-gray-900'} ${
+        !isCommon && displayMode === 'full' ? 'font-semibold' : 'font-normal'
+      }`}
+      title={CATEGORY_LABELS[categoryKey]}
+    >
+      {value}
+    </span>
   );
 }

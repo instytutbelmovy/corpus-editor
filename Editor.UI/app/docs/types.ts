@@ -83,15 +83,24 @@ export interface DocumentData {
   paragraphs: Paragraph[];
 }
 
-export interface SelectedWord {
+// Пазыцыя слова ў дакумэнце
+export interface WordPosition {
   paragraphId: number;
-  paragraphStamp: string;
   sentenceId: number;
-  sentenceStamp: string;
   wordIndex: number;
+}
+
+// Пазыцыя разам з concurrency stamp'амі абзаца і сказа — адрас для API
+export interface WordRef extends WordPosition {
+  paragraphStamp: string;
+  sentenceStamp: string;
+}
+
+export interface SelectedWord extends WordRef {
   item: LinguisticItem;
   options: GrammarInfo[];
 }
+
 export enum OperationType {
   Delete = -1,
   Update = 0,

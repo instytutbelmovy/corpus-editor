@@ -1,105 +1,102 @@
+import { useMemo } from 'react';
 import { useDocumentStore } from '../store';
 import { useUIStore } from '../uiStore';
-import { BUTTON_STYLES } from '../styles';
+import { Button } from '@/app/components';
+import { RedoIcon, UndoIcon } from '@/app/components/icons';
 
 export function Toolbar() {
-  const {
-    undo,
-    redo,
-    saveEditing,
-    cancelEditing,
-    historyIndex,
-    history,
-    hasChanges,
-    loading,
-  } = useDocumentStore();
+  const undo = useDocumentStore(state => state.undo);
+  const redo = useDocumentStore(state => state.redo);
+  const saveEditing = useDocumentStore(state => state.saveEditing);
+  const cancelEditing = useDocumentStore(state => state.cancelEditing);
+  const historyIndex = useDocumentStore(state => state.historyIndex);
+  const history = useDocumentStore(state => state.history);
+  const hasChanges = useDocumentStore(state => state.hasChanges);
+  const documentData = useDocumentStore(state => state.documentData);
+  const originalDocumentData = useDocumentStore(
+    state => state.originalDocumentData
+  );
+  const saving = useDocumentStore(state => state.saving);
 
-  const { isStructureEditingMode, setIsStructureEditingMode, isEditingText } =
-    useUIStore();
+  const isStructureEditingMode = useUIStore(
+    state => state.isStructureEditingMode
+  );
+  const setIsStructureEditingMode = useUIStore(
+    state => state.setIsStructureEditingMode
+  );
+  const isStructureTextEditing = useUIStore(
+    state => state.isStructureTextEditing
+  );
 
-  const changes = hasChanges();
-  const canUndo = historyIndex >= 0;
-  const canRedo = historyIndex < history.length - 1;
+  // hasChanges() JSON.stringify'іць кожны абзац — лічым толькі калі мяняюцца самі дакумэнты, не на кожны рэндар.
+  // documentData/originalDocumentData не выкарыстоўваюцца ў целе — hasChanges() чытае іх сам з стору, але яны трэба ў залежнасьцях, каб useMemo пералічваў пры іх зьмене
+  const changed = useMemo(
+    () => hasChanges(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [hasChanges, documentData, originalDocumentData]
+  );
 
   if (!isStructureEditingMode) {
     return null;
   }
 
+  // Пры праўцы тэксту здымаем фокус, каб onBlur пасьпеў зафіксаваць зьмену да undo/redo
+  const withBlur = (action: () => void) => () => {
+    if (
+      isStructureTextEditing &&
+      document.activeElement instanceof HTMLElement
+    ) {
+      document.activeElement.blur();
+    }
+    action();
+  };
+
   return (
     <div className="flex items-center gap-2 bg-white p-2 rounded shadow border border-gray-200 mb-4">
-      <button
-        className="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm disabled:opacity-50 flex items-center gap-1"
-        onClick={() => {
-          if (isEditingText && document.activeElement instanceof HTMLElement) {
-            document.activeElement.blur();
-          }
-          undo();
-        }}
-        onMouseDown={e => e.preventDefault()}
-        disabled={!canUndo}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="gap-1"
+        onClick={withBlur(undo)}
+        onMouseDown={event => event.preventDefault()}
+        disabled={historyIndex < 0}
         title="Адрабіць"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M3 7v6h6" />
-          <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
-        </svg>
+        <UndoIcon />
         Адрабіць
-      </button>
-      <button
-        className="px-3 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-sm disabled:opacity-50 flex items-center gap-1"
-        onClick={() => {
-          if (isEditingText && document.activeElement instanceof HTMLElement) {
-            document.activeElement.blur();
-          }
-          redo();
-        }}
-        onMouseDown={e => e.preventDefault()}
-        disabled={!canRedo}
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="gap-1"
+        onClick={withBlur(redo)}
+        onMouseDown={event => event.preventDefault()}
+        disabled={historyIndex >= history.length - 1}
         title="Узнавіць"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M21 7v6h-6" />
-          <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13" />
-        </svg>
+        <RedoIcon />
         Узнавіць
-      </button>
+      </Button>
       <div className="h-4 w-px bg-gray-300 mx-2" />
-      <button
-        className={`px-3 py-1 rounded text-sm ${BUTTON_STYLES.primary}`}
+      <Button
+        size="sm"
         onClick={saveEditing}
-        disabled={!changes || loading}
+        disabled={!changed || saving}
+        loading={saving}
+        loadingText="Захоўваецца..."
       >
-        {loading ? 'Захоўваецца...' : 'Захаваць'}
-      </button>
-      <button
-        className={`px-3 py-1 rounded text-sm ${BUTTON_STYLES.secondary}`}
+        Захаваць
+      </Button>
+      <Button
+        variant="secondary"
+        size="sm"
         onClick={() => {
           cancelEditing();
           setIsStructureEditingMode(false);
         }}
       >
         Скасаваць
-      </button>
+      </Button>
     </div>
   );
 }

@@ -6,7 +6,10 @@ interface UseInfiniteScrollProps {
 }
 
 export function useInfiniteScroll({ onLoadMore }: UseInfiniteScrollProps) {
-  const { hasMore, loadingMore, loading, lastParagraphId } = useDocumentStore();
+  const hasMore = useDocumentStore(state => state.hasMore);
+  const loadingMore = useDocumentStore(state => state.loadingMore);
+  const loading = useDocumentStore(state => state.loading);
+  const lastParagraphId = useDocumentStore(state => state.lastParagraphId);
   const observerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

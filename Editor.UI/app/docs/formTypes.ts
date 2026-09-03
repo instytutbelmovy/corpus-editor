@@ -14,6 +14,4 @@ export interface NewDocumentFormData extends BaseDocumentFormData {
 
 export type MetadataFormData = BaseDocumentFormData;
 
-export interface FormErrors {
-  [key: string]: string;
-}
+export type { FormErrors } from '@/app/types';

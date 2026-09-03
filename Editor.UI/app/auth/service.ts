@@ -1,44 +1,34 @@
-import { ApiClient } from '@/app/apiClient';
+import { ApiClient, unwrap } from '@/app/apiClient';
 import { AuthStorage } from './storage';
-import { Roles } from './types';
-
-interface AuthResponse {
-  success: boolean;
-  message?: string;
-}
+import { AuthResponse, Roles, User } from './types';
 
 interface WhoAmIResponse {
   id: string;
   role: number;
 }
 
-export class AuthService {
-  private apiClient: ApiClient;
+const toUser = (response: WhoAmIResponse): User => ({
+  id: response.id,
+  role: response.role as Roles,
+});
 
-  constructor(onUnauthorized: () => void) {
-    this.apiClient = new ApiClient(onUnauthorized);
-  }
+export class AuthService {
+  constructor(private readonly apiClient: ApiClient) {}
 
   async signIn(
     email: string,
     password: string,
     turnstileToken?: string | null
   ): Promise<AuthResponse> {
+    // 401 тут — няправільны пароль, а не пратэрмінаваная сэсія: не перанакіроўваем
     const response = await this.apiClient.post<WhoAmIResponse>(
       '/auth/sign-in',
-      {
-        email,
-        password,
-        turnstileToken,
-      }
+      { email, password, turnstileToken },
+      { skipUnauthorizedRedirect: true }
     );
 
     if (response.data) {
-      // Захоўваем інфармацыю пра карыстальніка ў localStorage
-      AuthStorage.set({
-        id: response.data.id,
-        role: response.data.role as Roles,
-      });
+      AuthStorage.set(toUser(response.data));
       return { success: true };
     }
 
@@ -53,17 +43,9 @@ export class AuthService {
       };
     }
 
-    // Калі ёсць памылка з сервера, выкарыстоўваем яе
-    if (response.error) {
-      return {
-        success: false,
-        message: response.error,
-      };
-    }
-
     return {
       success: false,
-      message: 'Памылка ўваходу ў сістэму',
+      message: response.error || 'Памылка ўваходу ў сістэму',
     };
   }
 
@@ -72,33 +54,44 @@ export class AuthService {
     AuthStorage.clear();
   }
 
+  // Праверка сэсіі на сэрвэры; пры 401 ApiClient ачышчае кэш, але не перанакіроўвае
   async checkAuthStatus(): Promise<boolean> {
     const response = await this.apiClient.get<WhoAmIResponse>(
       '/auth/who-am-i',
-      {},
-      true
-    ); // skipUnauthorizedRedirect = true
+      { skipUnauthorizedRedirect: true }
+    );
 
-    if (response.data) {
-      // Абнаўляем інфармацыю пра карыстальніка
-      AuthStorage.set({
-        id: response.data.id,
-        role: response.data.role as Roles,
-      });
-      return true;
-    }
+    if (!response.data) return false;
 
-    // Калі 401, ачысціць localStorage (гэта ўжо зроблена ў ApiClient)
-    return false;
+    AuthStorage.set(toUser(response.data));
+    return true;
   }
 
-  getCurrentUser() {
-    return AuthStorage.get();
+  async forgotPassword(
+    email: string,
+    turnstileToken: string | null
+  ): Promise<void> {
+    unwrap(
+      await this.apiClient.post('/auth/forgot-password', {
+        email,
+        turnstileToken,
+      })
+    );
   }
 
-  isAuthenticated(): boolean {
-    return AuthStorage.isAuthenticated();
+  async resetPassword(
+    email: string,
+    token: string,
+    newPassword: string,
+    turnstileToken: string | null
+  ): Promise<void> {
+    unwrap(
+      await this.apiClient.post('/auth/reset-password', {
+        email,
+        token,
+        newPassword,
+        turnstileToken,
+      })
+    );
   }
 }
-
-// Экспарт класа, а не экземпляра
