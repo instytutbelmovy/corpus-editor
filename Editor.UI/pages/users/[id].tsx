@@ -18,20 +18,12 @@ export default function EditUserPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
 
-  // Бэкенд ня мае GET /users/{id} — шукаем карыстальніка ў поўным сьпісе
   useEffect(() => {
     if (typeof id !== 'string') return;
 
     serviceLocator.userService
-      .fetchUsers()
-      .then(users => {
-        const found = users.find(u => u.id === id);
-        if (found) {
-          setUser(found);
-        } else {
-          setLoadError('Карыстальнік не знойдзены');
-        }
-      })
+      .fetchUser(id)
+      .then(setUser)
       .catch(err => setLoadError(errorMessage(err)));
   }, [id]);
 

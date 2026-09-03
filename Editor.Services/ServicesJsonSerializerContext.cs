@@ -22,6 +22,7 @@ namespace Editor.Services;
 [JsonSerializable(typeof(ResetPasswordRequest))]
 // Users
 [JsonSerializable(typeof(IEnumerable<EditorUserDto>))]
+[JsonSerializable(typeof(EditorUserDto))]
 [JsonSerializable(typeof(EditorUserCreateDto))]
 [JsonSerializable(typeof(InviteUserRequest))]
 // Grammar

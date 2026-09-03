@@ -8,6 +8,10 @@ export class UserService {
     return unwrap(await this.apiClient.get<EditorUserDto[]>('/users'));
   }
 
+  async fetchUser(id: string): Promise<EditorUserDto> {
+    return unwrap(await this.apiClient.get<EditorUserDto>(`/users/${id}`));
+  }
+
   async createUser(userData: EditorUserCreateDto): Promise<EditorUserDto> {
     return unwrap(await this.apiClient.post<EditorUserDto>('/users', userData));
   }
