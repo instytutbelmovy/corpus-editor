@@ -8,6 +8,8 @@ interface AuthState {
   // true, пакуль не вядома ні з кэшу, ні з сэрвэра, ці ўвайшоў карыстальнік
   isLoading: boolean;
   user: User | null;
+  // true пасьля яўнага выхаду (кнопка "Выйсьці") — аднаразовы сыгнал для _app.tsx, каб не дадаваць returnTo да /sign-in, у адрозьненьне ад страты сэсіі (401)
+  explicitSignOut: boolean;
 
   signIn: (
     email: string,
@@ -24,6 +26,7 @@ export const useAuthStore = create<AuthState>(set => ({
   isAuthenticated: false,
   isLoading: true,
   user: null,
+  explicitSignOut: false,
 
   signIn: async (email, password, turnstileToken) => {
     const result = await serviceLocator.authService.signIn(
@@ -39,7 +42,7 @@ export const useAuthStore = create<AuthState>(set => ({
 
   signOut: async () => {
     await serviceLocator.authService.signOut();
-    set({ isAuthenticated: false, user: null });
+    set({ isAuthenticated: false, user: null, explicitSignOut: true });
   },
 
   checkAuthStatus: async () => {

@@ -11,11 +11,12 @@ import * as Sentry from '@sentry/react';
 
 const publicPages = ['/sign-in', '/forgot-password', '/reset-password'];
 
-// Перанакіраваньне на ўваход з захаваньнем returnTo. Рэгіструецца пры загрузцы модуля,
-// бо эфэкты дачэрніх старонак (і іх запыты) выконваюцца раней за эфэкты _app.
-function redirectToSignIn() {
+// Перанакіраваньне на ўваход, з захаваньнем returnTo пры страце сэсіі (але не пасьля яўнага выхаду - гл. explicitSignOut).
+// Рэгіструецца пры загрузцы модуля, бо эфэкты дачэрніх старонак (і іх запыты) выконваюцца раней за эфэкты _app.
+function redirectToSignIn(preserveReturnTo = true) {
   const currentPath = Router.asPath;
   const keepReturnTo =
+    preserveReturnTo &&
     !currentPath.startsWith('/sign-in') &&
     !currentPath.includes('returnTo=') &&
     isValidReturnUrl(currentPath);
@@ -30,8 +31,13 @@ serviceLocator.setUnauthorizedHandler(redirectToSignIn);
 
 export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
-  const { isAuthenticated, isLoading, checkAuthStatus, hydrateFromCache } =
-    useAuthStore();
+  const {
+    isAuthenticated,
+    isLoading,
+    explicitSignOut,
+    checkAuthStatus,
+    hydrateFromCache,
+  } = useAuthStore();
   const authCheckStarted = useRef(false);
   const isPublicPage = publicPages.includes(router.pathname);
 
@@ -50,9 +56,10 @@ export default function App({ Component, pageProps }: AppProps) {
   // Перанакіроўка на старонку ўваходу, калі карыстальнік не аўтэнтыфікаваны
   useEffect(() => {
     if (!isLoading && !isAuthenticated && !isPublicPage) {
-      redirectToSignIn();
+      redirectToSignIn(!explicitSignOut);
+      if (explicitSignOut) useAuthStore.setState({ explicitSignOut: false });
     }
-  }, [isAuthenticated, isLoading, isPublicPage]);
+  }, [isAuthenticated, isLoading, isPublicPage, explicitSignOut]);
 
   return (
     <>
