@@ -3,17 +3,20 @@ using System;
 using Editor.DB;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Editor.Migrations.Grammar
+namespace Editor.DB.Migrations.Grammar
 {
     [DbContext(typeof(GrammarDbContext))]
-    partial class GrammarDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260904165305_AddGrammarSearchIndexes")]
+    partial class AddGrammarSearchIndexes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

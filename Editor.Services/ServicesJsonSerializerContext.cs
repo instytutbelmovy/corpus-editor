@@ -8,7 +8,7 @@ using Editor.Services.Users;
 namespace Editor.Services;
 
 /// <summary> Сэрыялізацыя DTO слою сэрвісаў для HTTP-адказаў API (Editing, Registry, Auth, Users, Grammar).
-/// Асобны ад Editor.DB.GrammarJsonSerializerContext (той — snake_case для jsonb варыянтаў у базе). </summary>
+/// Асобны ад Editor.DB.GrammarJsonSerializerContext (той - snake_case для jsonb варыянтаў у базе). </summary>
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 // Editing / Registry
 [JsonSerializable(typeof(ICollection<CorpusDocumentHeader>))]
@@ -29,7 +29,7 @@ namespace Editor.Services;
 [JsonSerializable(typeof(ParadigmCreateVm))]
 [JsonSerializable(typeof(ParadigmResponse))]
 [JsonSerializable(typeof(CreatedParadigmResponse))]
-[JsonSerializable(typeof(List<ParadigmSummaryResponse>))]
+[JsonSerializable(typeof(List<ParadigmResponse>))]
 public partial class ServicesJsonSerializerContext : JsonSerializerContext
 {
 }

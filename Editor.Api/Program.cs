@@ -116,7 +116,7 @@ static void ConfigureServices(WebApplicationBuilder builder)
         options.KnownProxies.Clear();
 
         // Only trust X-Forwarded-* from these proxy networks (comma-separated CIDRs, e.g. "10.0.0.0/8, 172.16.0.0/12").
-        // When empty, no source filtering is applied and all hops are trusted — set this in production to the reverse-proxy subnet(s).
+        // When empty, no source filtering is applied and all hops are trusted - set this in production to the reverse-proxy subnet(s).
         var knownNetworks = builder.Configuration["ForwardedHeaders:KnownNetworks"];
         if (!string.IsNullOrWhiteSpace(knownNetworks))
             foreach (var cidr in knownNetworks.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))

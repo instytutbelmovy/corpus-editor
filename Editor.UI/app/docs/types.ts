@@ -90,7 +90,7 @@ export interface WordPosition {
   wordIndex: number;
 }
 
-// Пазыцыя разам з concurrency stamp'амі абзаца і сказа — адрас для API
+// Пазыцыя разам з concurrency stamp'амі абзаца і сказа - адрас для API
 export interface WordRef extends WordPosition {
   paragraphStamp: string;
   sentenceStamp: string;

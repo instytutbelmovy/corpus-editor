@@ -3,7 +3,7 @@ import { ReactNode, useState } from 'react';
 export interface HoverMenuItem {
   label: string;
   onClick: () => void;
-  // Чырвоны пункт — выдаленьне ці аб'яднаньне
+  // Чырвоны пункт - выдаленьне ці аб'яднаньне
   danger?: boolean;
   // Падсьвечвае маркер чырвоным, пакуль курсор на пункце
   highlightMarkerOnHover?: boolean;

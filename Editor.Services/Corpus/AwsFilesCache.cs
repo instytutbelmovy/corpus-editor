@@ -87,7 +87,7 @@ public class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache>? logge
                 await documentLock.WaitAsync();
                 try
                 {
-                    // The listing may predate a concurrent upload — only drop documents actually gone from storage
+                    // The listing may predate a concurrent upload - only drop documents actually gone from storage
                     if (await storage.Exists($"{id}.verti"))
                         continue;
                     _documentHeaders.TryRemove(id, out _);
@@ -166,7 +166,7 @@ public class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache>? logge
         {
             if (_documents.TryGetValue(header.N, out var cached))
             {
-                // The cached copy is newer than what our reader sees — compute from it and flush it
+                // The cached copy is newer than what our reader sees - compute from it and flush it
                 cached.CorpusDocument.Header.PercentCompletion = cached.CorpusDocument.ComputeCompletion();
                 header.PercentCompletion = cached.CorpusDocument.Header.PercentCompletion;
                 await storage.Write($"{header.N}.verti", cached.CorpusDocument);
@@ -217,7 +217,7 @@ public class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache>? logge
         }
         catch
         {
-            // The lock is handed over to the wrapper only on success — a failed load must not keep it forever
+            // The lock is handed over to the wrapper only on success - a failed load must not keep it forever
             documentLock.Release();
             throw;
         }
@@ -322,7 +322,7 @@ public class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache>? logge
         }
         catch
         {
-            // The caller has already applied its changes in memory — make sure the maintenance cycle retries the upload
+            // The caller has already applied its changes in memory - make sure the maintenance cycle retries the upload
             document.HasPendingChanges = true;
             throw;
         }

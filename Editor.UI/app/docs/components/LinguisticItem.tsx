@@ -92,7 +92,7 @@ export const LinguisticItem = memo(function LinguisticItem({
     );
   }
 
-  // Аранжавы фон — слова яшчэ не разьмечана, сіні з пульсацыяй — захоўваецца.
+  // Аранжавы фон - слова яшчэ не разьмечана, сіні з пульсацыяй - захоўваецца.
   // У рэжыме структуры разьметка не паказваецца.
   let backgroundClasses = 'bg-transparent';
   if (isWord && !isStructureEditingMode) {

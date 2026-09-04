@@ -1,6 +1,6 @@
 namespace Editor.Domain.Grammar;
 
-/// <summary> Зваротны індэкс ГрамБазы: нармалізаваная форма → кандыдат (парадыгма, варыянт, тэг формы) </summary>
+/// <summary> Зваротны індэкс ГрамБазы: нармалізаваная форма -> кандыдат (парадыгма, варыянт, тэг формы) </summary>
 public class Form
 {
     public required string NormalizedForm { get; set; }

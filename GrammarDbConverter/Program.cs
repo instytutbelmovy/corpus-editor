@@ -103,10 +103,13 @@ public class GrammarDbConverter
                 throw new InvalidOperationException(
                     $"Апстрым pdgId {paradigmId} трапляе ў зарэзэрваваны лакальны дыяпазон (>= {GrammarIds.LocalParadigmIdBase}); імпарт спынены.");
 
+            var rawLemma = paradigmElement.Attribute("lemma")?.Value ?? "";
             var paradigm = new Paradigm
             {
                 ParadigmId = paradigmId,
-                Lemma = Normalizer.NormalizeTypographicStress(paradigmElement.Attribute("lemma")?.Value ?? ""),
+                Lemma = Normalizer.NormalizeTypographicStress(rawLemma),
+                // Ключ прэфікснага пошуку - з зыходнай лемы, як і нармалізаваныя формы
+                LemmaNormalized = Normalizer.GrammarDbSearchNormalize(rawLemma),
                 Tag = paradigmTag,
                 Meaning = paradigmMeaning,
             };
@@ -165,13 +168,14 @@ public class GrammarDbConverter
     private async Task CopyParadigmsAsync(NpgsqlConnection connection, IEnumerable<Paradigm> paradigms)
     {
         await using var writer = await connection.BeginBinaryImportAsync(
-            "COPY paradigms (paradigm_id, lemma, tag, meaning, variants, source) FROM STDIN (FORMAT BINARY)");
+            "COPY paradigms (paradigm_id, lemma, lemma_normalized, tag, meaning, variants, source) FROM STDIN (FORMAT BINARY)");
 
         foreach (var paradigm in paradigms)
         {
             await writer.StartRowAsync();
             await writer.WriteAsync(paradigm.ParadigmId, NpgsqlDbType.Integer);
             await writer.WriteAsync(paradigm.Lemma, NpgsqlDbType.Text);
+            await writer.WriteAsync(paradigm.LemmaNormalized, NpgsqlDbType.Text);
             await writer.WriteAsync(paradigm.Tag, NpgsqlDbType.Text);
             if (paradigm.Meaning == null)
                 await writer.WriteNullAsync();

@@ -20,7 +20,7 @@ export class AuthService {
     password: string,
     turnstileToken?: string | null
   ): Promise<AuthResponse> {
-    // 401 тут — няправільны пароль, а не пратэрмінаваная сэсія: не перанакіроўваем
+    // 401 тут - няправільны пароль, а не пратэрмінаваная сэсія: не перанакіроўваем
     const response = await this.apiClient.post<WhoAmIResponse>(
       '/auth/sign-in',
       { email, password, turnstileToken },

@@ -87,7 +87,7 @@ describe('findNextUnresolvedWord', () => {
     expect(findNextUnresolvedWord(data, at(1))).toBeNull();
   });
 
-  test('усе словы разьмечаныя — няма куды ісьці', () => {
+  test('усе словы разьмечаныя - няма куды ісьці', () => {
     const data = documentOf([word('адзін', true), word('два', true)]);
 
     expect(findNextUnresolvedWord(data, at(0))).toBeNull();

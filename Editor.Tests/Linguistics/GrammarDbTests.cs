@@ -6,7 +6,7 @@ namespace Editor.Tests.Linguistics;
 public class GrammarDbTests
 {
     // "кот" і "ката" ужо ў нармалізаваным выглядзе (малыя літары, без націску), таму
-    // GrammarDbAggressiveNormalize пакідае іх без зьменаў — ключы супадаюць з зыходнымі словамі.
+    // GrammarDbAggressiveNormalize пакідае іх без зьменаў - ключы супадаюць з зыходнымі словамі.
     private static readonly FormMatch KotNoun = new(1, "a", "NMSNN", "кот", "NMS", "жывёла");
     private static readonly FormMatch KataGen = new(1, "a", "NMSGN", "кот", "NMS", "жывёла");
     private static readonly FormMatch KataOther = new(2, "a", "NFSNN", "ката", "NFS", null);
@@ -30,7 +30,7 @@ public class GrammarDbTests
         Assert.Equal(await new GrammarDb(Repo()).LookupWord("ката"), batch["ката"]);
         Assert.Empty(batch["невядома"]);
 
-        // Тры словы — адзін зварот да базы, а не тры
+        // Тры словы - адзін зварот да базы, а не тры
         Assert.Equal(1, repo.BatchCallCount);
         Assert.Equal(0, repo.SingleCallCount);
     }

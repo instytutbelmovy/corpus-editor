@@ -4,9 +4,14 @@ namespace Editor.Domain.Grammar;
 public class Paradigm
 {
     public int ParadigmId { get; set; }
-    /// <summary> Лема ўзроўню парадыгмы (даведачная; лема варыянту — у Variants) </summary>
+    /// <summary> Лема ўзроўню парадыгмы (даведачная; лема варыянту - у Variants) </summary>
     public required string Lemma { get; set; }
-    /// <summary> Неапрацаваны тэг узроўню парадыгмы (даведачны; эфэктыўны тэг — у Variants) </summary>
+    /// <summary>
+    /// Лема ў выглядзе ключа пошуку (Normalizer.GrammarDbSearchNormalize) - калёнка пад прэфіксны індэкс.
+    /// Запаўняецца на кожным запісе: канвэртэрам для апстрыму, GrammarEditRepository для лакальных парадыгмаў.
+    /// </summary>
+    public string LemmaNormalized { get; set; } = "";
+    /// <summary> Неапрацаваны тэг узроўню парадыгмы (даведачны; эфэктыўны тэг - у Variants) </summary>
     public required string Tag { get; set; }
     public string? Meaning { get; set; }
     public List<ParadigmVariant> Variants { get; set; } = [];

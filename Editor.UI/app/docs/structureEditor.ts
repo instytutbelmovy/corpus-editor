@@ -7,7 +7,7 @@ import {
 } from './types';
 
 // Чыстыя аперацыі над структурай дакумэнта: кожная вяртае новы DocumentData.
-// Апэрацыі для бэкенду не будуюцца тут — store вылічвае іх дыфам пры захаваньні.
+// Апэрацыі для бэкенду не будуюцца тут - store вылічвае іх дыфам пры захаваньні.
 
 const findParagraph = (data: DocumentData, paragraphId: number): Paragraph => {
   const paragraph = data.paragraphs.find(p => p.id === paragraphId);
@@ -157,7 +157,7 @@ export const StructureEditor = {
     return newData;
   },
 
-  // splitIndex — індэкс апошняга элемэнта першага сказа
+  // splitIndex - індэкс апошняга элемэнта першага сказа
   splitSentence: (
     data: DocumentData,
     paragraphId: number,
@@ -209,7 +209,7 @@ export const StructureEditor = {
     return newData;
   },
 
-  // sentenceId — першы сказ новага абзаца
+  // sentenceId - першы сказ новага абзаца
   splitParagraph: (
     data: DocumentData,
     paragraphId: number,
@@ -309,7 +309,7 @@ function patchItem(
   return newData;
 }
 
-// Нумары абзацаў — гэта іх пазыцыі, таму пасьля ўстаўкі/выдаленьня іх трэба зрушыць
+// Нумары абзацаў - гэта іх пазыцыі, таму пасьля ўстаўкі/выдаленьня іх трэба зрушыць
 function shiftParagraphIds(
   data: DocumentData,
   fromIndex: number,

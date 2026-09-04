@@ -13,7 +13,7 @@ export interface RequestOptions {
 
 type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
-// ApiClient сам не кідае памылак — гэта робяць сэрвісы праз unwrap.
+// ApiClient сам не кідае памылак - гэта робяць сэрвісы праз unwrap.
 export function unwrap<T>(response: ApiResponse<T>): T {
   if (response.error) {
     throw new Error(response.error);
@@ -100,7 +100,7 @@ export class ApiClient {
   }
 }
 
-// Бэкенд аддае ErrorResponse { code, message }; без цела (напр. 429 ад rate limiter) — код статусу
+// Бэкенд аддае ErrorResponse { code, message }; без цела (напр. 429 ад rate limiter) - код статусу
 async function readErrorMessage(response: Response): Promise<string> {
   try {
     const { message } = await response.json();

@@ -31,8 +31,8 @@ interface DocumentState {
   historyIndex: number;
 
   // Стан загрузкі.
-  // error — толькі фатальная памылка першай загрузкі: замяняе старонку.
-  // actionError — нефатальная (захаваньне структуры, дагрузка абзацаў): банэр па-над дакумэнтам.
+  // error - толькі фатальная памылка першай загрузкі: замяняе старонку.
+  // actionError - нефатальная (захаваньне структуры, дагрузка абзацаў): банэр па-над дакумэнтам.
   loading: boolean;
   loadingMore: boolean;
   error: string | null;
@@ -152,7 +152,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
           historyIndex: -1,
         });
       } else {
-        // Усе здымкі дакумэнта мусяць апісваць адно і тое ж загружанае акно: інакш дыф па stamp'ах прыдумае Create для дагружаных абзацаў (а пасьля undo — Delete).
+        // Усе здымкі дакумэнта мусяць апісваць адно і тое ж загружанае акно: інакш дыф па stamp'ах прыдумае Create для дагружаных абзацаў (а пасьля undo - Delete).
         set(state => {
           if (!state.documentData) {
             return {
@@ -170,7 +170,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 
           return {
             documentData: append(state.documentData, data.paragraphs),
-            // Арыгінал усюды трымаецца глыбокай копіяй — не пачынаем дзяліць абзацы з жывым дрэвам
+            // Арыгінал усюды трымаецца глыбокай копіяй - не пачынаем дзяліць абзацы з жывым дрэвам
             originalDocumentData: state.originalDocumentData
               ? append(
                   state.originalDocumentData,
@@ -470,7 +470,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     if (!documentData) return;
 
     const newDocumentData = editor(documentData);
-    // Некаторыя апэрацыі StructureEditor — no-op (напр. злучэньне апошняга абзаца): вяртаюць той самы аб'ект
+    // Некаторыя апэрацыі StructureEditor - no-op (напр. злучэньне апошняга абзаца): вяртаюць той самы аб'ект
     if (newDocumentData === documentData) return;
 
     // Пасьля undo новае рэдагаваньне абразае «будучыню»
@@ -491,7 +491,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 }));
 
 // Дыф абзацаў па concurrencyStamp: што стварыць, што абнавіць, што выдаліць.
-// paragraphId у апэрацыі — гэта пазыцыя ў дакумэнце, які будуецца бэкендам.
+// paragraphId у апэрацыі - гэта пазыцыя ў дакумэнце, які будуецца бэкендам.
 function calculateOperations(
   original: DocumentData,
   current: DocumentData
@@ -511,7 +511,7 @@ function calculateOperations(
     const origIdx = originalIndexByStamp.get(currentP.concurrencyStamp);
 
     if (origIdx === undefined || origIdx < virtualIndex) {
-      // Няма ў астатку арыгінала — новы абзац
+      // Няма ў астатку арыгінала - новы абзац
       operations.push({
         paragraphId: i + 1,
         operationType: OperationType.Create,

@@ -47,7 +47,7 @@ export default function SignIn() {
     ? `/api/auth/google/login?returnTo=${encodeURIComponent(safeReturnTo)}`
     : '/api/auth/google/login';
 
-  // Калі ёсьць лакальны кэш — правяраем сэсію на сэрвэры і, калі яна жывая, ідзем далей.
+  // Калі ёсьць лакальны кэш - правяраем сэсію на сэрвэры і, калі яна жывая, ідзем далей.
   // Чакаем router.isReady: да яго query пусты і returnTo быў бы згублены.
   useEffect(() => {
     if (!router.isReady || !AuthStorage.get()) return;

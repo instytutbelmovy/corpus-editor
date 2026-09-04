@@ -8,7 +8,7 @@ interface UseDebouncedSaveOptions {
   delayMs: number;
 }
 
-// Адкладзенае захаваньне трымае ключ і апрацоўшчык таго слова, у якім тэкст быў набраны — інакш яно трапіць у наступнае выбранае слова
+// Адкладзенае захаваньне трымае ключ і апрацоўшчык таго слова, у якім тэкст быў набраны - інакш яно трапіць у наступнае выбранае слова
 interface PendingSave {
   key: string;
   value: string;
@@ -23,7 +23,7 @@ export function useDebouncedSave({
   delayMs,
 }: UseDebouncedSaveOptions) {
   const [value, setValue] = useState(initialValue);
-  // Ключ слова, чыё захаваньне зараз ляціць на сэрвэр — паказвае «Захоўваецца…» толькі яго слову
+  // Ключ слова, чыё захаваньне зараз ляціць на сэрвэр - паказвае «Захоўваецца…» толькі яго слову
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const lastSavedRef = useRef(initialValue);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -32,7 +32,7 @@ export function useDebouncedSave({
   const onSaveRef = useRef(onSave);
   onSaveRef.current = onSave;
 
-  // Захаваць адкладзенае зараз — перад пераходам на іншае слова ці закрыцьцём панэлі
+  // Захаваць адкладзенае зараз - перад пераходам на іншае слова ці закрыцьцём панэлі
   const flush = useCallback(async () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);

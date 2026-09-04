@@ -153,3 +153,48 @@ describe('parseLinguisticTag', () => {
     expect(categories.participleForm).toBe('кароткая форма');
   });
 });
+
+describe("parseLinguisticTag, вобласьць 'form'", () => {
+  test('назоўнік: толькі склон і лік, без катэгорый парадыгмы', () => {
+    const tag = { paradigmTag: 'NCIP.M1', formTag: 'NS' };
+    const categories = parseLinguisticTag(tag, 'form');
+
+    expect(categories.case).toBe('назоўны');
+    expect(categories.number).toBe('адзіночны');
+    expect(categories.partOfSpeech).toBeNull();
+    expect(categories.properName).toBeNull();
+    expect(categories.animacy).toBeNull();
+    expect(categories.gender).toBeNull();
+    expect(categories.declension).toBeNull();
+  });
+
+  test('назоўнік з родам формы: род формы застаецца, род парадыгмы не', () => {
+    const tag = { paradigmTag: 'NCIP.S1', formTag: 'MNS' };
+    const categories = parseLinguisticTag(tag, 'form');
+
+    expect(categories.formGender).toBe('мужчынскі');
+    expect(categories.case).toBe('назоўны');
+    expect(categories.number).toBe('адзіночны');
+    expect(categories.gender).toBeNull();
+  });
+
+  test('дзеяслоў у прошлым часе: час, род і лік', () => {
+    const tag = { paradigmTag: 'VTMN1..', formTag: 'PMS' };
+    const categories = parseLinguisticTag(tag, 'form');
+
+    expect(categories.verbTense).toBe('прошлы');
+    expect(categories.gender).toBe('мужчынскі');
+    expect(categories.number).toBe('адзіночны');
+    expect(categories.verbTransitivity).toBeNull();
+    expect(categories.verbAspect).toBeNull();
+    expect(categories.verbConjugation).toBeNull();
+  });
+
+  test('нязьменная частка мовы: катэгорый формы няма', () => {
+    const tag = { paradigmTag: 'CS....', formTag: null };
+    const categories = parseLinguisticTag(tag, 'form');
+
+    expect(categories.partOfSpeech).toBeNull();
+    expect(categories.conjunctionType).toBeNull();
+  });
+});

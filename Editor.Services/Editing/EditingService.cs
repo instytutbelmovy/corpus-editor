@@ -24,7 +24,7 @@ public class EditingService(IGrammarDb grammarDb, IAwsFilesCache awsFilesCache) 
     public async Task<CorpusDocumentView> GetDocument(int n, int skipUpToId = 0, int take = 20)
     {
         var corpusDocument = await awsFilesCache.GetFileForRead(n);
-        // Single snapshot of the list — a concurrent edit swaps the reference, but never mutates it
+        // Single snapshot of the list - a concurrent edit swaps the reference, but never mutates it
         var paragraphs = corpusDocument.Paragraphs;
         var pageParagraphs = paragraphs
             .SkipWhile(x => x.Id <= skipUpToId)

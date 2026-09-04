@@ -36,7 +36,7 @@ export type CategoryKey =
 
 export type LinguisticCategories = Record<CategoryKey, string | null>;
 
-// Коды катэгорый ня трэба паказваць у сьпісе варыянтаў — толькі ў ручным уводзе
+// Коды катэгорый ня трэба паказваць у сьпісе варыянтаў - толькі ў ручным уводзе
 interface CodeOption {
   value: string;
   label: string;
@@ -99,7 +99,7 @@ export const CATEGORY_LABELS: Record<CategoryKey, string> = {
 const options = (entries: Record<string, string>): CodeOption[] =>
   Object.entries(entries).map(([value, label]) => ({ value, label }));
 
-// Пазыцыя роду ў парадыгме (N: адзін код на ўвесь лемы) і ў форме (N: код на канкрэтную словаформу) — розныя катэгорыі, але адны і тыя ж коды
+// Пазыцыя роду ў парадыгме (N: адзін код на ўвесь лемы) і ў форме (N: код на канкрэтную словаформу) - розныя катэгорыі, але адны і тыя ж коды
 const GENDER_LABELS: Record<string, string> = {
   M: 'мужчынскі',
   F: 'жаночы',
@@ -284,7 +284,7 @@ const positional = (keys: CategoryKey[]): FormCodec => ({
 
 const FORM_SCHEMA: Record<string, FormCodec> = {
   // Назоўнік: два сымбалі (склон, лік) або тры (род формы, склон, лік).
-  // Род формы — асобная катэгорыя ад роду парадыгмы: субстантываваныя і множналікавыя
+  // Род формы - асобная катэгорыя ад роду парадыгмы: субстантываваныя і множналікавыя
   // назоўнікі маюць адзін род для лемы (парадыгмы) і другі для канкрэтнай словаформы.
   N: {
     keys: ['formGender', 'case', 'number'],
@@ -385,12 +385,24 @@ export function categoryOptions(
     .filter((option): option is CodeOption => option !== undefined);
 }
 
-// Тэг → коды катэгорый (тое, што трэба ручному ўводу)
-export function parseTagCodes(tag: LinguisticTag): Codes {
+// 'all' - часьціна мовы, катэгорыі парадыгмы і формы разам;
+// 'form' - толькі катэгорыі самой словаформы
+export type TagScope = 'all' | 'form';
+
+// Тэг -> коды катэгорый (тое, што трэба ручному ўводу)
+export function parseTagCodes(
+  tag: LinguisticTag,
+  scope: TagScope = 'all'
+): Codes {
   const partOfSpeech = tag.paradigmTag?.[0];
   if (!partOfSpeech || EMPTY_CODES.includes(partOfSpeech)) {
     return {};
   }
+
+  const formCodes = tag.formTag
+    ? (FORM_SCHEMA[partOfSpeech]?.parse(tag.formTag) ?? {})
+    : {};
+  if (scope === 'form') return formCodes;
 
   return {
     partOfSpeech,
@@ -398,11 +410,11 @@ export function parseTagCodes(tag: LinguisticTag): Codes {
       tag.paradigmTag.slice(1),
       PARADIGM_SCHEMA[partOfSpeech] ?? []
     ),
-    ...(tag.formTag ? FORM_SCHEMA[partOfSpeech]?.parse(tag.formTag) : {}),
+    ...formCodes,
   };
 }
 
-// Коды катэгорый → тэг
+// Коды катэгорый -> тэг
 export function buildTag(partOfSpeech: string, codes: Codes): LinguisticTag {
   if (!partOfSpeech) {
     return { paradigmTag: '', formTag: null };
@@ -415,13 +427,16 @@ export function buildTag(partOfSpeech: string, codes: Codes): LinguisticTag {
   return { paradigmTag, formTag: formTag || null };
 }
 
-// Тэг → назвы катэгорый па-беларуску (для паказу ў сьпісе варыянтаў)
-export function parseLinguisticTag(tag: LinguisticTag): LinguisticCategories {
+// Тэг -> назвы катэгорый па-беларуску (для паказу ў сьпісе варыянтаў)
+export function parseLinguisticTag(
+  tag: LinguisticTag,
+  scope: TagScope = 'all'
+): LinguisticCategories {
   const categories = Object.fromEntries(
     (Object.keys(CATEGORY_LABELS) as CategoryKey[]).map(key => [key, null])
   ) as LinguisticCategories;
 
-  const codes = parseTagCodes(tag);
+  const codes = parseTagCodes(tag, scope);
   for (const [key, code] of Object.entries(codes) as [CategoryKey, string][]) {
     const option = CATEGORY_CODES[key].find(entry => entry.value === code);
     if (option && !option.hideInSummary) {

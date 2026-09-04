@@ -18,7 +18,7 @@ public class AwsFilesCacheTests
         await Assert.ThrowsAsync<IOException>(() => cache.GetFileForWrite(1, markPendingChangesUponCompletion: true).WaitAsync(Timeout));
 
         storage.OnRead = null;
-        // Would deadlock forever before the fix — the failed load never released the document lock
+        // Would deadlock forever before the fix - the failed load never released the document lock
         var document = await cache.GetFileForRead(1).WaitAsync(Timeout);
         Assert.Equal(1, document.Header.N);
     }

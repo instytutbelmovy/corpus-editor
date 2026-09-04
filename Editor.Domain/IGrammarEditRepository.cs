@@ -2,8 +2,6 @@ using Editor.Domain.Grammar;
 
 namespace Editor.Domain;
 
-public record ParadigmSummary(int ParadigmId, string Lemma, string Tag, ParadigmSource Source, bool Hidden);
-
 public record ParadigmDetail(Paradigm Paradigm, bool Hidden);
 
 public interface IGrammarEditRepository
@@ -20,5 +18,6 @@ public interface IGrammarEditRepository
 
     Task<ParadigmDetail?> GetParadigm(int paradigmId, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<ParadigmSummary>> SearchParadigms(string lemmaQuery, int limit, CancellationToken cancellationToken = default);
+    /// <summary> Прэфіксны пошук па леме і па словаформах; вынік - цэлыя парадыгмы, найбольш дарэчныя першымі </summary>
+    Task<IReadOnlyList<ParadigmDetail>> SearchParadigms(string query, int limit, CancellationToken cancellationToken = default);
 }

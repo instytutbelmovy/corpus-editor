@@ -93,7 +93,7 @@ export function EditingPanel({
     setShowManualInput(isManuallyEdited);
   }, [selectedKey, isManuallyEdited]);
 
-  // Пачатковыя значэньні ручнога ўводу — коды з ужо існага тэгу
+  // Пачатковыя значэньні ручнога ўводу - коды з ужо існага тэгу
   const manualValues = useMemo((): ManualInputValues | null => {
     const item = selectedWord?.item;
     if (!item?.linguisticTag || !item.lemma) return null;

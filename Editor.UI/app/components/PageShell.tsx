@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { CloseIcon } from './icons';
 
 interface PageShellProps {
-  // wide — сьпісы і рэдактар, narrow — формы
+  // wide - сьпісы і рэдактар, narrow - формы
   width?: 'wide' | 'narrow';
   // Расьцягвае старонку і карту на ўсю вышыню (рэдактар дакумэнта)
   fullHeight?: boolean;

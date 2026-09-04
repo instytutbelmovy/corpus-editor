@@ -1,4 +1,4 @@
-// Мінімальны localStorage для testEnvironment: node — каб zustand `persist`
+// Мінімальны localStorage для testEnvironment: node - каб zustand `persist`
 // (uiStore) не сыпаў папярэджаньнямі ў тэстах.
 const memoryStorage = new Map<string, string>();
 

@@ -129,7 +129,7 @@ describe('ручны ўвод', () => {
   });
 
   test('займеньнік можа быць нязьменным', () => {
-    // GrammarDB мае парадыгмы кшталту S0S0 — код «0» тут дапушчальны
+    // GrammarDB мае парадыгмы кшталту S0S0 - код «0» тут дапушчальны
     expect(categoryOptions('S', 'inflectionType').map(o => o.value)).toContain(
       '0'
     );
