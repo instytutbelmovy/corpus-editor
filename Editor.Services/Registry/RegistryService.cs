@@ -52,7 +52,7 @@ public class RegistryService(IGrammarDb grammarDb, IAwsFilesCache awsFilesCache)
             ".docx" => new DocxReader(),
             ".epub" => new EpubReader(),
             ".odt" => new OdtReader(),
-            _ => throw new NotSupportedException($"Unsupported file type: {request.FileExtension}")
+            _ => throw new BadRequestException($"Unsupported file type: {request.FileExtension}")
         };
         var paragraphs = DocumentConverter.GetParagraphs(request.Content, reader);
 

@@ -41,9 +41,12 @@ public static class Registry
         if (file == null)
             return Results.BadRequest("'file' not present in the form");
 
+        if (!int.TryParse(form["n"], out var n))
+            return Results.BadRequest("'n' must be an integer");
+
         await using var stream = file.OpenReadStream();
         await registryService.UploadFile(new DocumentUploadRequest(
-            N: Convert.ToInt32(form["n"]),
+            N: n,
             FileExtension: Path.GetExtension(file.FileName),
             Content: stream,
             Title: form["title"].ToString(),

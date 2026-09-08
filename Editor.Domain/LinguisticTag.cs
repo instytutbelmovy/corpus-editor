@@ -72,7 +72,7 @@ public partial record LinguisticTag(
         for (int i = 0; i < maxLen; i++)
         {
             var c1 = i < str1.Length ? str1[i] : Missing[0];
-            var c2 = i < str1.Length ? str1[i] : Missing[0];
+            var c2 = i < str2.Length ? str2[i] : Missing[0];
             result.Append(c1 == c2 ? c1 : Missing[0]);
         }
 

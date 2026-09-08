@@ -84,11 +84,15 @@ public class GrammarDb(IGrammarRepository grammarRepository) : IGrammarDb
             );
         }
 
-        var intersectionParadigmFormId = grammarInfoList
-            .Aggregate<GrammarInfo, ParadigmFormId?>(null, (current, grammarInfo) => current?.IntersectWith(grammarInfo.ParadigmFormId));
+        // Засяваем першым кандыдатам і перасякаем з астатнімі.
+        var intersectionParadigmFormId = grammarInfoList[0].ParadigmFormId;
+        LinguisticTag? intersectionLinguisticTag = grammarInfoList[0].LinguisticTag;
 
-        var intersectionLinguisticTag = grammarInfoList
-            .Aggregate<GrammarInfo, LinguisticTag?>(null, (current, grammarInfo) => current?.IntersectWith(grammarInfo.LinguisticTag));
+        for (var i = 1; i < grammarInfoList.Count; i++)
+        {
+            intersectionParadigmFormId = intersectionParadigmFormId?.IntersectWith(grammarInfoList[i].ParadigmFormId);
+            intersectionLinguisticTag = intersectionLinguisticTag?.IntersectWith(grammarInfoList[i].LinguisticTag);
+        }
 
         var lemmas = grammarInfoList.Select(info => Normalizer.GrammarDbLightNormalize(info.Lemma)).ToHashSet();
         var intersectionLemma = lemmas.Count == 1 ? lemmas.First() : null;
