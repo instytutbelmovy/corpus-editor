@@ -147,6 +147,11 @@ public static class VertiIO
                             ? JsonSerializer.Deserialize(parts[5], VertiJsonSerializerContext.Default.LinguisticItemMetadata)
                             : null;
 
+                        // У файлах, зробленых да зьяўленьня ResolvedBy, поля няма - яно чытаецца як NotResolved.
+                        // Слова пры гэтым вырашанае, проста крыніцу ўжо не аднавіць.
+                        if (metadata is { ResolvedOn: not null, ResolvedBy: ResolutionSource.NotResolved })
+                            metadata = metadata with { ResolvedBy = ResolutionSource.Unknown };
+
                         var item = new LinguisticItem(
                             Text: text,
                             Type: SentenceItemType.Word,
