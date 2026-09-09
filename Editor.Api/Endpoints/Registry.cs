@@ -17,6 +17,9 @@ public static class Registry
         group.MapGet("/{n:int}/download", DownloadFile).Viewer();
         group.MapPost("/refresh", ReloadFilesList).Admin();
         group.MapPost("/{n:int}/refresh", ReloadFile).Admin();
+
+        var jobs = builder.MapGroup("/api/upload-jobs");
+        jobs.MapGet("/{jobId:guid}", GetUploadJob).Editor();
     }
 
     private static ValueTask<ICollection<CorpusDocumentHeader>> GetAllFiles(IRegistryService registryService)
@@ -31,7 +34,13 @@ public static class Registry
     private static Task<IEnumerable<string>> GetAllCorpora(IRegistryService registryService)
         => registryService.GetAllCorpora();
 
-    private static async Task<IResult> UploadFile(HttpRequest request, IRegistryService registryService)
+    /// <summary> Максымальны памер файла. Самы вялікі рэальны зыходнік - раман на 2.5 МБ. </summary>
+    private const long MaxUploadBytes = 50 * 1024 * 1024;
+
+    private static async Task<IResult> UploadFile(
+        HttpRequest request,
+        IRegistryService registryService,
+        IUploadJobQueue uploadJobQueue)
     {
         if (!request.HasFormContentType)
             return Results.BadRequest("Expected multipart/form-data");
@@ -41,22 +50,40 @@ public static class Registry
         if (file == null)
             return Results.BadRequest("'file' not present in the form");
 
+        if (file.Length > MaxUploadBytes)
+            return Results.BadRequest($"Файл завялікі: максымум {MaxUploadBytes / (1024 * 1024)} МБ");
         if (!int.TryParse(form["n"], out var n))
             return Results.BadRequest("'n' must be an integer");
 
-        await using var stream = file.OpenReadStream();
-        await registryService.UploadFile(new DocumentUploadRequest(
-            N: n,
-            FileExtension: Path.GetExtension(file.FileName),
-            Content: stream,
-            Title: form["title"].ToString(),
-            Url: form["url"].ToString(),
-            PublicationDate: form["publicationDate"].ToString(),
-            Type: form["type"].ToString(),
-            Style: form["style"].ToString(),
-            Corpus: form["corpus"].ToString()));
+        var fileExtension = Path.GetExtension(file.FileName);
 
-        return Results.Ok();
+        // Відавочныя памылкі (занятыя нумар, чужое пашырэньне) вяртаем адразу, а не праз хвіліны фонавай апрацоўкі
+        await registryService.PreflightUpload(n, fileExtension);
+
+        var buffer = new MemoryStream();
+        await using (var stream = file.OpenReadStream())
+            await stream.CopyToAsync(buffer);
+        buffer.Position = 0;
+
+        var status = uploadJobQueue.Enqueue(
+            new DocumentUploadRequest(
+                N: n,
+                FileExtension: fileExtension,
+                Content: buffer,
+                Title: form["title"].ToString(),
+                Url: form["url"].ToString(),
+                PublicationDate: form["publicationDate"].ToString(),
+                Type: form["type"].ToString(),
+                Style: form["style"].ToString(),
+                Corpus: form["corpus"].ToString()));
+
+        return Results.Accepted($"/api/upload-jobs/{status.Id}", new UploadJobAccepted(status.Id));
+    }
+
+    private static IResult GetUploadJob(Guid jobId, IUploadJobQueue uploadJobQueue)
+    {
+        var status = uploadJobQueue.TryGetStatus(jobId);
+        return status == null ? Results.NotFound() : Results.Ok(status);
     }
 
     private static async Task<IResult> DownloadFile(int n, IRegistryService registryService)

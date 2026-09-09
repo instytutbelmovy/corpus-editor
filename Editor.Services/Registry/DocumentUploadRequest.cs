@@ -3,7 +3,7 @@ namespace Editor.Services.Registry;
 public record DocumentUploadRequest(
     int N,
     string FileExtension,
-    Stream Content,
+    MemoryStream Content,
     string Title,
     string? Url,
     string? PublicationDate,
