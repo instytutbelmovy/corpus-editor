@@ -9,7 +9,7 @@ public interface IEmailService
     Task SendAsync(EmailMessage message);
 }
 
-public class EmailService : IEmailService
+public partial class EmailService : IEmailService
 {
     private readonly EmailSettings _emailSettings;
     private readonly ILogger<EmailService> _logger;
@@ -30,7 +30,7 @@ public class EmailService : IEmailService
 
     public async Task SendAsync(EmailMessage message)
     {
-        _logger.LogInformation("Sending \"{Subject}\" to \"{To}\"", message.Subject, message.To);
+        LogSendingEmail(message.Subject, message.To);
 
         var url = $"https://api.eu.mailgun.net/v3/{_emailSettings.Domain}/messages";
 
@@ -66,6 +66,9 @@ public class EmailService : IEmailService
             throw new InvalidOperationException($"Failed to send email to {message.To}", e);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Sending \"{Subject}\" to \"{To}\"")]
+    private partial void LogSendingEmail(string subject, string to);
 }
 
 public class EmailMessage

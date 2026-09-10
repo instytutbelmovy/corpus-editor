@@ -4,7 +4,7 @@ using Editor.Services.Exceptions;
 
 namespace Editor.Api.Infrastructure;
 
-public static class ExceptionMiddleware
+public static partial class ExceptionMiddleware
 {
     private static ILogger _logger = null!;
 
@@ -73,24 +73,39 @@ public static class ExceptionMiddleware
 
     private static void LogError(Exception e)
     {
-        _logger.LogError(e, "Unhandled exception");
+        LogUnhandledException(_logger, e);
     }
 
     private static void LogWarning(Exception e, int? statusCode = null)
     {
         if (statusCode.HasValue)
-            _logger.LogWarning("{StatusCode}: {message}", statusCode, e.Message);
+            LogWarningWithStatus(_logger, statusCode.Value, e.Message);
         else
-            _logger.LogWarning(e.Message);
+            LogWarningPlain(_logger, e.Message);
     }
 
     private static void LogInfo(Exception e, int? statusCode = null)
     {
         if (statusCode.HasValue)
-            _logger.LogInformation("{StatusCode}: {message}", statusCode, e.Message);
+            LogInfoWithStatus(_logger, statusCode.Value, e.Message);
         else
-            _logger.LogInformation(e.Message);
+            LogInfoPlain(_logger, e.Message);
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Unhandled exception")]
+    private static partial void LogUnhandledException(ILogger logger, Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{StatusCode}: {Message}")]
+    private static partial void LogWarningWithStatus(ILogger logger, int statusCode, string message);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{Message}")]
+    private static partial void LogWarningPlain(ILogger logger, string message);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{StatusCode}: {Message}")]
+    private static partial void LogInfoWithStatus(ILogger logger, int statusCode, string message);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "{Message}")]
+    private static partial void LogInfoPlain(ILogger logger, string message);
 }
 
 public record ErrorResponse(int Code, string Message);

@@ -2,12 +2,13 @@
 using System.Xml.Linq;
 using Editor.Domain;
 using Editor.Domain.Corpus;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Editor.Services.Corpus;
 
-public static class VertiIO
+public static partial class VertiIO
 {
-    private static ILogger? _logger;
+    private static ILogger _logger = NullLogger.Instance;
     private const string Punct = "PUNCT";
     private const string LineBreakTag = "<lb/>";
     private const string GlueTag = "<g/>";
@@ -46,7 +47,7 @@ public static class VertiIO
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "Error reading file {File}", file);
+                LogErrorReadingFile(_logger, ex, file);
             }
         }
 
@@ -179,7 +180,7 @@ public static class VertiIO
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Error writing file {File}", filePath);
+            LogErrorWritingFile(_logger, ex, filePath);
             throw;
         }
     }
@@ -329,5 +330,11 @@ public static class VertiIO
         var docString = docElement.ToString();
         return docString[..^2] + ">";
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error reading file {File}")]
+    private static partial void LogErrorReadingFile(ILogger logger, Exception exception, string file);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error writing file {File}")]
+    private static partial void LogErrorWritingFile(ILogger logger, Exception exception, string file);
 }
 
