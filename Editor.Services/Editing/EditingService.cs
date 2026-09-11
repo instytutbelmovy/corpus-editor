@@ -24,7 +24,7 @@ public class EditingService(IGrammarDb grammarDb, IAwsFilesCache awsFilesCache) 
     public async Task<CorpusDocumentView> GetDocument(int n, int skipUpToId = 0, int take = 20)
     {
         var corpusDocument = await awsFilesCache.GetFileForRead(n);
-        // Single snapshot of the list — a concurrent edit swaps the reference, but never mutates it
+        // Single snapshot of the list - a concurrent edit swaps the reference, but never mutates it
         var paragraphs = corpusDocument.Paragraphs;
         var pageParagraphs = paragraphs
             .SkipWhile(x => x.Id <= skipUpToId)
@@ -50,8 +50,8 @@ public class EditingService(IGrammarDb grammarDb, IAwsFilesCache awsFilesCache) 
                 Lemma = lemma,
                 LinguisticTag = linguisticTag,
                 Metadata = sentenceItem.Metadata == null
-                    ? new LinguisticItemMetadata(null, today)
-                    : sentenceItem.Metadata with { ResolvedOn = today },
+                    ? new LinguisticItemMetadata(null, today, ResolvedBy: ResolutionSource.Human)
+                    : sentenceItem.Metadata with { ResolvedOn = today, ResolvedBy = ResolutionSource.Human },
             });
     }
 
@@ -68,8 +68,8 @@ public class EditingService(IGrammarDb grammarDb, IAwsFilesCache awsFilesCache) 
             // todo check fullness of linguistic tag and depending on that set ResolvedOn to null or today
             LinguisticTag = LinguisticTag.FromString(lemmaTag.LinguisticTag),
             Metadata = si.Metadata == null
-                ? new LinguisticItemMetadata(null, today)
-                : si.Metadata with { ResolvedOn = today },
+                ? new LinguisticItemMetadata(null, today, ResolvedBy: ResolutionSource.Human)
+                : si.Metadata with { ResolvedOn = today, ResolvedBy = ResolutionSource.Human },
         });
     }
 
@@ -84,9 +84,10 @@ public class EditingService(IGrammarDb grammarDb, IAwsFilesCache awsFilesCache) 
             Text = text,
             Lemma = null,
             LinguisticTag = null,
+            // Тэкст слова зьмяніўся - і разьметка, і падказка да яго ўжо не адносяцца
             Metadata = si.Metadata == null
                 ? null
-                : si.Metadata with { ResolvedOn = null },
+                : si.Metadata with { ResolvedOn = null, ResolvedBy = ResolutionSource.NotResolved, Suggested = null },
         });
 
         return await grammarDb.LookupWord(text);

@@ -36,7 +36,7 @@ public class UserRepository(EditorDbContext db) : IUserRepository
         var newStamp = Guid.NewGuid().ToString();
 
         // Аптымістычная блакіроўка ў WHERE: 0 радкоў = выдалены або несьвежая копія.
-        // Пры NoTracking трэба пералічыць УСЕ калонкі рукамі — гл. каментар у EditorUser.
+        // Пры NoTracking трэба пералічыць УСЕ калонкі рукамі - гл. каментар у EditorUser.
         var rows = await db.Users
             .Where(u => u.Id == user.Id && u.ConcurrencyStamp == user.ConcurrencyStamp)
             .ExecuteUpdateAsync(s => s

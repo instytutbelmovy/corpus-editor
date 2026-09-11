@@ -2,12 +2,13 @@
 using System.Xml.Linq;
 using Editor.Domain;
 using Editor.Domain.Corpus;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Editor.Services.Corpus;
 
-public static class VertiIO
+public static partial class VertiIO
 {
-    private static ILogger? _logger;
+    private static ILogger _logger = NullLogger.Instance;
     private const string Punct = "PUNCT";
     private const string LineBreakTag = "<lb/>";
     private const string GlueTag = "<g/>";
@@ -46,7 +47,7 @@ public static class VertiIO
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "Error reading file {File}", file);
+                LogErrorReadingFile(_logger, ex, file);
             }
         }
 
@@ -147,6 +148,11 @@ public static class VertiIO
                             ? JsonSerializer.Deserialize(parts[5], VertiJsonSerializerContext.Default.LinguisticItemMetadata)
                             : null;
 
+                        // У файлах, зробленых да зьяўленьня ResolvedBy, поля няма - яно чытаецца як NotResolved.
+                        // Слова пры гэтым вырашанае, проста крыніцу ўжо не аднавіць.
+                        if (metadata is { ResolvedOn: not null, ResolvedBy: ResolutionSource.NotResolved })
+                            metadata = metadata with { ResolvedBy = ResolutionSource.Unknown };
+
                         var item = new LinguisticItem(
                             Text: text,
                             Type: SentenceItemType.Word,
@@ -174,7 +180,7 @@ public static class VertiIO
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Error writing file {File}", filePath);
+            LogErrorWritingFile(_logger, ex, filePath);
             throw;
         }
     }
@@ -293,7 +299,8 @@ public static class VertiIO
             Corpus: docXml.Attribute("corpus")?.Value
         )
         {
-            PercentCompletion = int.TryParse(docXml.Attribute("percent_completion")?.Value, out var percentCompletion) ? percentCompletion : null
+            PercentCompletion = int.TryParse(docXml.Attribute("percent_completion")?.Value, out var percentCompletion) ? percentCompletion : null,
+            PosCompletion = int.TryParse(docXml.Attribute("pos_completion")?.Value, out var posCompletion) ? posCompletion : null
         };
         return corpusDocumentHeader;
     }
@@ -320,9 +327,17 @@ public static class VertiIO
             docElement.SetAttributeValue("corpus", header.Corpus);
         if (header.PercentCompletion != null)
             docElement.SetAttributeValue("percent_completion", header.PercentCompletion);
+        if (header.PosCompletion != null)
+            docElement.SetAttributeValue("pos_completion", header.PosCompletion);
 
         var docString = docElement.ToString();
         return docString[..^2] + ">";
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error reading file {File}")]
+    private static partial void LogErrorReadingFile(ILogger logger, Exception exception, string file);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error writing file {File}")]
+    private static partial void LogErrorWritingFile(ILogger logger, Exception exception, string file);
 }
 

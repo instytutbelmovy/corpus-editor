@@ -11,8 +11,8 @@ public static class Grammar
     {
         var group = builder.MapGroup("/api/grammar");
 
-        group.MapGet("/paradigms", SearchParadigms).Editor();
-        group.MapGet("/paradigms/{id:int}", GetParadigm).Editor();
+        group.MapGet("/paradigms", SearchParadigms).Viewer();
+        group.MapGet("/paradigms/{id:int}", GetParadigm).Viewer();
         group.MapPost("/paradigms", CreateParadigm).Validate<ParadigmCreateVm>().Editor();
         group.MapPut("/paradigms/{id:int}", UpdateParadigm).Validate<ParadigmCreateVm>().Editor();
         group.MapDelete("/paradigms/{id:int}", DeleteParadigm).Editor();
@@ -20,7 +20,7 @@ public static class Grammar
         group.MapDelete("/paradigms/{id:int}/hide", UnhideParadigm).Editor();
     }
 
-    private static Task<List<ParadigmSummaryResponse>> SearchParadigms(
+    private static Task<List<ParadigmResponse>> SearchParadigms(
         [FromQuery] string query, IParadigmService paradigmService, CancellationToken cancellationToken)
         => paradigmService.SearchParadigms(query, cancellationToken);
 

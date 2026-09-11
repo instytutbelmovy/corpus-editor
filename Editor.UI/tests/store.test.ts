@@ -3,7 +3,7 @@ import { DocumentData, DocumentHeader } from '@/app/docs/types';
 import { StructureEditor } from '@/app/docs/structureEditor';
 
 // Тэставы дакумэнт нясе лічыльнік `version`, які мок StructureEditor павялічвае
-// на кожнае рэдагаваньне — так відаць, які здымак гісторыі актыўны.
+// на кожнае рэдагаваньне - так відаць, які здымак гісторыі актыўны.
 type VersionedData = DocumentData & { version: number };
 
 jest.mock('@/app/docs/structureEditor', () => ({

@@ -15,3 +15,18 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@keyframes upload-processing-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+.row-processing {
+  background: linear-gradient(90deg, #eff6ff, #dbeafe, #eff6ff);
+  background-size: 200% 100%;
+  animation: upload-processing-shimmer 1.6s linear infinite;
+}

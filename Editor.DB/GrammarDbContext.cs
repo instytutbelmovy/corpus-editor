@@ -13,7 +13,7 @@ public class GrammarDbContext(DbContextOptions<GrammarDbContext> options) : DbCo
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Паслядоўнасьць для лакальных ідэнтыфікатараў — стартуе ў зарэзэрваваным дыяпазоне,
+        // Паслядоўнасьць для лакальных ідэнтыфікатараў - стартуе ў зарэзэрваваным дыяпазоне,
         // вышэй за любы апстрымны pdgId (гл. GrammarIds.LocalParadigmIdBase)
         modelBuilder.HasSequence<int>(GrammarIds.LocalParadigmIdSequence)
             .StartsAt(GrammarIds.LocalParadigmIdBase);
@@ -22,8 +22,10 @@ public class GrammarDbContext(DbContextOptions<GrammarDbContext> options) : DbCo
         {
             b.HasKey(p => p.ParadigmId);
             b.Property(p => p.ParadigmId).ValueGeneratedNever(); // ідэнтыфікатары прыходзяць з XML (pdgId) або з паслядоўнасьці (лакальныя)
-            // enum захоўваецца як int; існуючыя радкі — 'upstream' (0)
+            // enum захоўваецца як int; існуючыя радкі - 'upstream' (0)
             b.Property(p => p.Source).HasDefaultValue(ParadigmSource.Upstream);
+            // text_pattern_ops: btree, прыдатны для LIKE 'прэфікс%' незалежна ад калацыі базы
+            b.HasIndex(p => p.LemmaNormalized).HasOperators("text_pattern_ops");
             // Крыніцагенэраваная (не dynamic) json-серыялізацыя, каб пазбегнуць EnableDynamicJson у Npgsql
             b.Property(p => p.Variants)
                 .HasColumnType("jsonb")
@@ -39,6 +41,8 @@ public class GrammarDbContext(DbContextOptions<GrammarDbContext> options) : DbCo
         {
             b.HasKey(f => new { f.NormalizedForm, f.ParadigmId, f.VariantId, f.FormTag });
             b.Property(f => f.Source).HasDefaultValue(ParadigmSource.Upstream);
+            // Першая калёнка PK ужо пакрывае пошук па роўнасьці; гэты індэкс дадае LIKE 'прэфікс%'
+            b.HasIndex(f => f.NormalizedForm).HasOperators("text_pattern_ops");
         });
         modelBuilder.Entity<HiddenParadigm>(b =>
         {

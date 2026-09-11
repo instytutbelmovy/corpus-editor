@@ -1,4 +1,4 @@
-// Агульныя іконкі. Кожная — той самы SVG, што раней капіяваўся па кампанэнтах.
+// Агульныя іконкі. Кожная - той самы SVG, што раней капіяваўся па кампанэнтах.
 
 interface IconProps {
   className?: string;
@@ -53,10 +53,22 @@ export const RefreshIcon = strokeIcon(
   'w-4 h-4'
 );
 
+export const SparklesIcon = strokeIcon(
+  'M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L20 12l-6.714 2.143L11 21l-2.286-6.857L2 12l6.714-2.143L11 3z'
+);
+
 export const DownloadIcon = strokeIcon(
   'M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
   'w-4 h-4'
 );
+
+export const SearchIcon = strokeIcon(
+  'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z',
+  'w-5 h-5'
+);
+
+// Шэўран глядзіць управа; разгорнуты стан паварочваецца праз rotate-90
+export const ChevronRightIcon = strokeIcon('M9 5l7 7-7 7', 'w-4 h-4');
 
 export const WarningIcon = strokeIcon(
   'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'

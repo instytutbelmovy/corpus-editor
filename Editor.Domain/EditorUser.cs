@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Identity;
 
 namespace Editor.Domain;
 
-// Новую ўласьцівасьць трэба таксама дадаць у сьпіс SetProperty у UserRepository.UpdateAsync —
+// Новую ўласьцівасьць трэба таксама дадаць у сьпіс SetProperty у UserRepository.UpdateAsync -
 // іначай яна проста ніколі ня будзе захоўвацца, моўчкі і безь якой памылкі.
 public class EditorUser : IdentityUser
 {

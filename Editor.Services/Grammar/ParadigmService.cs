@@ -6,7 +6,7 @@ namespace Editor.Services.Grammar;
 
 public interface IParadigmService
 {
-    Task<List<ParadigmSummaryResponse>> SearchParadigms(string query, CancellationToken cancellationToken = default);
+    Task<List<ParadigmResponse>> SearchParadigms(string query, CancellationToken cancellationToken = default);
     Task<ParadigmResponse> GetParadigm(int id, CancellationToken cancellationToken = default);
     Task<CreatedParadigmResponse> CreateParadigm(ParadigmCreateVm createVm, CancellationToken cancellationToken = default);
     Task<ParadigmResponse> UpdateParadigm(int id, ParadigmCreateVm createVm, CancellationToken cancellationToken = default);
@@ -17,14 +17,17 @@ public interface IParadigmService
 
 public class ParadigmService(IGrammarEditRepository grammarEditRepository) : IParadigmService
 {
-    public async Task<List<ParadigmSummaryResponse>> SearchParadigms(string query, CancellationToken cancellationToken = default)
+    /// <summary> Столькі парадыгмаў аддае пошук; фронт паказвае, што вынікі абрэзаныя, калі іх роўна столькі </summary>
+    public const int SearchLimit = 50;
+
+    public async Task<List<ParadigmResponse>> SearchParadigms(string query, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(query))
             throw new BadRequestException("Пусты запыт пошуку");
 
-        var results = await grammarEditRepository.SearchParadigms(query.Trim(), limit: 50, cancellationToken);
+        var results = await grammarEditRepository.SearchParadigms(query.Trim(), SearchLimit, cancellationToken);
         return results
-            .Select(r => new ParadigmSummaryResponse(r.ParadigmId, r.Lemma, r.Tag, r.Source, r.Hidden))
+            .Select(r => ToParadigmResponse(r.Paradigm, r.Hidden))
             .ToList();
     }
 
@@ -67,7 +70,7 @@ public class ParadigmService(IGrammarEditRepository grammarEditRepository) : IPa
     public Task UnhideParadigm(int id, CancellationToken cancellationToken = default)
         => grammarEditRepository.UnhideParadigm(id, cancellationToken);
 
-    // Уваход → сутнасьць: нармалізуем тыпаграфічны націск (як канвэртэр), эфэктыўны тэг варыянту з fallback на тэг парадыгмы
+    // Уваход -> сутнасьць: нармалізуем тыпаграфічны націск (як канвэртэр), эфэктыўны тэг варыянту з fallback на тэг парадыгмы
     private static Paradigm ToParadigm(ParadigmCreateVm createVm, int paradigmId = 0) => new()
     {
         ParadigmId = paradigmId,

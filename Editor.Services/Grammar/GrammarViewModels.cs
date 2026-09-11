@@ -11,7 +11,6 @@ public record ParadigmResponse(int ParadigmId, string Lemma, string Tag, string?
 public record VariantResponse(string Id, string Lemma, string Tag, List<FormResponse> Forms);
 public record FormResponse(string Tag, string Value);
 
-public record ParadigmSummaryResponse(int ParadigmId, string Lemma, string Tag, ParadigmSource Source, bool Hidden);
 public record CreatedParadigmResponse(int ParadigmId);
 
 public class ParadigmCreateVmValidator : AbstractValidator<ParadigmCreateVm>
@@ -26,7 +25,7 @@ public class ParadigmCreateVmValidator : AbstractValidator<ParadigmCreateVm>
             .WithMessage("Ідэнтыфікатары варыянтаў мусяць быць унікальныя");
         RuleForEach(x => x.Variants).ChildRules(v =>
         {
-            // Адна малая літара — каб ParadigmFormId round-trip-аваўся праз рэгэкс [a-z]?
+            // Адна малая літара - каб ParadigmFormId round-trip-аваўся праз рэгэкс [a-z]?
             v.RuleFor(y => y.Id).Matches("^[a-z]$").WithMessage("Id варыянту мусіць быць адной малой лацінскай літарай (a-z)");
             v.RuleFor(y => y.Lemma).NotEmpty().MaximumLength(200);
             v.RuleFor(y => y.Tag).MaximumLength(50);

@@ -31,7 +31,7 @@ interface ParadigmOptionsProps {
 
 const CATEGORY_KEYS = Object.keys(CATEGORY_LABELS) as CategoryKey[];
 
-// Кастомнае (уведзенае ўручную) слова не мае paradigmFormId — параўноўваем лему і тэг
+// Кастомнае (уведзенае ўручную) слова не мае paradigmFormId - параўноўваем лему і тэг
 const isCustomOptionSelected = (
   item: LinguisticItem | null | undefined,
   option: GrammarInfo

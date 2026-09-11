@@ -8,7 +8,7 @@ public static class SecurityHeadersMiddleware
 {
     // Cloudflare Turnstile needs challenges.cloudflare.com (script + frame); the FE Sentry DSN posts
     // to the sentry.io ingest host (connect-src). style-src allows 'unsafe-inline' because the
-    // exported Next.js SPA ships inline styles — tighten to nonces/hashes if the export is later reworked.
+    // exported Next.js SPA ships inline styles - tighten to nonces/hashes if the export is later reworked.
     private const string ContentSecurityPolicy =
         "default-src 'self'; " +
         "base-uri 'self'; " +

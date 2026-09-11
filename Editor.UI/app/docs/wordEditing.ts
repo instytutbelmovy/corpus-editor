@@ -55,7 +55,7 @@ export function toSelectedWord(
   };
 }
 
-// Выбірае слова для панэлі рэдагаваньня. Абодва сторы чытаюцца праз getState, таму гэта звычайная функцыя — кампанэнтам не трэба на іх падпісвацца.
+// Выбірае слова для панэлі рэдагаваньня. Абодва сторы чытаюцца праз getState, таму гэта звычайная функцыя - кампанэнтам не трэба на іх падпісвацца.
 // Вяртае, ці было слова сапраўды знойдзена і выбрана.
 export function selectWord(
   paragraphId: number,
@@ -83,7 +83,7 @@ export function findNextUnresolvedWord(
 ): SelectedWord | null {
   if (!documentData) return null;
 
-  // Першае неразьмечанае слова да бягучага — куды пяройдзем, дайшоўшы да канца
+  // Першае неразьмечанае слова да бягучага - куды пяройдзем, дайшоўшы да канца
   let wrapAround: SelectedWord | null = null;
   let passedCurrent = current === null;
 
@@ -93,7 +93,7 @@ export function findNextUnresolvedWord(
         const item = sentence.sentenceItems[index].linguisticItem;
         if (item.type !== SentenceItemType.Word) continue;
 
-        // Само бягучае слова не прапануем — нават калі яно яшчэ неразьмечанае
+        // Само бягучае слова не прапануем - нават калі яно яшчэ неразьмечанае
         const position = {
           paragraphId: paragraph.id,
           sentenceId: sentence.id,
@@ -182,7 +182,7 @@ export async function saveParadigmFormId(
   const { addPendingSave, removePendingSave, setSaveError } =
     useUIStore.getState();
 
-  // Паўторны выбар той самай парадыгмы — проста ідзем далей, нічога не мяняючы
+  // Паўторны выбар той самай парадыгмы - проста ідзем далей, нічога не мяняючы
   if (paradigmFormIdEquals(word.item.paradigmFormId, paradigmFormId)) {
     goToNextWord(word);
     return;
@@ -237,7 +237,7 @@ export async function updateWordText(
       text
     );
 
-    // Тэкст зьмяніўся — старая разьметка больш не дзейнічае
+    // Тэкст зьмяніўся - старая разьметка больш не дзейнічае
     const clearedItem = (item: LinguisticItem): LinguisticItem => ({
       ...item,
       text,

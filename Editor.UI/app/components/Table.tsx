@@ -30,12 +30,18 @@ export function Th({ children }: { children?: ReactNode }) {
 
 export function Td({
   className = '',
+  colSpan,
   children,
 }: {
   className?: string;
+  colSpan?: number;
   children?: ReactNode;
 }) {
-  return <td className={`px-6 py-4 text-sm ${className}`}>{children}</td>;
+  return (
+    <td className={`px-6 py-4 text-sm ${className}`} colSpan={colSpan}>
+      {children}
+    </td>
+  );
 }
 
 export function Tr({

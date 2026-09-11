@@ -15,7 +15,7 @@ interface UIState {
   isStructureTextEditing: boolean;
 
   // Флагі захаваньня палёў панэлі рэдагаваньня.
-  // Камэнтар — выключэньне: яго флаг вяртае useDebouncedSave, каб трымацца слова
+  // Камэнтар - выключэньне: яго флаг вяртае useDebouncedSave, каб трымацца слова
   isSavingText: boolean;
   isSavingManual: boolean;
   isSavingError: boolean;

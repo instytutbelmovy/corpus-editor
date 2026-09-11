@@ -10,7 +10,7 @@ using GrammarJsonSerializerContext = Editor.DB.GrammarJsonSerializerContext;
 
 namespace GrammarDbConverter;
 
-public class GrammarDbConverter
+public partial class GrammarDbConverter
 {
     private readonly ILogger _logger;
     private readonly string _connectionString;
@@ -23,11 +23,11 @@ public class GrammarDbConverter
 
     public async Task ConvertAsync(string inputDirectory)
     {
-        _logger.LogInformation("Пачынаю канвэртаваньне XML файлаў з дырэкторыі {directory}", inputDirectory);
+        LogStartingConversion(inputDirectory);
 
         // Чытаем усе XML файлы і збіраем даныя
         var xmlFiles = Directory.GetFiles(inputDirectory, "*.xml");
-        _logger.LogInformation("Знойдзена {count} XML файлаў", xmlFiles.Length);
+        LogFoundXmlFiles(xmlFiles.Length);
 
         // Дэдуплікацыя ў памяці: pdgId можа паўтарацца ў розных файлах (першы выйграе);
         // binary COPY не ўмее прапускаць канфлікты PK, таму дублікаты формаў адсейвае HashSet
@@ -42,16 +42,15 @@ public class GrammarDbConverter
 
         await DeleteUpstreamAsync(connection);
 
-        _logger.LogInformation("Устаўляю {count} парадыгм...", paradigms.Count);
+        LogInsertingParadigms(paradigms.Count);
         await CopyParadigmsAsync(connection, paradigms.Values);
 
-        _logger.LogInformation("Устаўляю {count} форм...", forms.Count);
+        LogInsertingForms(forms.Count);
         await CopyFormsAsync(connection, forms);
 
         await AnalyzeAsync(connection);
 
-        _logger.LogInformation("Канвэртаваньне завершана. Парадыгм: {paradigmCount}, Форм: {formCount}",
-            paradigms.Count, forms.Count);
+        LogConversionCompleted(paradigms.Count, forms.Count);
     }
 
     private async Task DeleteUpstreamAsync(NpgsqlConnection connection)
@@ -61,7 +60,7 @@ public class GrammarDbConverter
         await using var command = new NpgsqlCommand(
             "DELETE FROM forms WHERE source = 0; DELETE FROM paradigms WHERE source = 0", connection);
         await command.ExecuteNonQueryAsync();
-        _logger.LogInformation("Апстрымныя радкі выдаленыя");
+        LogUpstreamRowsDeleted();
     }
 
     private void ProcessXmlFile(
@@ -69,14 +68,14 @@ public class GrammarDbConverter
         Dictionary<int, Paradigm> paradigms,
         HashSet<(string NormalizedForm, int ParadigmId, string VariantId, string FormTag)> forms)
     {
-        _logger.LogInformation("Апрацоўваю файл {file}", xmlFilePath);
+        LogProcessingFile(xmlFilePath);
 
         var doc = XDocument.Load(xmlFilePath);
         var root = doc.Root;
 
         if (root == null)
         {
-            _logger.LogWarning("Файл {file} не змяшчае каранёвага элемэнта", xmlFilePath);
+            LogFileHasNoRootElement(xmlFilePath);
             return;
         }
 
@@ -93,7 +92,7 @@ public class GrammarDbConverter
 
             if (string.IsNullOrEmpty(paradigmIdStr) || !int.TryParse(paradigmIdStr, out var paradigmId))
             {
-                _logger.LogWarning("Няправільны ParadigmId у файле {file}", xmlFilePath);
+                LogInvalidParadigmId(xmlFilePath);
                 continue;
             }
 
@@ -103,10 +102,13 @@ public class GrammarDbConverter
                 throw new InvalidOperationException(
                     $"Апстрым pdgId {paradigmId} трапляе ў зарэзэрваваны лакальны дыяпазон (>= {GrammarIds.LocalParadigmIdBase}); імпарт спынены.");
 
+            var rawLemma = paradigmElement.Attribute("lemma")?.Value ?? "";
             var paradigm = new Paradigm
             {
                 ParadigmId = paradigmId,
-                Lemma = Normalizer.NormalizeTypographicStress(paradigmElement.Attribute("lemma")?.Value ?? ""),
+                Lemma = Normalizer.NormalizeTypographicStress(rawLemma),
+                // Ключ прэфікснага пошуку - з зыходнай лемы, як і нармалізаваныя формы
+                LemmaNormalized = Normalizer.GrammarDbSearchNormalize(rawLemma),
                 Tag = paradigmTag,
                 Meaning = paradigmMeaning,
             };
@@ -114,7 +116,7 @@ public class GrammarDbConverter
             if (!paradigms.TryAdd(paradigmId, paradigm))
             {
                 skippedCount++;
-                _logger.LogDebug("Прапушчаны дублікат парадыгмы: ParadigmId={paradigmId}", paradigmId);
+                LogSkippedDuplicateParadigm(paradigmId);
                 continue;
             }
 
@@ -158,20 +160,20 @@ public class GrammarDbConverter
             }
         }
 
-        _logger.LogInformation("Апрацаваны файл {file}: {paradigmCount} парадыгм ({skipped} дублікатаў прапушчана), {formCount} форм",
-            Path.GetFileName(xmlFilePath), paradigmCount, skippedCount, formCount);
+        LogFileProcessed(Path.GetFileName(xmlFilePath), paradigmCount, skippedCount, formCount);
     }
 
     private async Task CopyParadigmsAsync(NpgsqlConnection connection, IEnumerable<Paradigm> paradigms)
     {
         await using var writer = await connection.BeginBinaryImportAsync(
-            "COPY paradigms (paradigm_id, lemma, tag, meaning, variants, source) FROM STDIN (FORMAT BINARY)");
+            "COPY paradigms (paradigm_id, lemma, lemma_normalized, tag, meaning, variants, source) FROM STDIN (FORMAT BINARY)");
 
         foreach (var paradigm in paradigms)
         {
             await writer.StartRowAsync();
             await writer.WriteAsync(paradigm.ParadigmId, NpgsqlDbType.Integer);
             await writer.WriteAsync(paradigm.Lemma, NpgsqlDbType.Text);
+            await writer.WriteAsync(paradigm.LemmaNormalized, NpgsqlDbType.Text);
             await writer.WriteAsync(paradigm.Tag, NpgsqlDbType.Text);
             if (paradigm.Meaning == null)
                 await writer.WriteNullAsync();
@@ -209,8 +211,44 @@ public class GrammarDbConverter
     {
         await using var command = new NpgsqlCommand("ANALYZE paradigms; ANALYZE forms", connection);
         await command.ExecuteNonQueryAsync();
-        _logger.LogInformation("Статыстыка табліц абноўленая (ANALYZE)");
+        LogStatisticsUpdated();
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Пачынаю канвэртаваньне XML файлаў з дырэкторыі {Directory}")]
+    private partial void LogStartingConversion(string directory);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Знойдзена {Count} XML файлаў")]
+    private partial void LogFoundXmlFiles(int count);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Устаўляю {Count} парадыгм...")]
+    private partial void LogInsertingParadigms(int count);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Устаўляю {Count} форм...")]
+    private partial void LogInsertingForms(int count);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Канвэртаваньне завершана. Парадыгм: {ParadigmCount}, Форм: {FormCount}")]
+    private partial void LogConversionCompleted(int paradigmCount, int formCount);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Апстрымныя радкі выдаленыя")]
+    private partial void LogUpstreamRowsDeleted();
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Апрацоўваю файл {File}")]
+    private partial void LogProcessingFile(string file);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Файл {File} не змяшчае каранёвага элемэнта")]
+    private partial void LogFileHasNoRootElement(string file);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Няправільны ParadigmId у файле {File}")]
+    private partial void LogInvalidParadigmId(string file);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Прапушчаны дублікат парадыгмы: ParadigmId={ParadigmId}")]
+    private partial void LogSkippedDuplicateParadigm(int paradigmId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Апрацаваны файл {File}: {ParadigmCount} парадыгм ({Skipped} дублікатаў прапушчана), {FormCount} форм")]
+    private partial void LogFileProcessed(string file, int paradigmCount, int skipped, int formCount);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Статыстыка табліц абноўленая (ANALYZE)")]
+    private partial void LogStatisticsUpdated();
 }
 
 class Program

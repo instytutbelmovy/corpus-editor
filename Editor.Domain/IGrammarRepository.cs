@@ -11,10 +11,10 @@ public record FormMatch(
 
 public interface IGrammarRepository
 {
-    /// <summary> Усе кандыдаты (парадыгма, варыянт, тэг формы) для нармалізаванай формы — адзін запыт </summary>
+    /// <summary> Усе кандыдаты (парадыгма, варыянт, тэг формы) для нармалізаванай формы - адзін запыт </summary>
     Task<IReadOnlyList<FormMatch>> LookupByNormalizedForm(string normalizedForm, CancellationToken cancellationToken = default);
 
-    /// <summary> Кандыдаты для мноства нармалізаваных формаў адразу — пакетна, каб пазьбегнуць N зваротаў да базы </summary>
+    /// <summary> Кандыдаты для мноства нармалізаваных формаў адразу - пакетна, каб пазьбегнуць N зваротаў да базы </summary>
     Task<IReadOnlyDictionary<string, IReadOnlyList<FormMatch>>> LookupByNormalizedForms(IReadOnlyCollection<string> normalizedForms, CancellationToken cancellationToken = default);
 
     /// <summary> Лема і эфэктыўны тэг аднаго варыянту; null калі парадыгма/варыянт ня знойдзены </summary>

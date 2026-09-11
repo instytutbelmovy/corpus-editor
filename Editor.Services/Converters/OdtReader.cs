@@ -53,7 +53,7 @@ public sealed class OdtReader : IDocumentReader
                  name == TextNs + "list-item" ||
                  name == TextNs + "section")
         {
-            // Recurse into structural containers — their children
+            // Recurse into structural containers - their children
             // will contain the actual <text:p> elements.
             foreach (var child in element.Elements())
                 CollectParagraphs(child, result, builder);
@@ -101,7 +101,7 @@ public sealed class OdtReader : IDocumentReader
                 }
                 else if (name == TextNs + "span" || name == TextNs + "a")
                 {
-                    // Inline containers — recurse into their content.
+                    // Inline containers - recurse into their content.
                     AppendInlineContent(child, builder);
                 }
                 else if (name == TextNs + "note")
@@ -125,7 +125,7 @@ public sealed class OdtReader : IDocumentReader
                 }
                 else
                 {
-                    // Unknown inline element — try to extract its text content
+                    // Unknown inline element - try to extract its text content
                     // (covers elements like text:bookmark-ref, text:ruby, etc.)
                     AppendInlineContent(child, builder);
                 }

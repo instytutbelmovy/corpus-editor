@@ -1,3 +1,4 @@
+using Editor.Domain;
 using Editor.Domain.Corpus;
 using Editor.Services.Corpus;
 using Editor.Services.Exceptions;
@@ -18,7 +19,7 @@ public class AwsFilesCacheTests
         await Assert.ThrowsAsync<IOException>(() => cache.GetFileForWrite(1, markPendingChangesUponCompletion: true).WaitAsync(Timeout));
 
         storage.OnRead = null;
-        // Would deadlock forever before the fix — the failed load never released the document lock
+        // Would deadlock forever before the fix - the failed load never released the document lock
         var document = await cache.GetFileForRead(1).WaitAsync(Timeout);
         Assert.Equal(1, document.Header.N);
     }
@@ -142,8 +143,36 @@ public class AwsFilesCacheTests
         Assert.Empty(storage.WrittenKeys); // came from the cache, not from a flush
     }
 
+    [Fact]
+    public async Task PosCompletion_StaysNullUntilDocumentBodyIsLoaded_ThenReflectsInHeaderCache()
+    {
+        var storage = new InMemoryCorpusStorage();
+        var header = new CorpusDocumentHeader(1, "Title 1", null, null, null, null, null, null, null) { PercentCompletion = 0 };
+        var document = new CorpusDocument(header,
+        [
+            new Paragraph(1, Guid.NewGuid(), [new Sentence(1, Guid.NewGuid(),
+            [
+                new LinguisticItem("слова", SentenceItemType.Word, LinguisticTag: new LinguisticTag("NMS")),
+                new LinguisticItem("другое", SentenceItemType.Word),
+            ])])
+        ]);
+        await storage.Write("1.verti", document);
+
+        var cache = await CreateInitializedCache(storage);
+
+        // Файл ня меў pos_completion - пры проста лістынгу загалоўкаў ён застаецца null, безь якога-кольвек backfill'у
+        var headerBeforeLoad = await cache.GetDocumentHeader(1);
+        Assert.Null(headerBeforeLoad.PosCompletion);
+
+        // Поўная загрузка цела дакумэнту з "aws" - лічым PosCompletion і сынхранізуем яго ў кэш загалоўкаў
+        await cache.GetFileForRead(1);
+
+        var headerAfterLoad = await cache.GetDocumentHeader(1);
+        Assert.Equal(50, headerAfterLoad.PosCompletion);
+    }
+
     private static CorpusDocument CreateDocument(int n) => new(
-        new CorpusDocumentHeader(n, $"Title {n}", null, null, null, null, null, null, null) { PercentCompletion = 0 },
+        new CorpusDocumentHeader(n, $"Title {n}", null, null, null, null, null, null, null) { PercentCompletion = 0, PosCompletion = 0 },
         [new Paragraph(1, Guid.NewGuid(), [new Sentence(1, Guid.NewGuid(), [new LinguisticItem("слова", SentenceItemType.Word)])])]);
 
     private static async Task<InMemoryCorpusStorage> CreateStorage(params int[] documentNumbers)

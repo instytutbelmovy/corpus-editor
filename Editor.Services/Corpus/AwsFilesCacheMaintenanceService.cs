@@ -2,7 +2,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace Editor.Services.Corpus;
 
-public class AwsFilesCacheMaintenanceService(IAwsFilesCache awsFilesCache, ILogger<AwsFilesCacheMaintenanceService> logger) : BackgroundService
+public partial class AwsFilesCacheMaintenanceService(IAwsFilesCache awsFilesCache, ILogger<AwsFilesCacheMaintenanceService> logger) : BackgroundService
 {
     private readonly TimeSpan _checkInterval = TimeSpan.FromMinutes(5);
 
@@ -11,7 +11,7 @@ public class AwsFilesCacheMaintenanceService(IAwsFilesCache awsFilesCache, ILogg
         while (true)
         {
             await Task.Delay(_checkInterval, stoppingToken);
-            logger.LogTrace("Purging aws files cache");
+            LogPurgingCache();
             try
             {
                 await awsFilesCache.UploadPendingAndPurgeCache();
@@ -19,7 +19,7 @@ public class AwsFilesCacheMaintenanceService(IAwsFilesCache awsFilesCache, ILogg
             catch (Exception ex)
             {
                 // An unhandled exception here would stop the whole host (BackgroundServiceExceptionBehavior.StopHost)
-                logger.LogError(ex, "Error flushing/purging the files cache");
+                LogFlushPurgeError(ex);
             }
         }
     }
@@ -27,7 +27,16 @@ public class AwsFilesCacheMaintenanceService(IAwsFilesCache awsFilesCache, ILogg
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
         await base.StopAsync(cancellationToken);
-        logger.LogInformation("Pre-shutdown uploading cached files");
+        LogPreShutdownUpload();
         await awsFilesCache.UploadPendingAndPurgeCache();
     }
+
+    [LoggerMessage(Level = LogLevel.Trace, Message = "Purging aws files cache")]
+    private partial void LogPurgingCache();
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error flushing/purging the files cache")]
+    private partial void LogFlushPurgeError(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Pre-shutdown uploading cached files")]
+    private partial void LogPreShutdownUpload();
 }

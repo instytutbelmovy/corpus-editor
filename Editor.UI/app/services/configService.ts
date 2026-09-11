@@ -6,6 +6,7 @@ export interface FrontendConfig {
   environment: string;
   version: string;
   googleSignInEnabled: boolean;
+  stanzaEnabled: boolean;
 }
 
 // Ключ для захаваньня канфігу ў localStorage
@@ -19,6 +20,7 @@ const FALLBACK_CONFIG: FrontendConfig = {
   environment: 'production',
   version: '0.0.42',
   googleSignInEnabled: false,
+  stanzaEnabled: false,
 };
 
 class ConfigService {
@@ -84,7 +86,8 @@ class ConfigService {
       a.turnstileSiteKey !== b.turnstileSiteKey ||
       a.sentryDsn !== b.sentryDsn ||
       a.environment !== b.environment ||
-      a.googleSignInEnabled !== b.googleSignInEnabled
+      a.googleSignInEnabled !== b.googleSignInEnabled ||
+      a.stanzaEnabled !== b.stanzaEnabled
     );
   }
 

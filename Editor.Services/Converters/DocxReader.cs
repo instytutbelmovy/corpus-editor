@@ -15,15 +15,14 @@ public sealed class DocxReader : IDocumentReader
         if (document.MainDocumentPart?.Document?.Body == null)
             throw new InvalidOperationException("Немагчыма прачытаць DOCX файл");
 
-        var builder = new System.Text.StringBuilder();
+        var builder = new StringBuilder();
         var body = document.MainDocumentPart.Document.Body;
-        if (body != null)
-            return body
-                .Elements<WordParagraph>()
-                .Select(x => GetParagraphText(x, builder))
-                .Where(text => !string.IsNullOrWhiteSpace(text));
 
-        return Enumerable.Empty<string>();
+        return body
+            .Elements<WordParagraph>()
+            .Select(x => GetParagraphText(x, builder))
+            .Where(text => !string.IsNullOrWhiteSpace(text))
+            .ToList();
     }
 
     private static string GetParagraphText(WordParagraph paragraph, StringBuilder builder)

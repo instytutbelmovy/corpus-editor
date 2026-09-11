@@ -28,8 +28,8 @@ export function Toolbar() {
     state => state.isStructureTextEditing
   );
 
-  // hasChanges() JSON.stringify'іць кожны абзац — лічым толькі калі мяняюцца самі дакумэнты, не на кожны рэндар.
-  // documentData/originalDocumentData не выкарыстоўваюцца ў целе — hasChanges() чытае іх сам з стору, але яны трэба ў залежнасьцях, каб useMemo пералічваў пры іх зьмене
+  // hasChanges() JSON.stringify'іць кожны абзац - лічым толькі калі мяняюцца самі дакумэнты, не на кожны рэндар.
+  // documentData/originalDocumentData не выкарыстоўваюцца ў целе - hasChanges() чытае іх сам з стору, але яны трэба ў залежнасьцях, каб useMemo пералічваў пры іх зьмене
   const changed = useMemo(
     () => hasChanges(),
     // eslint-disable-next-line react-hooks/exhaustive-deps

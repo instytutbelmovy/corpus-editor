@@ -1,9 +1,9 @@
-using Editor.Domain;
 using Editor.Domain.Corpus;
 using Editor.Services.Converters;
 using Editor.Services.Corpus;
 using Editor.Services.Exceptions;
 using Editor.Services.Grammar;
+using Editor.Services.Linguistics;
 
 namespace Editor.Services.Registry;
 
@@ -13,13 +13,20 @@ public interface IRegistryService
     Task<IEnumerable<string>> GetAllTypes();
     Task<IEnumerable<string>> GetAllStyles();
     Task<IEnumerable<string>> GetAllCorpora();
-    Task UploadFile(DocumentUploadRequest request);
+
+    /// <summary> Сынхронныя праверкі перад даданьнем у чаргу, каб відавочныя памылкі вярталіся адразу 400-м, а не праз хвіліны фонавай працы. </summary>
+    Task PreflightUpload(int n, string fileExtension);
+
+    Task UploadFile(DocumentUploadRequest request, Action<UploadProgress>? progress = null, CancellationToken cancellationToken = default);
     Task<(Stream Stream, string FileName)> DownloadFile(int n);
     Task<ICollection<CorpusDocumentHeader>> ReloadFilesList();
     Task<CorpusDocumentHeader> ReloadFile(int n);
 }
 
-public class RegistryService(IGrammarDb grammarDb, IAwsFilesCache awsFilesCache) : IRegistryService
+public class RegistryService(
+    IGrammarDb grammarDb,
+    IAwsFilesCache awsFilesCache,
+    IStanzaTagger stanzaTagger) : IRegistryService
 {
     public ValueTask<ICollection<CorpusDocumentHeader>> GetAllFiles()
     {
@@ -44,62 +51,101 @@ public class RegistryService(IGrammarDb grammarDb, IAwsFilesCache awsFilesCache)
         return headers.Where(x => !string.IsNullOrWhiteSpace(x.Corpus)).Select(x => x.Corpus!).Distinct();
     }
 
-    public async Task UploadFile(DocumentUploadRequest request)
+    public async Task PreflightUpload(int n, string fileExtension)
     {
-        var reader = request.FileExtension switch
-        {
-            ".txt" => (IDocumentReader)new TxtReader(),
-            ".docx" => new DocxReader(),
-            ".epub" => new EpubReader(),
-            ".odt" => new OdtReader(),
-            _ => throw new NotSupportedException($"Unsupported file type: {request.FileExtension}")
-        };
+        if (n < 0)
+            throw new BadRequestException("Нумар дакумэнту мусіць быць дадатны");
+
+        // Кідае BadRequestException, калі пашырэньне не падтрымліваецца
+        _ = CreateReader(fileExtension);
+
+        var headers = await awsFilesCache.GetAllDocumentHeaders();
+        if (headers.Any(x => x.N == n))
+            throw new BusinessException($"Дакумэнт з нумарам {n} ужо існуе");
+    }
+
+    public async Task UploadFile(
+        DocumentUploadRequest request,
+        Action<UploadProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        var reader = CreateReader(request.FileExtension);
+
+        progress?.Invoke(new UploadProgress(UploadJobStage.Parsing, 0, 0));
+
+        request.Content.Position = 0;
         var paragraphs = DocumentConverter.GetParagraphs(request.Content, reader);
 
-        // Адзін пакетны пошук на ўвесь дакумэнт замест запыту на кожнае слова
-        var allWords = paragraphs
-            .SelectMany(p => p.Sentences)
-            .SelectMany(s => s.SentenceItems)
-            .Where(x => x.Type == SentenceItemType.Word)
-            .Select(x => x.Text)
-            .ToList();
-        var lookups = await grammarDb.LookupWords(allWords);
+        var wordSlots = StanzaTagger.CollectWordSlots(paragraphs);
+        var totalWords = wordSlots.Count;
 
-        paragraphs = paragraphs.Select(p => p with
+        // Адзін пакетны пошук на ўвесь дакумэнт замест запыту на кожнае слова
+        progress?.Invoke(new UploadProgress(UploadJobStage.LookingUpGrammar, 0, totalWords));
+        var allWords = new List<string>(totalWords);
+        foreach (var slot in wordSlots)
+            allWords.Add(slot.Items[slot.Index].Text);
+
+        var lookups = await grammarDb.LookupWords(allWords, cancellationToken);
+
+        var hints = await TagWithStanza(paragraphs, totalWords, progress, cancellationToken);
+
+        progress?.Invoke(new UploadProgress(UploadJobStage.Saving, totalWords, totalWords));
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        for (var i = 0; i < wordSlots.Count; i++)
         {
-            Sentences = p.Sentences.Select(s => s with
+            var (items, index) = wordSlots[i];
+            var item = items[index];
+
+            var candidates = lookups.TryGetValue(item.Text, out var c) ? c : [];
+            var resolution = GrammarResolver.Resolve(candidates, hints?[i], today);
+
+            // Мяняем на месцы: сьпісы толькі што створаныя DocumentConverter-ам і больш нікому не належаць, а перабудова ўсяго дрэва падвойвала б пікавую памяць
+            items[index] = item with
             {
-                SentenceItems = s.SentenceItems.Select(x => FillObviousGrammar(x, lookups)).ToList(),
-            }).ToList(),
-        }).ToList();
+                ParadigmFormId = resolution.ParadigmFormId,
+                Lemma = resolution.Lemma,
+                LinguisticTag = resolution.LinguisticTag,
+                Metadata = resolution.Metadata,
+            };
+        }
 
         var percentCompletion = CorpusDocument.ComputeCompletion(paragraphs);
+        var posCompletion = CorpusDocument.ComputePosCompletion(paragraphs);
         var header = new CorpusDocumentHeader(request.N, request.Title, null, null, request.PublicationDate, request.Url, request.Type, request.Style, request.Corpus)
         {
             PercentCompletion = percentCompletion,
+            PosCompletion = posCompletion,
         };
-        var corpusDocument = new CorpusDocument(header, paragraphs.ToList());
+        var corpusDocument = new CorpusDocument(header, paragraphs);
 
         await awsFilesCache.AddFile(corpusDocument);
-
-        LinguisticItem FillObviousGrammar(LinguisticItem item, IReadOnlyDictionary<string, List<GrammarInfo>> wordLookups)
-        {
-            if (item.Type != SentenceItemType.Word)
-                return item;
-
-            var candidates = wordLookups.TryGetValue(item.Text, out var c) ? c : [];
-            var (paradigmFormId, lemma, linguisticTag) = grammarDb.InferGrammarInfo(candidates);
-            return item with
-            {
-                ParadigmFormId = paradigmFormId,
-                Lemma = lemma,
-                LinguisticTag = linguisticTag,
-                Metadata = paradigmFormId != null && paradigmFormId.IsSingular()
-                    ? new LinguisticItemMetadata(null, DateOnly.FromDateTime(DateTime.UtcNow))
-                    : null,
-            };
-        }
     }
+
+    private async Task<StanzaToken?[]?> TagWithStanza(
+        List<Paragraph> paragraphs,
+        int totalWords,
+        Action<UploadProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        var input = stanzaTagger.Prepare(paragraphs, totalWords);
+        if (input is null)
+            return null;
+
+        return await stanzaTagger.Run(
+            input,
+            tagged => progress?.Invoke(new UploadProgress(UploadJobStage.Tagging, tagged, totalWords)),
+            cancellationToken);
+    }
+
+    private static IDocumentReader CreateReader(string fileExtension) => fileExtension.ToLowerInvariant() switch
+    {
+        ".txt" => new TxtReader(),
+        ".docx" => new DocxReader(),
+        ".epub" => new EpubReader(),
+        ".odt" => new OdtReader(),
+        _ => throw new BadRequestException($"Unsupported file type: {fileExtension}"),
+    };
 
     public async Task<(Stream Stream, string FileName)> DownloadFile(int n)
     {

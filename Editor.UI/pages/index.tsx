@@ -1,28 +1,65 @@
 import { useEffect } from 'react';
-import { Card, ErrorScreen, LoadingScreen, PageShell } from '@/app/components';
+import {
+  Alert,
+  Card,
+  ErrorScreen,
+  LoadingScreen,
+  PageShell,
+} from '@/app/components';
 import { useDocumentStore } from '@/app/docs/store';
 import { useUIStore } from '@/app/docs/uiStore';
 import { DocumentsListHeader } from '@/app/components/documents/DocumentsListHeader';
 import { DocumentsTable } from '@/app/components/documents/DocumentsTable';
 import { useAuthStore } from '@/app/auth/store';
+import { UploadJobState } from '@/app/docs/types';
+import { useConfig } from '@/app/hooks/useConfig';
+
+const UPLOAD_JOBS_POLL_INTERVAL_MS = 2000;
 
 export default function Home() {
-  const {
-    documentsList,
-    loading,
-    error,
-    fetchDocuments,
-    refreshDocumentHeader,
-    refreshDocumentsList,
-  } = useDocumentStore();
+  // Вузкія сэлектары: інакш старонка перамалёўваецца на кожнае абнаўленьне любой часткі стору
+  const documentsList = useDocumentStore(s => s.documentsList);
+  const uploadJobs = useDocumentStore(s => s.uploadJobs);
+  const recentlyCompletedIds = useDocumentStore(s => s.recentlyCompletedIds);
+  const loading = useDocumentStore(s => s.loading);
+  const error = useDocumentStore(s => s.error);
+  const fetchDocuments = useDocumentStore(s => s.fetchDocuments);
+  const refreshDocumentHeader = useDocumentStore(s => s.refreshDocumentHeader);
+  const refreshDocumentsList = useDocumentStore(s => s.refreshDocumentsList);
+  const pollUploadJobs = useDocumentStore(s => s.pollUploadJobs);
+  const dismissUploadJob = useDocumentStore(s => s.dismissUploadJob);
+  const tagDocument = useDocumentStore(s => s.tagDocument);
+  const tagAllDocuments = useDocumentStore(s => s.tagAllDocuments);
+  const listActionError = useDocumentStore(s => s.listActionError);
+  const clearListActionError = useDocumentStore(s => s.clearListActionError);
   const { displayMode, setDisplayMode } = useUIStore();
   const { user } = useAuthStore();
+  const config = useConfig();
 
   const isExpanded = displayMode === 'full';
+
+  // Памылковыя заданьні ўжо завершаныя - апытваць дзеля іх няма чаго
+  const hasActiveJobs = uploadJobs.some(
+    job =>
+      job.state === UploadJobState.Queued ||
+      job.state === UploadJobState.Running
+  );
 
   useEffect(() => {
     fetchDocuments();
   }, [fetchDocuments]);
+
+  useEffect(() => {
+    pollUploadJobs();
+  }, [pollUploadJobs]);
+
+  // Апытваем толькі пакуль нешта апрацоўваецца; апошні цыкл, які заўважыць завяршэньне, сам жа і спыніць таймэр
+  useEffect(() => {
+    if (!hasActiveJobs) return;
+
+    const interval = setInterval(pollUploadJobs, UPLOAD_JOBS_POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [hasActiveJobs, pollUploadJobs]);
 
   if (loading) {
     return <LoadingScreen message="Загрузка дакумэнтаў..." />;
@@ -41,11 +78,22 @@ export default function Home() {
             setDisplayMode(isExpanded ? 'compact' : 'full')
           }
         />
+        {listActionError && (
+          <Alert kind="error" onClose={clearListActionError}>
+            {listActionError}
+          </Alert>
+        )}
         <DocumentsTable
           documents={documentsList}
+          uploadJobs={uploadJobs}
+          recentlyCompletedIds={recentlyCompletedIds}
           isExpanded={isExpanded}
+          stanzaEnabled={config?.stanzaEnabled}
           onRefresh={refreshDocumentHeader}
           onRefreshList={refreshDocumentsList}
+          onDismissUploadJob={dismissUploadJob}
+          onTag={tagDocument}
+          onTagAll={tagAllDocuments}
           userRole={user?.role}
         />
       </Card>

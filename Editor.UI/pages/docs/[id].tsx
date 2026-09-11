@@ -96,7 +96,7 @@ export default function DocumentPage() {
       <Card className="p-6 flex-1 flex flex-col">
         <DocumentHeader header={documentData.header} />
 
-        {/* Нефатальныя памылкі (захаваньне структуры, дагрузка абзацаў) — банэр, а не замена старонкі */}
+        {/* Нефатальныя памылкі (захаваньне структуры, дагрузка абзацаў) - банэр, а не замена старонкі */}
         {actionError && (
           <div className="mb-4">
             <Alert title="Памылка:" onClose={clearActionError}>
@@ -117,7 +117,7 @@ export default function DocumentPage() {
             />
           </div>
 
-          {/* Панэль рэдагаваньня — толькі ў рэжыме прагляду */}
+          {/* Панэль рэдагаваньня - толькі ў рэжыме прагляду */}
           {!isStructureEditingMode && (
             <EditingPanel
               selectedWord={selectedWord}

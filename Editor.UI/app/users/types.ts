@@ -14,5 +14,5 @@ export interface EditorUserCreateDto {
   role: Roles;
 }
 
-// Формы карыстальніка маюць фіксаваны набор палёў — памылка ў іншым ключы няправільная
+// Формы карыстальніка маюць фіксаваны набор палёў - памылка ў іншым ключы няправільная
 export type FormErrors = BaseFormErrors<keyof EditorUserCreateDto>;

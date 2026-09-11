@@ -3,6 +3,7 @@
 public record CorpusDocumentHeader(int N, string? Title, string? Author, string? Language, string? PublicationDate, string? Url, string? Type, string? Style, string? Corpus)
 {
     public int? PercentCompletion { get; set; }
+    public int? PosCompletion { get; set; }
 };
 
 public record CorpusDocument(CorpusDocumentHeader Header, List<Paragraph> Paragraphs)
@@ -29,6 +30,27 @@ public record CorpusDocument(CorpusDocumentHeader Header, List<Paragraph> Paragr
             return 100;
 
         return completedWords * 100 / totalWords;
+    }
+
+    public int ComputePosCompletion()
+        => ComputePosCompletion(Paragraphs);
+
+    public static int ComputePosCompletion(IEnumerable<Paragraph> paragraphs)
+    {
+        int posCompletedWords = 0, totalWords = 0;
+        foreach (var paragraph in paragraphs)
+        foreach (var sentence in paragraph.Sentences)
+        foreach (var linguisticItem in sentence.SentenceItems.Where(x => x.Type == SentenceItemType.Word))
+        {
+            totalWords++;
+            if (linguisticItem.LinguisticTag?.Pos() is not null)
+                posCompletedWords++;
+        }
+
+        if (totalWords == 0)
+            return 100;
+
+        return posCompletedWords * 100 / totalWords;
     }
 
     public static CorpusDocument? CheckIdsAndConcurrencyStamps(CorpusDocument document)

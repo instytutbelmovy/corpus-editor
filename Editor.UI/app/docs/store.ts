@@ -7,6 +7,8 @@ import {
   OperationType,
   Sentence,
   SentenceItem,
+  UploadJobState,
+  UploadJobStatus,
   WordRef,
 } from './types';
 import { serviceLocator } from '@/app/services/serviceLocator';
@@ -19,20 +21,56 @@ const PAGE_SIZE = 20;
 
 type Editor = (data: DocumentData) => DocumentData;
 
+// Ці аднолькавыя сьпісы заданьняў з пункту гледжаньня таго, што паказвае табліца
+const sameJobs = (a: UploadJobStatus[], b: UploadJobStatus[]) =>
+  a.length === b.length &&
+  a.every((job, i) => {
+    const other = b[i];
+    return (
+      job.id === other.id &&
+      job.state === other.state &&
+      job.stage === other.stage &&
+      job.processedTokens === other.processedTokens &&
+      job.totalTokens === other.totalTokens &&
+      job.error === other.error
+    );
+  });
+
+// Забываем схаваныя заданьні, якіх сэрвэр ужо не аддае - каб мноства не расло бясконца
+const pruneDismissed = (dismissed: Set<string>, jobs: UploadJobStatus[]) => {
+  if (dismissed.size === 0) return dismissed;
+
+  const alive = new Set(jobs.map(job => job.id));
+  const kept = [...dismissed].filter(id => alive.has(id));
+  return kept.length === dismissed.size ? dismissed : new Set(kept);
+};
+
 interface DocumentState {
   // Данныя дакумэнта
   documentData: DocumentData | null;
   // Захаваны стан, ад якога лічацца апэрацыі рэдагаваньня структуры
   originalDocumentData: DocumentData | null;
   documentsList: DocumentHeader[];
+  // Заданьні фонавай апрацоўкі загружаных дакумэнтаў (без Succeeded - тыя ўжо ў documentsList)
+  uploadJobs: UploadJobStatus[];
+  // n дакумэнтаў, чые заданьні толькі што завяршыліся - для кароткай падсьветкі радка
+  recentlyCompletedIds: Set<number>;
+  // Схаваныя карыстальнікам заданьні (толькі памылковыя): сэрвэр аддае іх яшчэ гадзіну, таму трэба помніць
+  dismissedJobIds: Set<string>;
+  // Стан кожнага заданьня з папярэдняга апытаньня, ужо ўключна з Succeeded - інакш завершанае заданьне лічылася б "новым" на кожным цыкле і бясконца перачытвала б сьпіс дакумэнтаў
+  _seenJobStates: Map<string, UploadJobState>;
+  // Ці быў ужо адзін апытальны цыкл - каб не "падсьвечваць" заданьні, ужо завершаныя да загрузкі старонкі
+  _uploadJobsPolled: boolean;
+  // Памылка дзеяньня ў сьпісе дакумэнтаў (напрыклад, дакумэнт ужо ў чарзе): банэр па-над табліцаю, а не error, які замяняе ўсю старонку
+  listActionError: string | null;
 
   // Гісторыя для undo/redo
   history: DocumentData[];
   historyIndex: number;
 
   // Стан загрузкі.
-  // error — толькі фатальная памылка першай загрузкі: замяняе старонку.
-  // actionError — нефатальная (захаваньне структуры, дагрузка абзацаў): банэр па-над дакумэнтам.
+  // error - толькі фатальная памылка першай загрузкі: замяняе старонку.
+  // actionError - нефатальная (захаваньне структуры, дагрузка абзацаў): банэр па-над дакумэнтам.
   loading: boolean;
   loadingMore: boolean;
   error: string | null;
@@ -50,9 +88,15 @@ interface DocumentState {
     isInitial?: boolean
   ) => Promise<void>;
   reloadDocument: (documentId: string) => Promise<void>;
-  fetchDocuments: () => Promise<void>;
+  // silent - фонавае абнаўленьне: не замяняе старонку экранам загрузкі і не зносіць сьпіс пры памылцы
+  fetchDocuments: (options?: { silent?: boolean }) => Promise<void>;
   refreshDocumentHeader: (documentId: number) => Promise<void>;
   refreshDocumentsList: () => Promise<void>;
+  pollUploadJobs: () => Promise<void>;
+  dismissUploadJob: (jobId: string) => void;
+  tagDocument: (documentId: number) => Promise<void>;
+  tagAllDocuments: () => Promise<void>;
+  clearListActionError: () => void;
   // Нязьменнае абнаўленьне аднаго слова
   updateSentenceItem: (
     word: WordRef,
@@ -116,6 +160,12 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   documentData: null,
   originalDocumentData: null,
   documentsList: [],
+  uploadJobs: [],
+  recentlyCompletedIds: new Set(),
+  dismissedJobIds: new Set(),
+  _seenJobStates: new Map(),
+  _uploadJobsPolled: false,
+  listActionError: null,
   history: [],
   historyIndex: -1,
   loading: false,
@@ -152,7 +202,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
           historyIndex: -1,
         });
       } else {
-        // Усе здымкі дакумэнта мусяць апісваць адно і тое ж загружанае акно: інакш дыф па stamp'ах прыдумае Create для дагружаных абзацаў (а пасьля undo — Delete).
+        // Усе здымкі дакумэнта мусяць апісваць адно і тое ж загружанае акно: інакш дыф па stamp'ах прыдумае Create для дагружаных абзацаў (а пасьля undo - Delete).
         set(state => {
           if (!state.documentData) {
             return {
@@ -170,7 +220,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 
           return {
             documentData: append(state.documentData, data.paragraphs),
-            // Арыгінал усюды трымаецца глыбокай копіяй — не пачынаем дзяліць абзацы з жывым дрэвам
+            // Арыгінал усюды трымаецца глыбокай копіяй - не пачынаем дзяліць абзацы з жывым дрэвам
             originalDocumentData: state.originalDocumentData
               ? append(
                   state.originalDocumentData,
@@ -216,13 +266,19 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     }));
   },
 
-  fetchDocuments: async () => {
+  fetchDocuments: async ({ silent = false } = {}) => {
     try {
-      set({ loading: true, error: null });
+      if (!silent) set({ loading: true, error: null });
       const documents = await serviceLocator.documentService.fetchDocuments();
-      set({ documentsList: documents, loading: false });
+      set(
+        silent
+          ? { documentsList: documents }
+          : { documentsList: documents, loading: false }
+      );
     } catch (err) {
-      set({ error: errorMessage(err), loading: false });
+      // Фонавае абнаўленьне не мусіць зносіць ужо паказаны сьпіс
+      if (silent) console.error('Failed to refresh documents list:', err);
+      else set({ error: errorMessage(err), loading: false });
     }
   },
 
@@ -250,6 +306,91 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       set({ error: errorMessage(err), loading: false });
     }
   },
+
+  pollUploadJobs: async () => {
+    try {
+      const jobs = await serviceLocator.documentService.getUploadJobs();
+      const { dismissedJobIds, _seenJobStates, _uploadJobsPolled } = get();
+
+      // На першым апытаньні пасьля адкрыцьця старонкі ня ведаем, ці заданьне толькі што завяршылася, ці ўжо даўно - таму падсьветку не запускаем
+      if (_uploadJobsPolled) {
+        const newlySucceeded = jobs.filter(
+          job =>
+            job.state === UploadJobState.Succeeded &&
+            _seenJobStates.get(job.id) !== UploadJobState.Succeeded
+        );
+
+        if (newlySucceeded.length > 0) {
+          await get().fetchDocuments({ silent: true });
+          set(state => ({
+            recentlyCompletedIds: new Set([
+              ...state.recentlyCompletedIds,
+              ...newlySucceeded.map(job => job.n),
+            ]),
+          }));
+          for (const job of newlySucceeded) {
+            setTimeout(() => {
+              set(state => {
+                if (!state.recentlyCompletedIds.has(job.n)) return state;
+                const recentlyCompletedIds = new Set(
+                  state.recentlyCompletedIds
+                );
+                recentlyCompletedIds.delete(job.n);
+                return { recentlyCompletedIds };
+              });
+            }, 1500);
+          }
+        }
+      }
+
+      const visibleJobs = jobs.filter(
+        job =>
+          job.state !== UploadJobState.Succeeded && !dismissedJobIds.has(job.id)
+      );
+
+      set(state => ({
+        // Захоўваем ранейшы масіў, калі нічога не зьмянілася - інакш кожнае апытаньне перамалёўвала б старонку
+        uploadJobs: sameJobs(state.uploadJobs, visibleJobs)
+          ? state.uploadJobs
+          : visibleJobs,
+        // Сэрвэр урэшце выцясьняе заданьні - разам зь імі забываем і схаваныя
+        dismissedJobIds: pruneDismissed(state.dismissedJobIds, jobs),
+        _seenJobStates: new Map(jobs.map(job => [job.id, job.state])),
+        _uploadJobsPolled: true,
+      }));
+    } catch (err) {
+      console.error('Failed to poll upload jobs:', err);
+    }
+  },
+
+  dismissUploadJob: (jobId: string) =>
+    set(state => ({
+      uploadJobs: state.uploadJobs.filter(job => job.id !== jobId),
+      dismissedJobIds: new Set(state.dismissedJobIds).add(jobId),
+    })),
+
+  tagDocument: async (documentId: number) => {
+    try {
+      set({ listActionError: null });
+      await serviceLocator.documentService.tagDocument(documentId);
+      // Апытаньне ідзе толькі пакуль ёсьць актыўныя заданьні, таму новае трэба паказаць самім - інакш таймэр не запусьціцца
+      await get().pollUploadJobs();
+    } catch (err) {
+      set({ listActionError: errorMessage(err) });
+    }
+  },
+
+  tagAllDocuments: async () => {
+    try {
+      set({ listActionError: null });
+      await serviceLocator.documentService.tagAllDocuments();
+      await get().pollUploadJobs();
+    } catch (err) {
+      set({ listActionError: errorMessage(err) });
+    }
+  },
+
+  clearListActionError: () => set({ listActionError: null }),
 
   updateSentenceItem: (word, patch) =>
     set(state => {
@@ -470,7 +611,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     if (!documentData) return;
 
     const newDocumentData = editor(documentData);
-    // Некаторыя апэрацыі StructureEditor — no-op (напр. злучэньне апошняга абзаца): вяртаюць той самы аб'ект
+    // Некаторыя апэрацыі StructureEditor - no-op (напр. злучэньне апошняга абзаца): вяртаюць той самы аб'ект
     if (newDocumentData === documentData) return;
 
     // Пасьля undo новае рэдагаваньне абразае «будучыню»
@@ -491,7 +632,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
 }));
 
 // Дыф абзацаў па concurrencyStamp: што стварыць, што абнавіць, што выдаліць.
-// paragraphId у апэрацыі — гэта пазыцыя ў дакумэнце, які будуецца бэкендам.
+// paragraphId у апэрацыі - гэта пазыцыя ў дакумэнце, які будуецца бэкендам.
 function calculateOperations(
   original: DocumentData,
   current: DocumentData
@@ -511,7 +652,7 @@ function calculateOperations(
     const origIdx = originalIndexByStamp.get(currentP.concurrencyStamp);
 
     if (origIdx === undefined || origIdx < virtualIndex) {
-      // Няма ў астатку арыгінала — новы абзац
+      // Няма ў астатку арыгінала - новы абзац
       operations.push({
         paragraphId: i + 1,
         operationType: OperationType.Create,

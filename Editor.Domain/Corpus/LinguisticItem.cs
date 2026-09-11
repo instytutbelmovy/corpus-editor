@@ -15,7 +15,31 @@ public record LinguisticItem(
         => new(sentenceItem.Text, sentenceItem.Type, sentenceItem.GlueNext);
 }
 
-public record LinguisticItemMetadata(ParadigmFormId? Suggested, DateOnly? ResolvedOn, LinguisticErrorType ErrorType = LinguisticErrorType.None);
+public record LinguisticItemMetadata(
+    ParadigmFormId? Suggested,
+    DateOnly? ResolvedOn,
+    LinguisticErrorType ErrorType = LinguisticErrorType.None,
+    ResolutionSource ResolvedBy = ResolutionSource.NotResolved);
+
+public enum ResolutionSource
+{
+    NotResolved = 0,
+
+    /// <summary> Рэдактар выбраў форму ўручную. </summary>
+    Human = 1,
+
+    /// <summary> Слова было вырашанае да таго, як зьявілася гэтае поле: пры чытаньні старых файлаў крыніцу ўжо не аднавіць. </summary>
+    Unknown = 10,
+
+    /// <summary> ГрамБаза дала адзінага кандыдата - двухсэнсоўнасьці не было. </summary>
+    GrammarDb = 20,
+
+    /// <summary>
+    /// Кандыдатаў было некалькі, і да аднаго іх звузіла часьціна мовы ад Stanza.
+    /// Дакладнасьць мадэлі ~83%, таму такія словы - першыя кандыдаты на пераправерку.
+    /// </summary>
+    Stanza = 30,
+}
 
 public enum LinguisticErrorType
 {

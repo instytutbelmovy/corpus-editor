@@ -4,6 +4,7 @@ using Amazon.S3;
 using Amazon.S3.Model;
 using Amazon.S3.Transfer;
 using Editor.Domain.Corpus;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Editor.Services.Corpus;
 
@@ -24,16 +25,18 @@ public interface ICorpusStorage
     Task<bool> Exists(string key);
 }
 
-public class S3CorpusStorage : ICorpusStorage
+public partial class S3CorpusStorage : ICorpusStorage
 {
     private readonly AwsSettings _awsSettings;
     private readonly IAmazonS3 _s3Client;
+    private readonly ILogger<S3CorpusStorage> _logger;
 
     public S3CorpusStorage(AwsSettings awsSettings, ILogger<S3CorpusStorage>? logger)
     {
         _awsSettings = awsSettings;
         _s3Client = new AmazonS3Client(awsSettings.AccessKeyId, awsSettings.SecretAccessKey, RegionEndpoint.GetBySystemName(awsSettings.Region));
-        logger?.LogInformation("Using S3 bucket: {BucketName}", awsSettings.BucketName);
+        _logger = logger ?? NullLogger<S3CorpusStorage>.Instance;
+        LogUsingS3Bucket(awsSettings.BucketName);
     }
 
     public async Task<Stream> OpenRead(string key)
@@ -123,4 +126,7 @@ public class S3CorpusStorage : ICorpusStorage
             return false;
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Using S3 bucket: {BucketName}")]
+    private partial void LogUsingS3Bucket(string bucketName);
 }

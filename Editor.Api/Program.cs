@@ -18,6 +18,8 @@ using Editor.Services.Auth;
 using Editor.Services.Corpus;
 using Editor.Services.Editing;
 using Editor.Services.Email;
+using Editor.Services.Linguistics;
+using Editor.Services.Registry;
 using Editor.Services.Users;
 using InfrastructureJsonSerializerContext = Editor.Api.Infrastructure.InfrastructureJsonSerializerContext;
 using ServicesJsonSerializerContext = Editor.Services.ServicesJsonSerializerContext;
@@ -98,12 +100,18 @@ static void ConfigureServices(WebApplicationBuilder builder)
         throw new InvalidOperationException("Cloudflare Turnstile secret key is not configured. Please set 'Turnstile:SecretKey' in the configuration.");
     builder.Services.AddHttpClient<ITurnstileService, TurnstileService>();
 
+    var stanzaSettings = builder.RegisterSettings<StanzaSettings>("Stanza");
+    builder.Services.AddHttpClient<IStanzaService, StanzaService>(client => client.Timeout = TimeSpan.FromSeconds(stanzaSettings.TimeoutSeconds));
+
     builder.Services.AddValidatorsFromAssemblyContaining<SignInRequest>();
 
     builder.Services.AddSingleton<ICorpusStorage, S3CorpusStorage>();
     builder.Services.AddSingleton<IAwsFilesCache, AwsFilesCache>();
 
+    builder.Services.AddSingleton<IUploadJobQueue, UploadJobQueue>();
+
     builder.Services.AddHostedService<AwsFilesCacheMaintenanceService>();
+    builder.Services.AddHostedService<UploadJobWorker>();
 
     builder.Services.AddConventionalServices(typeof(EditingService).Assembly); // Editor.Services
     builder.Services.AddConventionalServices(typeof(UserRepository).Assembly); // Editor.DB
@@ -116,7 +124,7 @@ static void ConfigureServices(WebApplicationBuilder builder)
         options.KnownProxies.Clear();
 
         // Only trust X-Forwarded-* from these proxy networks (comma-separated CIDRs, e.g. "10.0.0.0/8, 172.16.0.0/12").
-        // When empty, no source filtering is applied and all hops are trusted — set this in production to the reverse-proxy subnet(s).
+        // When empty, no source filtering is applied and all hops are trusted - set this in production to the reverse-proxy subnet(s).
         var knownNetworks = builder.Configuration["ForwardedHeaders:KnownNetworks"];
         if (!string.IsNullOrWhiteSpace(knownNetworks))
             foreach (var cidr in knownNetworks.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
@@ -210,6 +218,12 @@ static void ConfigurePipeline(WebApplication app)
     app.Services.InitLoggerFor(nameof(ExceptionMiddleware), ExceptionMiddleware.InitializeLogging);
     app.Services.InitLoggerFor(nameof(VertiIO), VertiIO.InitializeLogging);
     app.Services.GetRequiredService<IAwsFilesCache>().Initialize();
+
+    // Пра вымкнутую Stanza кажам адзін раз тут, а не на кожным кавалку кожнага дакумэнту
+    if (!app.Services.GetRequiredService<StanzaSettings>().IsEnabled)
+        app.Services.GetRequiredService<ILoggerFactory>()
+            .CreateLogger(nameof(StanzaService))
+            .LogWarning("Stanza tagging is disabled: 'Stanza:BaseUrl' is not configured. Uploads will be marked up from GrammarDB alone.");
 
     // Must run first so scheme/client-IP are correct behind the reverse proxy.
     app.UseForwardedHeaders();

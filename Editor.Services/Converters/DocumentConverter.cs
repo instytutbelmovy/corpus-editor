@@ -4,16 +4,19 @@ namespace Editor.Services.Converters;
 
 public static class DocumentConverter
 {
-    public static IEnumerable<Paragraph> GetParagraphs(Stream stream, IDocumentReader reader)
+    public static List<Paragraph> GetParagraphs(Stream stream, IDocumentReader reader)
     {
         var paragraphTexts = reader.Read(stream);
 
         var paragraphId = 1;
-        var sentenceId = 1;
+        var paragraphs = new List<Paragraph>();
 
         foreach (var paragraphText in paragraphTexts)
         {
             var sentences = new List<Sentence>();
+
+            // Нумарацыя сказаў - у межах параграфу: EditingService трактуе Id сказу як індэкс у параграфе
+            var sentenceId = 1;
 
             var tokens = Tokenizer.Parse(paragraphText);
             var sentenceTokens = Sentencer.ToSentences(tokens);
@@ -26,7 +29,9 @@ public static class DocumentConverter
             }
 
             var paragraph = new Paragraph(paragraphId++, Guid.NewGuid(), sentences);
-            yield return paragraph;
+            paragraphs.Add(paragraph);
         }
+
+        return paragraphs;
     }
 }

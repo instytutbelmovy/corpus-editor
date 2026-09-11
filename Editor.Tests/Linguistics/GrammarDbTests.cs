@@ -6,7 +6,7 @@ namespace Editor.Tests.Linguistics;
 public class GrammarDbTests
 {
     // "кот" і "ката" ужо ў нармалізаваным выглядзе (малыя літары, без націску), таму
-    // GrammarDbAggressiveNormalize пакідае іх без зьменаў — ключы супадаюць з зыходнымі словамі.
+    // GrammarDbAggressiveNormalize пакідае іх без зьменаў - ключы супадаюць з зыходнымі словамі.
     private static readonly FormMatch KotNoun = new(1, "a", "NMSNN", "кот", "NMS", "жывёла");
     private static readonly FormMatch KataGen = new(1, "a", "NMSGN", "кот", "NMS", "жывёла");
     private static readonly FormMatch KataOther = new(2, "a", "NFSNN", "ката", "NFS", null);
@@ -30,7 +30,7 @@ public class GrammarDbTests
         Assert.Equal(await new GrammarDb(Repo()).LookupWord("ката"), batch["ката"]);
         Assert.Empty(batch["невядома"]);
 
-        // Тры словы — адзін зварот да базы, а не тры
+        // Тры словы - адзін зварот да базы, а не тры
         Assert.Equal(1, repo.BatchCallCount);
         Assert.Equal(0, repo.SingleCallCount);
     }
@@ -60,6 +60,48 @@ public class GrammarDbTests
         Assert.Null(paradigmFormId);
         Assert.Null(lemma);
         Assert.Null(tag);
+    }
+
+    [Fact]
+    public void InferGrammarInfo_SingleCandidate_ReturnsItVerbatim()
+    {
+        var db = new GrammarDb(Repo());
+
+        var (paradigmFormId, lemma, tag) = db.InferGrammarInfo([GrammarInfoFor(KotNoun)]);
+
+        Assert.Equal(new ParadigmFormId(1, "a", "NMSNN"), paradigmFormId);
+        Assert.True(paradigmFormId!.IsSingular());
+        Assert.Equal("кот", lemma);
+        Assert.Equal(new LinguisticTag("NMS", "NMSNN"), tag);
+    }
+
+    [Fact]
+    public void InferGrammarInfo_SameParadigmDifferentForms_ReturnsPartialId()
+    {
+        var db = new GrammarDb(Repo());
+
+        // Абодва кандыдаты - той самы парадыгматычны варыянт, розьніца толькі ў формавым тэгу.
+        var (paradigmFormId, lemma, tag) = db.InferGrammarInfo([GrammarInfoFor(KotNoun), GrammarInfoFor(KataGen)]);
+
+        Assert.Equal(new ParadigmFormId(1, "a", null), paradigmFormId);
+        // Няпоўны ідэнтыфікатар - слова не лічыцца вырашаным
+        Assert.False(paradigmFormId!.IsSingular());
+        Assert.Equal("кот", lemma);
+        Assert.Equal(new LinguisticTag("NMS", "NMS.N"), tag);
+    }
+
+    [Fact]
+    public void InferGrammarInfo_DifferentParadigms_DropsIdAndLemma_ButKeepsCommonTag()
+    {
+        var db = new GrammarDb(Repo());
+
+        var (paradigmFormId, lemma, tag) = db.InferGrammarInfo([GrammarInfoFor(KataGen), GrammarInfoFor(KataOther)]);
+
+        Assert.Null(paradigmFormId);
+        // Лемы "кот" і "ката" не супадаюць нават пасьля аграсіўнай нармалізацыі
+        Assert.Null(lemma);
+        // Часьціна мовы супадае (назоўнік), таму агульнае ў тэгах застаецца
+        Assert.Equal(new LinguisticTag("N.S", "N.S.N"), tag);
     }
 
     private static GrammarInfo GrammarInfoFor(FormMatch m) => new(

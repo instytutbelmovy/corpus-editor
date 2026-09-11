@@ -14,7 +14,7 @@ const REDIRECT_ERRORS: Record<string, string> = {
   google:
     'Не ўдалося ўвайсьці праз Google. Паспрабуйце яшчэ раз ці скарыстайцеся email і паролем.',
   'no-access':
-    'Гэты рахунак Google ня мае доступу да сыстэмы. Зьвярніцеся да адміністратара, каб атрымаць доступ.',
+    'Гэты акаўнт Google ня мае доступу да сыстэмы. Зьвярнецеся да адміністратара, каб атрымаць доступ.',
 };
 
 export default function SignIn() {
@@ -47,7 +47,7 @@ export default function SignIn() {
     ? `/api/auth/google/login?returnTo=${encodeURIComponent(safeReturnTo)}`
     : '/api/auth/google/login';
 
-  // Калі ёсьць лакальны кэш — правяраем сэсію на сэрвэры і, калі яна жывая, ідзем далей.
+  // Калі ёсьць лакальны кэш - правяраем сэсію на сэрвэры і, калі яна жывая, ідзем далей.
   // Чакаем router.isReady: да яго query пусты і returnTo быў бы згублены.
   useEffect(() => {
     if (!router.isReady || !AuthStorage.get()) return;

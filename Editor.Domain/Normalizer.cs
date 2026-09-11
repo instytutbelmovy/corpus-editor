@@ -14,6 +14,7 @@ public static class Normalizer
 
     private static readonly Dictionary<char, char> GrammarSearchAggressiveNormalize;
     private static readonly Dictionary<char, char> GrammarSearchLightNormalize;
+    private static readonly Dictionary<char, char> GrammarSearchPrefixNormalize;
     private static readonly Dictionary<char, char> TypographicStressNormalize = new() { { GrammarDbStress[0], CorrectStress[0] } };
 
     [ThreadStatic]
@@ -64,11 +65,24 @@ public static class Normalizer
 
         GrammarSearchLightNormalize = new Dictionary<char, char>(tokenizationNormalize);
         GrammarSearchLightNormalize[GrammarDbStress[0]] = CorrectStress[0];
+
+        // Ключ пошуку па ГрамБазе: як аграсіўная нармалізацыя, але націскі выкідаюцца зусім (у мапе іх няма -> NormalizeWith іх адкіне), бо ў пошуку карыстальнік націскаў не ставіць
+        GrammarSearchPrefixNormalize = new Dictionary<char, char>(GrammarSearchAggressiveNormalize);
+        foreach (char c in AllStresses)
+        {
+            GrammarSearchPrefixNormalize.Remove(c);
+        }
     }
 
     public static string GrammarDbAggressiveNormalize(string word) => NormalizeWith(word, GrammarSearchAggressiveNormalize);
 
     public static string GrammarDbLightNormalize(string word) => NormalizeWith(word, GrammarSearchLightNormalize);
+
+    /// <summary>
+    /// Ключ прэфікснага пошуку па ГрамБазе (лема і зваротны індэкс формаў): аграсіўная нармалізацыя без націску - леммы ў базе націск нясуць, а запыт карыстальніка яго не мае.
+    /// Пасьля яе ў радку не застаецца LIKE-мэтасымбаляў: % і _ не літары, таму адкідаюцца.
+    /// </summary>
+    public static string GrammarDbSearchNormalize(string word) => NormalizeWith(word, GrammarSearchPrefixNormalize);
     
     public static string NormalizeTypographicStress(string word) => NormalizeOnly(word, TypographicStressNormalize);
     

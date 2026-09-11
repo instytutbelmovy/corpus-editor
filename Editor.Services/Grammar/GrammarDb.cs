@@ -70,37 +70,5 @@ public class GrammarDb(IGrammarRepository grammarRepository) : IGrammarDb
     }
 
     public (ParadigmFormId?, string?, LinguisticTag?) InferGrammarInfo(List<GrammarInfo> grammarInfoList)
-    {
-        if (grammarInfoList.Count == 0)
-            return (null, null, null);
-
-        if (grammarInfoList.Count == 1)
-        {
-            var grammarInfo = grammarInfoList[0];
-            return (
-                grammarInfo.ParadigmFormId,
-                grammarInfo.Lemma,
-                grammarInfo.LinguisticTag
-            );
-        }
-
-        var intersectionParadigmFormId = grammarInfoList
-            .Aggregate<GrammarInfo, ParadigmFormId?>(null, (current, grammarInfo) => current?.IntersectWith(grammarInfo.ParadigmFormId));
-
-        var intersectionLinguisticTag = grammarInfoList
-            .Aggregate<GrammarInfo, LinguisticTag?>(null, (current, grammarInfo) => current?.IntersectWith(grammarInfo.LinguisticTag));
-
-        var lemmas = grammarInfoList.Select(info => Normalizer.GrammarDbLightNormalize(info.Lemma)).ToHashSet();
-        var intersectionLemma = lemmas.Count == 1 ? lemmas.First() : null;
-
-        if (intersectionLemma == null)
-        {
-            // добра, а калі і націскі і вялікія літары праігнараваць?
-            lemmas = grammarInfoList.Select(info => Normalizer.GrammarDbAggressiveNormalize(info.Lemma)).ToHashSet();
-            intersectionLemma = lemmas.Count() == 1 ? lemmas.First() : null;
-        }
-
-        // Калі знайшліся зусім розныя варыянты - вяртаем пустыя значэньні
-        return (intersectionParadigmFormId, intersectionLemma, intersectionLinguisticTag);
-    }
+        => GrammarInference.Infer(grammarInfoList);
 }
