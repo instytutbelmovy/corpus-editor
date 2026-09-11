@@ -130,7 +130,7 @@ export class DocumentService {
     documentId: number,
     metadata: Omit<
       DocumentHeader,
-      'n' | 'percentCompletion' | 'author' | 'language'
+      'n' | 'percentCompletion' | 'posCompletion' | 'author' | 'language'
     >
   ): Promise<void> {
     unwrap(

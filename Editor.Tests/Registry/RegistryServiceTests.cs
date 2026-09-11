@@ -193,6 +193,30 @@ public class RegistryServiceTests
         Assert.Equal(50, headers.Single().PercentCompletion);
     }
 
+    [Fact]
+    public async Task UploadFile_ComputesPosCompletionIndependentlyFromFullCompletion()
+    {
+        // "ката" неадназначная паміж дзьвюма назоўнікавымі формамі: часьціна мовы вядомая (абедзьве - назоўнікі),
+        // а канкрэтная форма - не, таму слова застаецца нявырашаным
+        var grammar = new Dictionary<string, IReadOnlyList<FormMatch>>
+        {
+            ["кот"] = [KotNoun],
+            ["ката"] =
+            [
+                new FormMatch(3, "a", "NMSGN", "кот", "NMS", null),
+                new FormMatch(4, "a", "NFSGN", "котка", "NFS", null),
+            ],
+        };
+        var (service, _) = await CreateService(stanza: DisabledStanza(), grammar: grammar);
+
+        await service.UploadFile(Request());
+
+        var header = (await service.GetAllFiles()).Single();
+        // "кот" вырашанае цалкам; "ата" - толькі часьціна мовы вядомая
+        Assert.Equal(50, header.PercentCompletion);
+        Assert.Equal(100, header.PosCompletion);
+    }
+
     // --- дапаможнае ---
 
     private static async Task<List<LinguisticItem>> LoadWords(IRegistryService service)
@@ -217,7 +241,8 @@ public class RegistryServiceTests
     }
 
     private static async Task<(RegistryService Service, InMemoryCorpusStorage Storage)> CreateService(
-        IStanzaService? stanza = null)
+        IStanzaService? stanza = null,
+        Dictionary<string, IReadOnlyList<FormMatch>>? grammar = null)
     {
         var storage = new InMemoryCorpusStorage();
         var cache = new AwsFilesCache(storage, null);
@@ -230,7 +255,7 @@ public class RegistryServiceTests
             NullLogger<StanzaTagger>.Instance);
 
         var service = new RegistryService(
-            new GrammarDb(new FakeGrammarRepository(Grammar)),
+            new GrammarDb(new FakeGrammarRepository(grammar ?? Grammar)),
             cache,
             tagger);
 

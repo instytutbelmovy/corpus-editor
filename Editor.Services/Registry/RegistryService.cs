@@ -111,9 +111,11 @@ public class RegistryService(
         }
 
         var percentCompletion = CorpusDocument.ComputeCompletion(paragraphs);
+        var posCompletion = CorpusDocument.ComputePosCompletion(paragraphs);
         var header = new CorpusDocumentHeader(request.N, request.Title, null, null, request.PublicationDate, request.Url, request.Type, request.Style, request.Corpus)
         {
             PercentCompletion = percentCompletion,
+            PosCompletion = posCompletion,
         };
         var corpusDocument = new CorpusDocument(header, paragraphs);
 

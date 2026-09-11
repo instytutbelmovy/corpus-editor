@@ -47,17 +47,39 @@ const tokenPercent = (job: UploadJobStatus) =>
     ? Math.round((job.processedTokens / job.totalTokens) * 100)
     : null;
 
-const ProgressBar = ({ percent }: { percent: number }) => (
-  <>
-    <div className="w-16 bg-gray-200 rounded-full h-2 mr-3">
+const ProgressBar = ({
+  percent,
+  posPercent,
+}: {
+  percent: number;
+  posPercent: number | null;
+}) => {
+  const tooltip =
+    posPercent !== null
+      ? `Разьмечана - ${percent}%, часьціна мовы ${posPercent}%`
+      : `Разьмечана - ${percent}%`;
+
+  return (
+    <>
       <div
-        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-        style={{ width: `${percent}%` }}
-      />
-    </div>
-    <span className="text-sm text-gray-900 font-medium">{percent}%</span>
-  </>
-);
+        className="relative w-16 bg-gray-200 rounded-full h-2 mr-3"
+        title={tooltip}
+      >
+        {posPercent !== null && (
+          <div
+            className="absolute inset-y-0 left-0 bg-yellow-400 h-2 rounded-full transition-all duration-300"
+            style={{ width: `${Math.max(posPercent, percent)}%` }}
+          />
+        )}
+        <div
+          className="absolute inset-y-0 left-0 bg-blue-600 h-2 rounded-full transition-all duration-300"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+      <span className="text-sm text-gray-900 font-medium">{percent}%</span>
+    </>
+  );
+};
 
 const JobProgress = ({ job }: { job: UploadJobStatus }) => {
   const percent = tokenPercent(job);
@@ -67,7 +89,7 @@ const JobProgress = ({ job }: { job: UploadJobStatus }) => {
       <span className="text-sm text-gray-700 mr-3">
         {STAGE_LABELS[job.stage]}
       </span>
-      {percent !== null && <ProgressBar percent={percent} />}
+      {percent !== null && <ProgressBar percent={percent} posPercent={null} />}
     </div>
   );
 };
@@ -239,7 +261,10 @@ export const DocumentsTable = ({
                     <JobProgress job={taggingJob} />
                   ) : (
                     <div className="flex items-center">
-                      <ProgressBar percent={doc.percentCompletion} />
+                      <ProgressBar
+                        percent={doc.percentCompletion}
+                        posPercent={doc.posCompletion}
+                      />
                     </div>
                   )}
                 </Td>

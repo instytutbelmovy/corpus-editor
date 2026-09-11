@@ -76,6 +76,7 @@ export interface DocumentHeader {
   style?: string;
   corpus?: string;
   percentCompletion: number;
+  posCompletion: number | null;
 }
 
 export interface DocumentData {

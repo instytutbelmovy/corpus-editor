@@ -169,7 +169,9 @@ public partial class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache
             {
                 // The cached copy is newer than what our reader sees - compute from it and flush it
                 cached.CorpusDocument.Header.PercentCompletion = cached.CorpusDocument.ComputeCompletion();
+                cached.CorpusDocument.Header.PosCompletion = cached.CorpusDocument.ComputePosCompletion();
                 header.PercentCompletion = cached.CorpusDocument.Header.PercentCompletion;
+                header.PosCompletion = cached.CorpusDocument.Header.PosCompletion;
                 await storage.Write($"{header.N}.verti", cached.CorpusDocument);
                 cached.HasPendingChanges = false;
             }
@@ -178,6 +180,7 @@ public partial class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache
                 // ffs, now need to get the full document, compute completion, and update on storage
                 var document = await VertiIO.ReadDocument(reader);
                 header.PercentCompletion = document.ComputeCompletion();
+                header.PosCompletion = document.ComputePosCompletion();
                 document = document with { Header = header, };
                 await storage.Write($"{header.N}.verti", document);
             }
@@ -249,7 +252,14 @@ public partial class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache
     {
         await using var stream = await storage.OpenRead(objectKey);
         using var reader = new StreamReader(stream);
-        return await VertiIO.ReadDocument(reader);
+        var document = await VertiIO.ReadDocument(reader);
+
+        // Full document body just loaded from storage - a cheap opportunity to (re)compute PosCompletion
+        document.Header.PosCompletion = document.ComputePosCompletion();
+        if (_documentHeaders.TryGetValue(document.Header.N, out var cachedHeader))
+            cachedHeader.PosCompletion = document.Header.PosCompletion;
+
+        return document;
     }
 
     public async Task<CorpusDocumentHeader> ReloadFile(int n)
@@ -333,10 +343,14 @@ public partial class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache
     {
         var id = document.Header.N;
         document.Header.PercentCompletion = document.ComputeCompletion();
+        document.Header.PosCompletion = document.ComputePosCompletion();
         await storage.Write($"{id}.verti", document);
 
         if (_documentHeaders.TryGetValue(id, out var header))
+        {
             header.PercentCompletion = document.Header.PercentCompletion;
+            header.PosCompletion = document.Header.PosCompletion;
+        }
     }
 
     public async ValueTask<ICollection<CorpusDocumentHeader>> GetAllDocumentHeaders()

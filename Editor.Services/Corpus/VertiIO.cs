@@ -299,7 +299,8 @@ public static partial class VertiIO
             Corpus: docXml.Attribute("corpus")?.Value
         )
         {
-            PercentCompletion = int.TryParse(docXml.Attribute("percent_completion")?.Value, out var percentCompletion) ? percentCompletion : null
+            PercentCompletion = int.TryParse(docXml.Attribute("percent_completion")?.Value, out var percentCompletion) ? percentCompletion : null,
+            PosCompletion = int.TryParse(docXml.Attribute("pos_completion")?.Value, out var posCompletion) ? posCompletion : null
         };
         return corpusDocumentHeader;
     }
@@ -326,6 +327,8 @@ public static partial class VertiIO
             docElement.SetAttributeValue("corpus", header.Corpus);
         if (header.PercentCompletion != null)
             docElement.SetAttributeValue("percent_completion", header.PercentCompletion);
+        if (header.PosCompletion != null)
+            docElement.SetAttributeValue("pos_completion", header.PosCompletion);
 
         var docString = docElement.ToString();
         return docString[..^2] + ">";
