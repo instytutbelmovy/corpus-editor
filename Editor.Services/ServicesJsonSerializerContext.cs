@@ -17,6 +17,7 @@ namespace Editor.Services;
 [JsonSerializable(typeof(UpdateMetadataRequest))]
 [JsonSerializable(typeof(LemmaTag))]
 [JsonSerializable(typeof(UploadJobAccepted))]
+[JsonSerializable(typeof(TagAllAccepted))]
 [JsonSerializable(typeof(UploadJobStatus))]
 [JsonSerializable(typeof(ICollection<UploadJobStatus>))]
 // Auth

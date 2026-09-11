@@ -97,12 +97,20 @@ export enum UploadJobStage {
   Tagging = 3,
   Saving = 4,
   Done = 5,
+  Loading = 6,
+}
+
+// Што за праца: загрузка новага дакумэнту ці перазьметка ўжо наяўнага
+export enum UploadJobKind {
+  Upload = 0,
+  Tagging = 1,
 }
 
 export interface UploadJobStatus {
   id: string;
   n: number;
   title: string;
+  kind: UploadJobKind;
   state: UploadJobState;
   stage: UploadJobStage;
   processedTokens: number;
@@ -110,6 +118,16 @@ export interface UploadJobStatus {
   error: string | null;
   createdAt: string;
   completedAt: string | null;
+}
+
+// Адказ на пастаноўку заданьня ў чаргу
+export interface UploadJobAccepted {
+  jobId: string;
+}
+
+// Адказ на масавую перазьметку
+export interface TagAllAccepted {
+  enqueued: number;
 }
 
 // Пазыцыя слова ў дакумэнце

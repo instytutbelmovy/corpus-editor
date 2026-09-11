@@ -1,6 +1,6 @@
 namespace Editor.Services.Registry;
 
-public record DocumentUploadRequest(
+public sealed record DocumentUploadRequest(
     int N,
     string FileExtension,
     MemoryStream Content,
@@ -9,4 +9,9 @@ public record DocumentUploadRequest(
     string? PublicationDate,
     string? Type,
     string? Style,
-    string? Corpus);
+    string? Corpus) : JobRequest(N, Title)
+{
+    public override UploadJobKind Kind => UploadJobKind.Upload;
+
+    public override ValueTask DisposeAsync() => Content.DisposeAsync();
+}

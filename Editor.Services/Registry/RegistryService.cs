@@ -23,12 +23,10 @@ public interface IRegistryService
     Task<CorpusDocumentHeader> ReloadFile(int n);
 }
 
-public partial class RegistryService(
+public class RegistryService(
     IGrammarDb grammarDb,
     IAwsFilesCache awsFilesCache,
-    IStanzaService stanzaService,
-    StanzaSettings stanzaSettings,
-    ILogger<RegistryService> logger) : IRegistryService
+    IStanzaTagger stanzaTagger) : IRegistryService
 {
     public ValueTask<ICollection<CorpusDocumentHeader>> GetAllFiles()
     {
@@ -78,7 +76,7 @@ public partial class RegistryService(
         request.Content.Position = 0;
         var paragraphs = DocumentConverter.GetParagraphs(request.Content, reader);
 
-        var wordSlots = CollectWordSlots(paragraphs);
+        var wordSlots = StanzaTagger.CollectWordSlots(paragraphs);
         var totalWords = wordSlots.Count;
 
         // Адзін пакетны пошук на ўвесь дакумэнт замест запыту на кожнае слова
@@ -122,6 +120,22 @@ public partial class RegistryService(
         await awsFilesCache.AddFile(corpusDocument);
     }
 
+    private async Task<StanzaToken?[]?> TagWithStanza(
+        List<Paragraph> paragraphs,
+        int totalWords,
+        Action<UploadProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        var input = stanzaTagger.Prepare(paragraphs, totalWords);
+        if (input is null)
+            return null;
+
+        return await stanzaTagger.Run(
+            input,
+            tagged => progress?.Invoke(new UploadProgress(UploadJobStage.Tagging, tagged, totalWords)),
+            cancellationToken);
+    }
+
     private static IDocumentReader CreateReader(string fileExtension) => fileExtension.ToLowerInvariant() switch
     {
         ".txt" => new TxtReader(),
@@ -130,143 +144,6 @@ public partial class RegistryService(
         ".odt" => new OdtReader(),
         _ => throw new BadRequestException($"Unsupported file type: {fileExtension}"),
     };
-
-    /// <summary> Спасылкі на ўсе словы дакумэнту ў парадку абыходу. </summary>
-    private static List<(List<LinguisticItem> Items, int Index)> CollectWordSlots(List<Paragraph> paragraphs)
-    {
-        var slots = new List<(List<LinguisticItem>, int)>();
-
-        foreach (var paragraph in paragraphs)
-            foreach (var sentence in paragraph.Sentences)
-                for (var i = 0; i < sentence.SentenceItems.Count; i++)
-                    if (sentence.SentenceItems[i].Type == SentenceItemType.Word)
-                        slots.Add((sentence.SentenceItems, i));
-
-        return slots;
-    }
-
-    /// <summary>
-    /// Тэгае дакумэнт праз Stanza.
-    /// Вяртае масіў падказак, выраўнаваны з CollectWordSlots, ці null - калі сэрвіс вымкнуты. Кавалак, які не ўдалося атрымаць, проста застаецца без падказак:
-    /// такія словы разьмячаюцца толькі паводле ГрамБазы, а загрузка працягваецца.
-    /// </summary>
-    private async Task<StanzaToken?[]?> TagWithStanza(
-        List<Paragraph> paragraphs,
-        int totalWords,
-        Action<UploadProgress>? progress,
-        CancellationToken cancellationToken)
-    {
-        if (!stanzaService.IsEnabled)
-            return null;
-
-        progress?.Invoke(new UploadProgress(UploadJobStage.Tagging, 0, totalWords));
-
-        // Разьбіваем на сказы: словы і знакі прыпынку разам (пунктуацыя - карысны кантэкст для тэгера), пераносы радка прапускаем. Slots вядуць ад пазыцыі токена да нумару слова.
-        var sentences = new List<IReadOnlyList<string>>();
-        var slots = new List<int[]>();
-        var wordOrdinal = 0;
-
-        foreach (var paragraph in paragraphs)
-        {
-            foreach (var sentence in paragraph.Sentences)
-            {
-                var tokens = new List<string>(sentence.SentenceItems.Count);
-                var sentenceSlots = new List<int>(sentence.SentenceItems.Count);
-
-                foreach (var item in sentence.SentenceItems)
-                {
-                    if (item.Type == SentenceItemType.LineBreak)
-                        continue;
-
-                    var isWord = item.Type == SentenceItemType.Word;
-                    var cleaned = StanzaTextNormalizer.Clean(item.Text);
-
-                    tokens.Add(cleaned ?? StanzaTextNormalizer.Placeholder);
-                    // Ад слова, ад якога пасьля чысткі нічога не засталося, вынік не бяром
-                    sentenceSlots.Add(isWord && cleaned is not null ? wordOrdinal : -1);
-
-                    if (isWord)
-                        wordOrdinal++;
-                }
-
-                if (tokens.Count == 0)
-                    continue;
-
-                sentences.Add(tokens);
-                slots.Add(sentenceSlots.ToArray());
-            }
-        }
-
-        if (sentences.Count == 0)
-            return null;
-
-        var hints = new StanzaToken?[totalWords];
-        var taggedWords = 0;
-        var failedChunks = 0;
-
-        foreach (var (start, count) in Chunk(sentences))
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            var chunk = sentences.GetRange(start, count);
-            var tagged = await stanzaService.Tag(chunk, cancellationToken);
-
-            if (tagged is null)
-            {
-                failedChunks++;
-            }
-            else
-            {
-                for (var i = 0; i < count; i++)
-                {
-                    var sentenceSlots = slots[start + i];
-                    var taggedSentence = tagged[i];
-
-                    for (var j = 0; j < sentenceSlots.Length; j++)
-                        if (sentenceSlots[j] >= 0)
-                            hints[sentenceSlots[j]] = taggedSentence[j];
-                }
-            }
-
-            for (var i = 0; i < count; i++)
-                taggedWords += slots[start + i].Count(slot => slot >= 0);
-
-            progress?.Invoke(new UploadProgress(UploadJobStage.Tagging, taggedWords, totalWords));
-        }
-
-        if (failedChunks > 0)
-            LogStanzaChunksFailed(failedChunks);
-
-        return hints;
-    }
-
-    /// <summary>
-    /// Пакуе цэлыя сказы ў кавалкі. Сказ ніколі не разразаецца: адзін занадта доўгі сказ ідзе асобным кавалкам і перавышае мяжу - кантракт сэрвісу гэта дазваляе.
-    /// </summary>
-    private IEnumerable<(int Start, int Count)> Chunk(List<IReadOnlyList<string>> sentences)
-    {
-        var start = 0;
-        var tokens = 0;
-
-        for (var i = 0; i < sentences.Count; i++)
-        {
-            var wouldExceed = i > start
-                              && (tokens + sentences[i].Count > stanzaSettings.MaxTokensPerRequest
-                                  || i - start >= stanzaSettings.MaxSentencesPerRequest);
-
-            if (wouldExceed)
-            {
-                yield return (start, i - start);
-                start = i;
-                tokens = 0;
-            }
-
-            tokens += sentences[i].Count;
-        }
-
-        if (start < sentences.Count)
-            yield return (start, sentences.Count - start);
-    }
 
     public async Task<(Stream Stream, string FileName)> DownloadFile(int n)
     {
@@ -297,7 +174,4 @@ public partial class RegistryService(
 
         return await awsFilesCache.ReloadFile(n);
     }
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Stanza не апрацавала {FailedChunks} кавалкаў - тыя словы разьмечаныя без падказак")]
-    private partial void LogStanzaChunksFailed(int failedChunks);
 }

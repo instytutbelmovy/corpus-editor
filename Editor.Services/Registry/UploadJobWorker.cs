@@ -4,7 +4,7 @@ using Microsoft.Extensions.Hosting;
 
 namespace Editor.Services.Registry;
 
-/// <summary> Апрацоўвае чаргу загрузак па адным дакумэнце за раз. </summary>
+/// <summary> Апрацоўвае чаргу заданьняў па адным дакумэнце за раз. </summary>
 public partial class UploadJobWorker(
     IUploadJobQueue queue,
     IServiceScopeFactory scopeFactory,
@@ -32,22 +32,35 @@ public partial class UploadJobWorker(
     {
         LogProcessingJob(job.Id, job.Request.N);
 
-        queue.Update(job.Id, s => s with { State = UploadJobState.Running, Stage = UploadJobStage.Parsing });
+        // Этап не выстаўляем: кожная служба паведамляе свой першы этап адразу, як пачынае
+        queue.Update(job.Id, s => s with { State = UploadJobState.Running });
 
         try
         {
             using var scope = scopeFactory.CreateScope();
-            var registryService = scope.ServiceProvider.GetRequiredService<IRegistryService>();
 
-            await registryService.UploadFile(
-                job.Request,
-                progress => queue.Update(job.Id, s => s with
-                {
-                    Stage = progress.Stage,
-                    ProcessedTokens = progress.ProcessedTokens,
-                    TotalTokens = progress.TotalTokens,
-                }),
-                stoppingToken);
+            void OnProgress(UploadProgress progress) => queue.Update(job.Id, s => s with
+            {
+                Stage = progress.Stage,
+                ProcessedTokens = progress.ProcessedTokens,
+                TotalTokens = progress.TotalTokens,
+            });
+
+            switch (job.Request)
+            {
+                case DocumentUploadRequest upload:
+                    await scope.ServiceProvider.GetRequiredService<IRegistryService>()
+                        .UploadFile(upload, OnProgress, stoppingToken);
+                    break;
+
+                case DocumentTagRequest tag:
+                    await scope.ServiceProvider.GetRequiredService<ITaggingService>()
+                        .TagDocument(tag.N, OnProgress, stoppingToken);
+                    break;
+
+                default:
+                    throw new InvalidOperationException($"Unknown job request type {job.Request.GetType().Name}");
+            }
 
             queue.Update(job.Id, s => s with
             {
@@ -63,7 +76,7 @@ public partial class UploadJobWorker(
             queue.Update(job.Id, s => s with
             {
                 State = UploadJobState.Failed,
-                Error = "Сэрвэр спыняецца, загрузка перарваная",
+                Error = "Сэрвэр спыняецца, апрацоўка перарваная",
                 CompletedAt = DateTimeOffset.UtcNow,
             });
             throw;
@@ -84,16 +97,16 @@ public partial class UploadJobWorker(
         }
         finally
         {
-            await job.Request.Content.DisposeAsync();
+            await job.Request.DisposeAsync();
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Processing upload job {JobId} for document {N}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Processing job {JobId} for document {N}")]
     private partial void LogProcessingJob(Guid jobId, int n);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Upload job {JobId} for document {N} finished")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Job {JobId} for document {N} finished")]
     private partial void LogJobFinished(Guid jobId, int n);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Upload job {JobId} for document {N} failed")]
+    [LoggerMessage(Level = LogLevel.Error, Message = "Job {JobId} for document {N} failed")]
     private partial void LogJobFailed(Exception exception, Guid jobId, int n);
 }

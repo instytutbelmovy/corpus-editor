@@ -5,11 +5,14 @@ namespace Editor.Services.Registry;
 
 public interface IUploadJobQueue
 {
-    UploadJobStatus Enqueue(DocumentUploadRequest request);
+    UploadJobStatus Enqueue(JobRequest request);
 
     UploadJobStatus? TryGetStatus(Guid jobId);
 
     ICollection<UploadJobStatus> GetAll();
+
+    /// <summary> Ці стаіць у чарзе (ці ўжо бяжыць) заданьне на гэты дакумэнт - каб не ставіць другое. </summary>
+    bool HasActiveJobFor(int n);
 
     IAsyncEnumerable<UploadJobItem> ReadAll(CancellationToken cancellationToken);
 
@@ -19,7 +22,7 @@ public interface IUploadJobQueue
 }
 
 /// <summary>
-/// Чарга загрузак у памяці. Адзін чытач - значыць, дакумэнты апрацоўваюцца строга па адным: пайплайн Stanza не патокабясьпечны,
+/// Чарга заданьняў у памяці. Адзін чытач - значыць, дакумэнты апрацоўваюцца строга па адным: пайплайн Stanza не патокабясьпечны,
 /// вонкавы сэрвіс усё роўна сэрыялізуе запыты, а адзін дакумэнт у 200k словаў і так займае каля 100 МБ.
 /// </summary>
 public sealed class UploadJobQueue : IUploadJobQueue
@@ -29,12 +32,13 @@ public sealed class UploadJobQueue : IUploadJobQueue
 
     private readonly ConcurrentDictionary<Guid, UploadJobStatus> _statuses = new();
 
-    public UploadJobStatus Enqueue(DocumentUploadRequest request)
+    public UploadJobStatus Enqueue(JobRequest request)
     {
         var status = new UploadJobStatus(
             Id: Guid.NewGuid(),
             N: request.N,
             Title: request.Title,
+            Kind: request.Kind,
             State: UploadJobState.Queued,
             Stage: UploadJobStage.Queued,
             ProcessedTokens: 0,
@@ -55,6 +59,9 @@ public sealed class UploadJobQueue : IUploadJobQueue
     public UploadJobStatus? TryGetStatus(Guid jobId) => _statuses.GetValueOrDefault(jobId);
 
     public ICollection<UploadJobStatus> GetAll() => _statuses.Values.ToList();
+
+    public bool HasActiveJobFor(int n) =>
+        _statuses.Values.Any(s => s.N == n && s.State is UploadJobState.Queued or UploadJobState.Running);
 
     public IAsyncEnumerable<UploadJobItem> ReadAll(CancellationToken cancellationToken)
         => _channel.Reader.ReadAllAsync(cancellationToken);

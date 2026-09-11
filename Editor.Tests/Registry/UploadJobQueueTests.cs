@@ -1,4 +1,4 @@
-using Editor.Services.Registry;
+﻿using Editor.Services.Registry;
 
 namespace Editor.Tests.Registry;
 
@@ -23,6 +23,47 @@ public class UploadJobQueueTests
         Assert.Equal(7, found.N);
         Assert.Equal("Дакумэнт 7", found.Title);
         Assert.Null(found.CompletedAt);
+    }
+
+    [Fact]
+    public void Enqueue_CarriesTheJobKind()
+    {
+        var queue = new UploadJobQueue();
+
+        var upload = queue.Enqueue(Request(1));
+        var tagging = queue.Enqueue(new DocumentTagRequest(2, "Ranni vecar"));
+
+        Assert.Equal(UploadJobKind.Upload, queue.TryGetStatus(upload.Id)!.Kind);
+        Assert.Equal(UploadJobKind.Tagging, queue.TryGetStatus(tagging.Id)!.Kind);
+        Assert.Equal("Ranni vecar", queue.TryGetStatus(tagging.Id)!.Title);
+    }
+
+    [Fact]
+    public void HasActiveJobFor_IsTrueWhileQueuedOrRunning()
+    {
+        var queue = new UploadJobQueue();
+        var status = queue.Enqueue(new DocumentTagRequest(5, "Piaty"));
+
+        Assert.True(queue.HasActiveJobFor(5));
+        Assert.False(queue.HasActiveJobFor(6));
+
+        queue.Update(status.Id, s => s with { State = UploadJobState.Running });
+        Assert.True(queue.HasActiveJobFor(5));
+    }
+
+    [Fact]
+    public void HasActiveJobFor_IsFalseOnceTheJobIsDone()
+    {
+        var queue = new UploadJobQueue();
+        var succeeded = queue.Enqueue(new DocumentTagRequest(5, "Piaty"));
+        var failed = queue.Enqueue(new DocumentTagRequest(6, "Sosty"));
+
+        queue.Update(succeeded.Id, s => s with { State = UploadJobState.Succeeded, CompletedAt = DateTimeOffset.UtcNow });
+        queue.Update(failed.Id, s => s with { State = UploadJobState.Failed, CompletedAt = DateTimeOffset.UtcNow });
+
+        // Няўдалае заданьне не мусіць назаўжды блякаваць паўторную спробу
+        Assert.False(queue.HasActiveJobFor(5));
+        Assert.False(queue.HasActiveJobFor(6));
     }
 
     [Fact]

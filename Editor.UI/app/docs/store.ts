@@ -57,11 +57,12 @@ interface DocumentState {
   recentlyCompletedIds: Set<number>;
   // Схаваныя карыстальнікам заданьні (толькі памылковыя): сэрвэр аддае іх яшчэ гадзіну, таму трэба помніць
   dismissedJobIds: Set<string>;
-  // Стан кожнага заданьня з папярэдняга апытаньня, ужо ўключна з Succeeded - інакш завершанае заданьне
-  // лічылася б "новым" на кожным цыкле і бясконца перачытвала б сьпіс дакумэнтаў
+  // Стан кожнага заданьня з папярэдняга апытаньня, ужо ўключна з Succeeded - інакш завершанае заданьне лічылася б "новым" на кожным цыкле і бясконца перачытвала б сьпіс дакумэнтаў
   _seenJobStates: Map<string, UploadJobState>;
   // Ці быў ужо адзін апытальны цыкл - каб не "падсьвечваць" заданьні, ужо завершаныя да загрузкі старонкі
   _uploadJobsPolled: boolean;
+  // Памылка дзеяньня ў сьпісе дакумэнтаў (напрыклад, дакумэнт ужо ў чарзе): банэр па-над табліцаю, а не error, які замяняе ўсю старонку
+  listActionError: string | null;
 
   // Гісторыя для undo/redo
   history: DocumentData[];
@@ -93,6 +94,9 @@ interface DocumentState {
   refreshDocumentsList: () => Promise<void>;
   pollUploadJobs: () => Promise<void>;
   dismissUploadJob: (jobId: string) => void;
+  tagDocument: (documentId: number) => Promise<void>;
+  tagAllDocuments: () => Promise<void>;
+  clearListActionError: () => void;
   // Нязьменнае абнаўленьне аднаго слова
   updateSentenceItem: (
     word: WordRef,
@@ -161,6 +165,7 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   dismissedJobIds: new Set(),
   _seenJobStates: new Map(),
   _uploadJobsPolled: false,
+  listActionError: null,
   history: [],
   historyIndex: -1,
   loading: false,
@@ -363,6 +368,29 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       uploadJobs: state.uploadJobs.filter(job => job.id !== jobId),
       dismissedJobIds: new Set(state.dismissedJobIds).add(jobId),
     })),
+
+  tagDocument: async (documentId: number) => {
+    try {
+      set({ listActionError: null });
+      await serviceLocator.documentService.tagDocument(documentId);
+      // Апытаньне ідзе толькі пакуль ёсьць актыўныя заданьні, таму новае трэба паказаць самім - інакш таймэр не запусьціцца
+      await get().pollUploadJobs();
+    } catch (err) {
+      set({ listActionError: errorMessage(err) });
+    }
+  },
+
+  tagAllDocuments: async () => {
+    try {
+      set({ listActionError: null });
+      await serviceLocator.documentService.tagAllDocuments();
+      await get().pollUploadJobs();
+    } catch (err) {
+      set({ listActionError: errorMessage(err) });
+    }
+  },
+
+  clearListActionError: () => set({ listActionError: null }),
 
   updateSentenceItem: (word, patch) =>
     set(state => {

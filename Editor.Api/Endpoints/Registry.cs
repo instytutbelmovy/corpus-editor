@@ -1,5 +1,6 @@
-using Editor.Api.Infrastructure;
+﻿using Editor.Api.Infrastructure;
 using Editor.Domain.Corpus;
+using Editor.Services.Exceptions;
 using Editor.Services.Registry;
 
 namespace Editor.Api;
@@ -15,6 +16,8 @@ public static class Registry
         group.MapGet("/corpora", GetAllCorpora).Viewer();
         group.MapPost("/", UploadFile).Editor();
         group.MapGet("/{n:int}/download", DownloadFile).Viewer();
+        group.MapPost("/tag", TagAllFiles).Admin();
+        group.MapPost("/{n:int}/tag", TagFile).Editor();
         group.MapPost("/refresh", ReloadFilesList).Admin();
         group.MapPost("/{n:int}/refresh", ReloadFile).Admin();
 
@@ -79,6 +82,35 @@ public static class Registry
                 Corpus: form["corpus"].ToString()));
 
         return Results.Accepted($"/api/upload-jobs/{status.Id}", new UploadJobAccepted(status.Id));
+    }
+
+    private static async Task<IResult> TagFile(int n, ITaggingService taggingService, IUploadJobQueue uploadJobQueue)
+    {
+        var title = await taggingService.PreflightTag(n);
+
+        if (uploadJobQueue.HasActiveJobFor(n))
+            throw new ConflictException($"Дакумэнт {n} ужо ў чарзе на апрацоўку");
+
+        var status = uploadJobQueue.Enqueue(new DocumentTagRequest(n, title));
+        return Results.Accepted($"/api/upload-jobs/{status.Id}", new UploadJobAccepted(status.Id));
+    }
+
+    private static async Task<IResult> TagAllFiles(ITaggingService taggingService, IUploadJobQueue uploadJobQueue)
+    {
+        var headers = await taggingService.GetTaggableDocuments();
+
+        var enqueued = 0;
+        foreach (var header in headers.OrderBy(x => x.N))
+        {
+            // Дакумэнт, які ўжо ў чарзе, другі раз не ставім
+            if (uploadJobQueue.HasActiveJobFor(header.N))
+                continue;
+
+            uploadJobQueue.Enqueue(new DocumentTagRequest(header.N, header.Title ?? header.N.ToString()));
+            enqueued++;
+        }
+
+        return Results.Accepted("/api/upload-jobs", new TagAllAccepted(enqueued));
     }
 
     private static IResult GetUploadJob(Guid jobId, IUploadJobQueue uploadJobQueue)

@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using Editor.Domain;
 using Editor.Domain.Corpus;
 using Editor.Services.Corpus;
@@ -224,12 +224,15 @@ public class RegistryServiceTests
         cache.Initialize();
         await cache.GetAllDocumentHeaders().AsTask().WaitAsync(Timeout);
 
+        var tagger = new StanzaTagger(
+            stanza ?? DisabledStanza(),
+            new StanzaSettings(),
+            NullLogger<StanzaTagger>.Instance);
+
         var service = new RegistryService(
             new GrammarDb(new FakeGrammarRepository(Grammar)),
             cache,
-            stanza ?? DisabledStanza(),
-            new StanzaSettings(),
-            NullLogger<RegistryService>.Instance);
+            tagger);
 
         return (service, storage);
     }

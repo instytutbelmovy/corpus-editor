@@ -6,6 +6,8 @@ import {
   GrammarInfo,
   ParadigmFormId,
   ParagraphOperation,
+  TagAllAccepted,
+  UploadJobAccepted,
   UploadJobStatus,
   WordRef,
 } from './types';
@@ -81,6 +83,23 @@ export class DocumentService {
     formData.append('file', documentData.file);
 
     unwrap(await this.apiClient.postFormData('/registry-files', formData));
+  }
+
+  // Ставіць дакумэнт у чаргу на перазьметку праз Stanza
+  async tagDocument(documentId: number): Promise<void> {
+    unwrap(
+      await this.apiClient.post<UploadJobAccepted>(
+        `/registry-files/${documentId}/tag`,
+        {}
+      )
+    );
+  }
+
+  // Тое самае для ўсяго рэестру; вяртае, колькі дакумэнтаў сталі ў чаргу
+  async tagAllDocuments(): Promise<number> {
+    return unwrap(
+      await this.apiClient.post<TagAllAccepted>('/registry-files/tag', {})
+    ).enqueued;
   }
 
   async getUploadJobs(): Promise<UploadJobStatus[]> {
