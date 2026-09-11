@@ -83,6 +83,35 @@ export interface DocumentData {
   paragraphs: Paragraph[];
 }
 
+export enum UploadJobState {
+  Queued = 0,
+  Running = 1,
+  Succeeded = 2,
+  Failed = 3,
+}
+
+export enum UploadJobStage {
+  Queued = 0,
+  Parsing = 1,
+  LookingUpGrammar = 2,
+  Tagging = 3,
+  Saving = 4,
+  Done = 5,
+}
+
+export interface UploadJobStatus {
+  id: string;
+  n: number;
+  title: string;
+  state: UploadJobState;
+  stage: UploadJobStage;
+  processedTokens: number;
+  totalTokens: number;
+  error: string | null;
+  createdAt: string;
+  completedAt: string | null;
+}
+
 // Пазыцыя слова ў дакумэнце
 export interface WordPosition {
   paragraphId: number;

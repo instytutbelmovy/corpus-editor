@@ -19,6 +19,7 @@ public static class Registry
         group.MapPost("/{n:int}/refresh", ReloadFile).Admin();
 
         var jobs = builder.MapGroup("/api/upload-jobs");
+        jobs.MapGet("/", GetAllUploadJobs).Editor();
         jobs.MapGet("/{jobId:guid}", GetUploadJob).Editor();
     }
 
@@ -85,6 +86,9 @@ public static class Registry
         var status = uploadJobQueue.TryGetStatus(jobId);
         return status == null ? Results.NotFound() : Results.Ok(status);
     }
+
+    private static ICollection<UploadJobStatus> GetAllUploadJobs(IUploadJobQueue uploadJobQueue)
+        => uploadJobQueue.GetAll();
 
     private static async Task<IResult> DownloadFile(int n, IRegistryService registryService)
     {

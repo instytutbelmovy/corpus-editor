@@ -6,6 +6,7 @@ import {
   GrammarInfo,
   ParadigmFormId,
   ParagraphOperation,
+  UploadJobStatus,
   WordRef,
 } from './types';
 
@@ -80,6 +81,10 @@ export class DocumentService {
     formData.append('file', documentData.file);
 
     unwrap(await this.apiClient.postFormData('/registry-files', formData));
+  }
+
+  async getUploadJobs(): Promise<UploadJobStatus[]> {
+    return unwrap(await this.apiClient.get<UploadJobStatus[]>('/upload-jobs'));
   }
 
   async fetchDocument(

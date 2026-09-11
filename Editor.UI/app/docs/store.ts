@@ -7,6 +7,8 @@ import {
   OperationType,
   Sentence,
   SentenceItem,
+  UploadJobState,
+  UploadJobStatus,
   WordRef,
 } from './types';
 import { serviceLocator } from '@/app/services/serviceLocator';
@@ -19,12 +21,47 @@ const PAGE_SIZE = 20;
 
 type Editor = (data: DocumentData) => DocumentData;
 
+// Ці аднолькавыя сьпісы заданьняў з пункту гледжаньня таго, што паказвае табліца
+const sameJobs = (a: UploadJobStatus[], b: UploadJobStatus[]) =>
+  a.length === b.length &&
+  a.every((job, i) => {
+    const other = b[i];
+    return (
+      job.id === other.id &&
+      job.state === other.state &&
+      job.stage === other.stage &&
+      job.processedTokens === other.processedTokens &&
+      job.totalTokens === other.totalTokens &&
+      job.error === other.error
+    );
+  });
+
+// Забываем схаваныя заданьні, якіх сэрвэр ужо не аддае - каб мноства не расло бясконца
+const pruneDismissed = (dismissed: Set<string>, jobs: UploadJobStatus[]) => {
+  if (dismissed.size === 0) return dismissed;
+
+  const alive = new Set(jobs.map(job => job.id));
+  const kept = [...dismissed].filter(id => alive.has(id));
+  return kept.length === dismissed.size ? dismissed : new Set(kept);
+};
+
 interface DocumentState {
   // Данныя дакумэнта
   documentData: DocumentData | null;
   // Захаваны стан, ад якога лічацца апэрацыі рэдагаваньня структуры
   originalDocumentData: DocumentData | null;
   documentsList: DocumentHeader[];
+  // Заданьні фонавай апрацоўкі загружаных дакумэнтаў (без Succeeded - тыя ўжо ў documentsList)
+  uploadJobs: UploadJobStatus[];
+  // n дакумэнтаў, чые заданьні толькі што завяршыліся - для кароткай падсьветкі радка
+  recentlyCompletedIds: Set<number>;
+  // Схаваныя карыстальнікам заданьні (толькі памылковыя): сэрвэр аддае іх яшчэ гадзіну, таму трэба помніць
+  dismissedJobIds: Set<string>;
+  // Стан кожнага заданьня з папярэдняга апытаньня, ужо ўключна з Succeeded - інакш завершанае заданьне
+  // лічылася б "новым" на кожным цыкле і бясконца перачытвала б сьпіс дакумэнтаў
+  _seenJobStates: Map<string, UploadJobState>;
+  // Ці быў ужо адзін апытальны цыкл - каб не "падсьвечваць" заданьні, ужо завершаныя да загрузкі старонкі
+  _uploadJobsPolled: boolean;
 
   // Гісторыя для undo/redo
   history: DocumentData[];
@@ -50,9 +87,12 @@ interface DocumentState {
     isInitial?: boolean
   ) => Promise<void>;
   reloadDocument: (documentId: string) => Promise<void>;
-  fetchDocuments: () => Promise<void>;
+  // silent - фонавае абнаўленьне: не замяняе старонку экранам загрузкі і не зносіць сьпіс пры памылцы
+  fetchDocuments: (options?: { silent?: boolean }) => Promise<void>;
   refreshDocumentHeader: (documentId: number) => Promise<void>;
   refreshDocumentsList: () => Promise<void>;
+  pollUploadJobs: () => Promise<void>;
+  dismissUploadJob: (jobId: string) => void;
   // Нязьменнае абнаўленьне аднаго слова
   updateSentenceItem: (
     word: WordRef,
@@ -116,6 +156,11 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
   documentData: null,
   originalDocumentData: null,
   documentsList: [],
+  uploadJobs: [],
+  recentlyCompletedIds: new Set(),
+  dismissedJobIds: new Set(),
+  _seenJobStates: new Map(),
+  _uploadJobsPolled: false,
   history: [],
   historyIndex: -1,
   loading: false,
@@ -216,13 +261,19 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
     }));
   },
 
-  fetchDocuments: async () => {
+  fetchDocuments: async ({ silent = false } = {}) => {
     try {
-      set({ loading: true, error: null });
+      if (!silent) set({ loading: true, error: null });
       const documents = await serviceLocator.documentService.fetchDocuments();
-      set({ documentsList: documents, loading: false });
+      set(
+        silent
+          ? { documentsList: documents }
+          : { documentsList: documents, loading: false }
+      );
     } catch (err) {
-      set({ error: errorMessage(err), loading: false });
+      // Фонавае абнаўленьне не мусіць зносіць ужо паказаны сьпіс
+      if (silent) console.error('Failed to refresh documents list:', err);
+      else set({ error: errorMessage(err), loading: false });
     }
   },
 
@@ -250,6 +301,68 @@ export const useDocumentStore = create<DocumentState>((set, get) => ({
       set({ error: errorMessage(err), loading: false });
     }
   },
+
+  pollUploadJobs: async () => {
+    try {
+      const jobs = await serviceLocator.documentService.getUploadJobs();
+      const { dismissedJobIds, _seenJobStates, _uploadJobsPolled } = get();
+
+      // На першым апытаньні пасьля адкрыцьця старонкі ня ведаем, ці заданьне толькі што завяршылася, ці ўжо даўно - таму падсьветку не запускаем
+      if (_uploadJobsPolled) {
+        const newlySucceeded = jobs.filter(
+          job =>
+            job.state === UploadJobState.Succeeded &&
+            _seenJobStates.get(job.id) !== UploadJobState.Succeeded
+        );
+
+        if (newlySucceeded.length > 0) {
+          await get().fetchDocuments({ silent: true });
+          set(state => ({
+            recentlyCompletedIds: new Set([
+              ...state.recentlyCompletedIds,
+              ...newlySucceeded.map(job => job.n),
+            ]),
+          }));
+          for (const job of newlySucceeded) {
+            setTimeout(() => {
+              set(state => {
+                if (!state.recentlyCompletedIds.has(job.n)) return state;
+                const recentlyCompletedIds = new Set(
+                  state.recentlyCompletedIds
+                );
+                recentlyCompletedIds.delete(job.n);
+                return { recentlyCompletedIds };
+              });
+            }, 1500);
+          }
+        }
+      }
+
+      const visibleJobs = jobs.filter(
+        job =>
+          job.state !== UploadJobState.Succeeded && !dismissedJobIds.has(job.id)
+      );
+
+      set(state => ({
+        // Захоўваем ранейшы масіў, калі нічога не зьмянілася - інакш кожнае апытаньне перамалёўвала б старонку
+        uploadJobs: sameJobs(state.uploadJobs, visibleJobs)
+          ? state.uploadJobs
+          : visibleJobs,
+        // Сэрвэр урэшце выцясьняе заданьні - разам зь імі забываем і схаваныя
+        dismissedJobIds: pruneDismissed(state.dismissedJobIds, jobs),
+        _seenJobStates: new Map(jobs.map(job => [job.id, job.state])),
+        _uploadJobsPolled: true,
+      }));
+    } catch (err) {
+      console.error('Failed to poll upload jobs:', err);
+    }
+  },
+
+  dismissUploadJob: (jobId: string) =>
+    set(state => ({
+      uploadJobs: state.uploadJobs.filter(job => job.id !== jobId),
+      dismissedJobIds: new Set(state.dismissedJobIds).add(jobId),
+    })),
 
   updateSentenceItem: (word, patch) =>
     set(state => {

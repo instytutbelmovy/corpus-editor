@@ -18,6 +18,7 @@ namespace Editor.Services;
 [JsonSerializable(typeof(LemmaTag))]
 [JsonSerializable(typeof(UploadJobAccepted))]
 [JsonSerializable(typeof(UploadJobStatus))]
+[JsonSerializable(typeof(ICollection<UploadJobStatus>))]
 // Auth
 [JsonSerializable(typeof(SignInRequest))]
 [JsonSerializable(typeof(WhoAmIResponse))]

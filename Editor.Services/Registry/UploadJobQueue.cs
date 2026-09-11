@@ -9,6 +9,8 @@ public interface IUploadJobQueue
 
     UploadJobStatus? TryGetStatus(Guid jobId);
 
+    ICollection<UploadJobStatus> GetAll();
+
     IAsyncEnumerable<UploadJobItem> ReadAll(CancellationToken cancellationToken);
 
     void Update(Guid jobId, Func<UploadJobStatus, UploadJobStatus> transform);
@@ -51,6 +53,8 @@ public sealed class UploadJobQueue : IUploadJobQueue
     }
 
     public UploadJobStatus? TryGetStatus(Guid jobId) => _statuses.GetValueOrDefault(jobId);
+
+    public ICollection<UploadJobStatus> GetAll() => _statuses.Values.ToList();
 
     public IAsyncEnumerable<UploadJobItem> ReadAll(CancellationToken cancellationToken)
         => _channel.Reader.ReadAllAsync(cancellationToken);
