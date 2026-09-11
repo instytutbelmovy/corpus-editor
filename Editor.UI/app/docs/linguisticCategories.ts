@@ -372,6 +372,37 @@ export function manualCategoryKeys(partOfSpeech: string): CategoryKey[] {
   ];
 }
 
+export function paradigmCategoryKeys(partOfSpeech: string): CategoryKey[] {
+  return PARADIGM_SCHEMA[partOfSpeech] ?? [];
+}
+
+export function formCategoryKeys(
+  partOfSpeech: string,
+  codes: Codes
+): CategoryKey[] {
+  if (partOfSpeech === 'V') {
+    if (codes.verbTense === '0') return ['verbTense'];
+    if (codes.verbTense === 'I') return ['verbTense', 'person', 'number'];
+    if (codes.verbMood === 'G') return ['verbTense', 'verbMood'];
+    return [
+      'verbTense',
+      'verbMood',
+      codes.verbTense === 'P' ? 'gender' : 'person',
+      'number',
+    ];
+  }
+  const keys = FORM_SCHEMA[partOfSpeech]?.keys ?? [];
+  const special = keys[0];
+  if (
+    ['adverbFunction', 'numeralInflection', 'participleForm'].includes(
+      special
+    ) &&
+    codes[special]
+  )
+    return [special];
+  return keys;
+}
+
 export function categoryOptions(
   partOfSpeech: string,
   key: CategoryKey

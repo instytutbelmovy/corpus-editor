@@ -2,7 +2,7 @@
 bin/
 obj/
 files/
-grammar-base/
+/grammar-base/
 .vscode/
 wwwroot/
 *.user

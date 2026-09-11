@@ -7,7 +7,7 @@ public record ParadigmCreateVm(string Lemma, string Tag, string? Meaning, List<V
 public record VariantInput(string Id, string Lemma, string Tag, List<FormInput> Forms);
 public record FormInput(string Tag, string Value);
 
-public record ParadigmResponse(int ParadigmId, string Lemma, string Tag, string? Meaning, ParadigmSource Source, bool Hidden, List<VariantResponse> Variants);
+public record ParadigmResponse(int ParadigmId, string Lemma, string Tag, string? Meaning, ParadigmSource Source, bool Hidden, List<VariantResponse> Variants, int? CopiedFromParadigmId);
 public record VariantResponse(string Id, string Lemma, string Tag, List<FormResponse> Forms);
 public record FormResponse(string Tag, string Value);
 
@@ -21,7 +21,7 @@ public class ParadigmCreateVmValidator : AbstractValidator<ParadigmCreateVm>
         RuleFor(x => x.Tag).NotEmpty().MaximumLength(50);
         RuleFor(x => x.Variants).NotEmpty();
         RuleFor(x => x.Variants)
-            .Must(vs => vs.Select(v => v.Id).Distinct().Count() == vs.Count)
+            .Must(vs => vs == null || vs.Select(v => v.Id).Distinct().Count() == vs.Count)
             .WithMessage("Ідэнтыфікатары варыянтаў мусяць быць унікальныя");
         RuleForEach(x => x.Variants).ChildRules(v =>
         {
@@ -32,7 +32,8 @@ public class ParadigmCreateVmValidator : AbstractValidator<ParadigmCreateVm>
             v.RuleFor(y => y.Forms).NotEmpty();
             v.RuleForEach(y => y.Forms).ChildRules(f =>
             {
-                f.RuleFor(z => z.Tag).NotEmpty().MaximumLength(50);
+                // Нязьменныя часьціны мовы маюць пусты тэг формы.
+                f.RuleFor(z => z.Tag).NotNull().MaximumLength(50);
                 f.RuleFor(z => z.Value).NotEmpty().MaximumLength(200);
             });
         });

@@ -1,4 +1,5 @@
-import { Paradigm, ParadigmVariant } from '../types';
+import { Paradigm, ParadigmSource, ParadigmVariant } from '../types';
+import { Button } from '@/app/components';
 import { summarizeTag, summarizeTagDiff } from '../categorySummary';
 import { Highlight } from './Highlight';
 import { ChevronRightIcon } from '@/app/components/icons';
@@ -8,6 +9,9 @@ interface ParadigmAccordionProps {
   query: string;
   expanded: boolean;
   onToggle: () => void;
+  onEdit?: () => void;
+  onSetHidden?: () => void;
+  busy?: boolean;
 }
 
 export function ParadigmAccordion({
@@ -15,6 +19,9 @@ export function ParadigmAccordion({
   query,
   expanded,
   onToggle,
+  onEdit,
+  onSetHidden,
+  busy,
 }: ParadigmAccordionProps) {
   const headerSummary = summarizeTag({
     paradigmTag: paradigm.tag,
@@ -57,6 +64,41 @@ export function ParadigmAccordion({
 
       {expanded && (
         <div className="border-t border-gray-200 px-4 py-3 space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-gray-500">
+              {paradigm.source === ParadigmSource.Local
+                ? 'Уласная парадыгма'
+                : 'Асноўная база'}{' '}
+              · {paradigm.paradigmId}
+            </span>
+            {paradigm.copiedFromParadigmId != null && (
+              <span className="text-xs text-gray-500">
+                Копія парадыгмы {paradigm.copiedFromParadigmId}
+              </span>
+            )}
+            {onEdit && (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={busy}
+                onClick={onEdit}
+              >
+                {paradigm.source === ParadigmSource.Local
+                  ? 'Рэдагаваць'
+                  : 'Схаваць і стварыць копію'}
+              </Button>
+            )}
+            {onSetHidden && (
+              <Button
+                variant="secondary"
+                size="sm"
+                loading={busy}
+                onClick={onSetHidden}
+              >
+                {paradigm.hidden ? 'Паказваць' : 'Схаваць'}
+              </Button>
+            )}
+          </div>
           {paradigm.variants.map(variant => (
             <VariantBlock
               key={variant.id}

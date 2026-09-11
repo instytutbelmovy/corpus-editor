@@ -15,6 +15,12 @@ public class GrammarEditRepository(GrammarDbContext db) : IGrammarEditRepository
     private const int FormScanLimit = 2000;
 
     public async Task<int> CreateLocalParadigm(Paradigm paradigm, CancellationToken cancellationToken = default)
+        => await Create(paradigm, null, null, cancellationToken);
+
+    public Task<int> CreateLocalCopy(Paradigm paradigm, int originalId, string? hiddenBy, CancellationToken cancellationToken = default)
+        => Create(paradigm, originalId, hiddenBy, cancellationToken);
+
+    private async Task<int> Create(Paradigm paradigm, int? originalId, string? hiddenBy, CancellationToken cancellationToken)
     {
         await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
 
@@ -27,6 +33,11 @@ public class GrammarEditRepository(GrammarDbContext db) : IGrammarEditRepository
         db.Paradigms.Add(paradigm);
         db.Forms.AddRange(BuildForms(paradigm));
         await db.SaveChangesAsync(cancellationToken);
+
+        if (originalId.HasValue)
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"INSERT INTO hidden_paradigms (paradigm_id, hidden_by, hidden_at) VALUES ({originalId.Value}, {hiddenBy}, {DateTime.UtcNow}) ON CONFLICT (paradigm_id) DO NOTHING",
+                cancellationToken);
 
         await tx.CommitAsync(cancellationToken);
         return id;

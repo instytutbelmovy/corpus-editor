@@ -14,6 +14,8 @@ public class Paradigm
     /// <summary> Неапрацаваны тэг узроўню парадыгмы (даведачны; эфэктыўны тэг - у Variants) </summary>
     public required string Tag { get; set; }
     public string? Meaning { get; set; }
+    // Без FK: сувязь мусіць перажываць выдаленьне апстрыму пры пераімпарце.
+    public int? CopiedFromParadigmId { get; set; }
     public List<ParadigmVariant> Variants { get; set; } = [];
     /// <summary> Крыніца: апстрым (пераімпартуецца) ці лакальная (уласная, перажывае пераімпарт) </summary>
     public ParadigmSource Source { get; set; } = ParadigmSource.Upstream;

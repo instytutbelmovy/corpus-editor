@@ -25,5 +25,11 @@ export interface Paradigm {
   meaning: string | null;
   source: ParadigmSource;
   hidden: boolean;
+  copiedFromParadigmId: number | null;
   variants: ParadigmVariant[];
 }
+
+export type ParadigmInput = Pick<
+  Paradigm,
+  'lemma' | 'tag' | 'meaning' | 'variants'
+>;
