@@ -332,10 +332,11 @@ public partial class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache
     private async Task FlushFile(CorpusDocument document)
     {
         var id = document.Header.N;
+        document.Header.PercentCompletion = document.ComputeCompletion();
         await storage.Write($"{id}.verti", document);
 
         if (_documentHeaders.TryGetValue(id, out var header))
-            header.PercentCompletion = document.ComputeCompletion();
+            header.PercentCompletion = document.Header.PercentCompletion;
     }
 
     public async ValueTask<ICollection<CorpusDocumentHeader>> GetAllDocumentHeaders()
