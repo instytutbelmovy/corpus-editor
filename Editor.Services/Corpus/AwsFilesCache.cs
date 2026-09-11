@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using Editor.Domain.Corpus;
 using Editor.Services.Exceptions;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Editor.Services.Corpus;
 
@@ -22,7 +23,7 @@ public interface IAwsFilesCache
     Task UploadPendingAndPurgeCache();
 }
 
-public class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache>? logger) : IAwsFilesCache
+public partial class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache>? logger) : IAwsFilesCache
 {
     private static readonly TimeSpan UnloadingAge = TimeSpan.FromMinutes(10);
     private readonly ConcurrentDictionary<int, CorpusDocumentHeader> _documentHeaders = new();
@@ -32,14 +33,14 @@ public class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache>? logge
     /// <summary> Single-shot; replaced only under <see cref="_reloadLock"/>, and only when the previous initialization faulted. </summary>
     private TaskCompletionSource _initialized = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private int _initializeStarted;
-    private readonly ILogger? _logger = logger;
+    private readonly ILogger _logger = logger ?? NullLogger<AwsFilesCache>.Instance;
 
     public void Initialize()
     {
         if (Interlocked.Exchange(ref _initializeStarted, 1) != 0)
             throw new InvalidOperationException($"{nameof(AwsFilesCache)} is already initialized");
 
-        _logger?.LogInformation("Initializing files cache");
+        LogInitializingCache();
         _ = Task.Run(() => RunInitialization(_initialized));
     }
 
@@ -49,12 +50,12 @@ public class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache>? logge
         {
             await ReadFilesList();
             initialized.TrySetResult();
-            _logger?.LogInformation("Initialized files cache");
+            LogInitializedCache();
         }
         catch (Exception ex)
         {
             // A faulted TCS makes every awaiting request fail loudly instead of hanging; ReloadFilesList can retry
-            _logger?.LogCritical(ex, "Files cache initialization failed");
+            LogInitializationFailed(ex);
             initialized.TrySetException(ex);
         }
     }
@@ -66,7 +67,7 @@ public class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache>? logge
         {
             if (_initialized.Task.IsFaulted)
             {
-                _logger?.LogInformation("Re-initializing files cache after failed initialization");
+                LogReinitializingCache();
                 _initialized = new(TaskCreationOptions.RunContinuationsAsynchronously);
                 await RunInitialization(_initialized);
                 await _initialized.Task;
@@ -75,7 +76,7 @@ public class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache>? logge
 
             await _initialized.Task;
 
-            _logger?.LogInformation("Re-reading files list");
+            LogRereadingFilesList();
             // Flush pending edits first so the headers re-read below can't be clobbered by a later flush
             await UploadPendingAndPurgeCache();
             var listedIds = await ReadFilesList();
@@ -92,7 +93,7 @@ public class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache>? logge
                         continue;
                     _documentHeaders.TryRemove(id, out _);
                     if (_documents.TryRemove(id, out var evicted) && evicted.HasPendingChanges)
-                        _logger?.LogWarning("Discarding pending changes of document {n}: it was removed from storage", id);
+                        LogDiscardingPendingChangesRemoved(id);
                 }
                 finally
                 {
@@ -120,7 +121,7 @@ public class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache>? logge
                     continue;
                 if (!listedIds.Add(header.N))
                 {
-                    _logger?.LogError("Duplicate document number {n} in storage file {Key}; keeping the previously read one", header.N, key);
+                    LogDuplicateDocumentNumber(header.N, key);
                     continue;
                 }
 
@@ -129,7 +130,7 @@ public class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache>? logge
             catch (Exception ex)
             {
                 // Log error but continue with other files
-                _logger?.LogError(ex, $"Error reading file {key}");
+                LogErrorReadingFile(ex, key);
             }
         }
 
@@ -271,7 +272,7 @@ public class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache>? logge
             if (_documents.TryGetValue(n, out var cached))
             {
                 if (cached.HasPendingChanges)
-                    _logger?.LogWarning("Discarding pending changes of document {n} on reload", n);
+                    LogDiscardingPendingChangesOnReload(n);
                 _documents[n] = new Document { CorpusDocument = corpusDocument, LastAccessedOn = DateTime.UtcNow };
             }
             _documentHeaders[n] = corpusDocument.Header;
@@ -404,7 +405,7 @@ public class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache>? logge
                     continue;
                 if (document.HasPendingChanges)
                 {
-                    _logger?.LogInformation("Flushing document {n}", id);
+                    LogFlushingDocument(id);
                     await FlushFile(document.CorpusDocument);
                     document.HasPendingChanges = false;
                 }
@@ -414,7 +415,7 @@ public class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache>? logge
             catch (Exception ex)
             {
                 // A failed flush must not block the other documents; the changes stay pending for the next cycle
-                _logger?.LogError(ex, "Error flushing document {n}", id);
+                LogErrorFlushingDocument(ex, id);
             }
             finally
             {
@@ -443,4 +444,37 @@ public class AwsFilesCache(ICorpusStorage storage, ILogger<AwsFilesCache>? logge
             _semaphore = null;
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Initializing files cache")]
+    private partial void LogInitializingCache();
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Initialized files cache")]
+    private partial void LogInitializedCache();
+
+    [LoggerMessage(Level = LogLevel.Critical, Message = "Files cache initialization failed")]
+    private partial void LogInitializationFailed(Exception exception);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Re-initializing files cache after failed initialization")]
+    private partial void LogReinitializingCache();
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Re-reading files list")]
+    private partial void LogRereadingFilesList();
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Discarding pending changes of document {N}: it was removed from storage")]
+    private partial void LogDiscardingPendingChangesRemoved(int n);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Duplicate document number {N} in storage file {Key}; keeping the previously read one")]
+    private partial void LogDuplicateDocumentNumber(int n, string key);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error reading file {Key}")]
+    private partial void LogErrorReadingFile(Exception exception, string key);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Discarding pending changes of document {N} on reload")]
+    private partial void LogDiscardingPendingChangesOnReload(int n);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Flushing document {N}")]
+    private partial void LogFlushingDocument(int n);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Error flushing document {N}")]
+    private partial void LogErrorFlushingDocument(Exception exception, int n);
 }

@@ -53,6 +53,10 @@ export const RefreshIcon = strokeIcon(
   'w-4 h-4'
 );
 
+export const SparklesIcon = strokeIcon(
+  'M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L20 12l-6.714 2.143L11 21l-2.286-6.857L2 12l6.714-2.143L11 3z'
+);
+
 export const DownloadIcon = strokeIcon(
   'M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
   'w-4 h-4'

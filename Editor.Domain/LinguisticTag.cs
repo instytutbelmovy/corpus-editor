@@ -11,6 +11,13 @@ public partial record LinguisticTag(
     private const string Missing = ".";
     private const string DbMissing = "X";
 
+    /// <summary>
+    /// Літары часьцін мовы ГрамБазы: назоўнік, прыметнік, лічэбнік, займеннік, дзеяслоў, дзеепрыметнік, прыслоўе, прыназоўнік,
+    /// часьціца, выклічнік, злучнік, пабочнае слова, прэдыкатыў, часткі слоў.
+    /// K - не з афіцыйнай схемы bnkorpus.info, сустракаецца на скаротах.
+    /// </summary>
+    public const string PosLetters = "NAMSVPRIEYCZWFK";
+
     public char? Pos()
     {
         return !string.IsNullOrEmpty(ParadigmTag) && ParadigmTag.Length > 0 && ParadigmTag[0] != '.'

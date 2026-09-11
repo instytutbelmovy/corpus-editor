@@ -3,6 +3,7 @@ using Editor.Domain.Corpus;
 using Editor.Services.Auth;
 using Editor.Services.Editing;
 using Editor.Services.Grammar;
+using Editor.Services.Registry;
 using Editor.Services.Users;
 
 namespace Editor.Services;
@@ -15,6 +16,10 @@ namespace Editor.Services;
 [JsonSerializable(typeof(CorpusDocumentView))]
 [JsonSerializable(typeof(UpdateMetadataRequest))]
 [JsonSerializable(typeof(LemmaTag))]
+[JsonSerializable(typeof(UploadJobAccepted))]
+[JsonSerializable(typeof(TagAllAccepted))]
+[JsonSerializable(typeof(UploadJobStatus))]
+[JsonSerializable(typeof(ICollection<UploadJobStatus>))]
 // Auth
 [JsonSerializable(typeof(SignInRequest))]
 [JsonSerializable(typeof(WhoAmIResponse))]

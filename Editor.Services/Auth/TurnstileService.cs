@@ -8,7 +8,7 @@ public interface ITurnstileService
     Task<bool> VerifyTokenAsync(string token, string? remoteIp = null);
 }
 
-public class TurnstileService : ITurnstileService
+public partial class TurnstileService : ITurnstileService
 {
     private readonly HttpClient _httpClient;
     private readonly TurnstileSettings _settings;
@@ -25,7 +25,7 @@ public class TurnstileService : ITurnstileService
     {
         if (!_settings.IsEnforced)
         {
-            _logger.LogWarning("Turnstile check skipped due to settings");
+            LogTurnstileCheckSkipped();
             return true;
         }
 
@@ -52,12 +52,18 @@ public class TurnstileService : ITurnstileService
 
         if (result is not { Success: true })
         {
-            _logger.LogWarning("Turnstile verification failed: {ErrorCodes}", string.Join(", ", result?.ErrorCodes ?? []));
+            LogTurnstileVerificationFailed(string.Join(", ", result?.ErrorCodes ?? []));
             return false;
         }
 
         return true;
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Turnstile check skipped due to settings")]
+    private partial void LogTurnstileCheckSkipped();
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Turnstile verification failed: {ErrorCodes}")]
+    private partial void LogTurnstileVerificationFailed(string errorCodes);
 }
 
 public class TurnstileResponse

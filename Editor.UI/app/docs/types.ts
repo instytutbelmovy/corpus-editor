@@ -83,6 +83,53 @@ export interface DocumentData {
   paragraphs: Paragraph[];
 }
 
+export enum UploadJobState {
+  Queued = 0,
+  Running = 1,
+  Succeeded = 2,
+  Failed = 3,
+}
+
+export enum UploadJobStage {
+  Queued = 0,
+  Parsing = 1,
+  LookingUpGrammar = 2,
+  Tagging = 3,
+  Saving = 4,
+  Done = 5,
+  Loading = 6,
+}
+
+// Што за праца: загрузка новага дакумэнту ці перазьметка ўжо наяўнага
+export enum UploadJobKind {
+  Upload = 0,
+  Tagging = 1,
+}
+
+export interface UploadJobStatus {
+  id: string;
+  n: number;
+  title: string;
+  kind: UploadJobKind;
+  state: UploadJobState;
+  stage: UploadJobStage;
+  processedTokens: number;
+  totalTokens: number;
+  error: string | null;
+  createdAt: string;
+  completedAt: string | null;
+}
+
+// Адказ на пастаноўку заданьня ў чаргу
+export interface UploadJobAccepted {
+  jobId: string;
+}
+
+// Адказ на масавую перазьметку
+export interface TagAllAccepted {
+  enqueued: number;
+}
+
 // Пазыцыя слова ў дакумэнце
 export interface WordPosition {
   paragraphId: number;
