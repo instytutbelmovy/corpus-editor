@@ -115,7 +115,8 @@ public static class Tokenizer
             }
             else if (Normalizer.IsLetter(ch)
                      || ch is '[' or ']' or '*'
-                     || ch == '+' && currentWord.Length > 0 && Normalizer.IsVowel(currentWord[^1]))
+                     || ch == '+' && currentWord.Length > 0 && Normalizer.IsVowel(currentWord[^1])
+                     || Normalizer.AllStresses.Contains(ch) && currentWord.Length > 0 && Normalizer.IsVowel(currentWord[^1]))
             {
                 if (currentTail.Length > 0)
                 {

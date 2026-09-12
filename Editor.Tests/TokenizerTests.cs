@@ -295,5 +295,33 @@ public class TokenizerTests
         Assert.True(result[0] is { Text: "відзік", Type: TokenType.AlphaNumeric });
         Assert.True(result[1] is { Text: "+", Type: TokenType.NonAlphaNumeric });
     }
+
+    [Fact]
+    public void Parse_CombiningStressAfterVowel_AsAccent()
+    {
+        var result = Tokenizer.Parse("ві́дзік").ToList();
+
+        Assert.Single(result);
+        Assert.True(result[0] is { Text: "ві́дзік", Type: TokenType.AlphaNumeric });
+    }
+
+    [Fact]
+    public void Parse_SpacingAcuteAfterVowel_AsAccent()
+    {
+        var result = Tokenizer.Parse("ві´дзік").ToList();
+
+        Assert.Single(result);
+        Assert.True(result[0] is { Text: "ві́дзік", Type: TokenType.AlphaNumeric });
+    }
+
+    [Fact]
+    public void Parse_CombiningStressAfterConsonant_AsPunctuation()
+    {
+        var result = Tokenizer.Parse("відзіќ").ToList();
+
+        Assert.Equal(2, result.Count);
+        Assert.True(result[0] is { Text: "відзік", Type: TokenType.AlphaNumeric });
+        Assert.True(result[1] is { Text: "́", Type: TokenType.NonAlphaNumeric });
+    }
 }
 

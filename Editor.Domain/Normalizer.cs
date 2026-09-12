@@ -63,15 +63,15 @@ public static class Normalizer
         GrammarSearchAggressiveNormalize['ў'] = 'у';
         GrammarSearchAggressiveNormalize['Ў'] = 'у';
 
+        // Зваротны індэкс формаў і пошук па словах дакумэнту мусяць трапляць у адзін і той жа ключ незалежна ад націску - у мапе яго няма -> NormalizeWith яго адкіне
+        foreach (char c in AllStresses)
+            GrammarSearchAggressiveNormalize.Remove(c);
+
         GrammarSearchLightNormalize = new Dictionary<char, char>(tokenizationNormalize);
         GrammarSearchLightNormalize[GrammarDbStress[0]] = CorrectStress[0];
 
-        // Ключ пошуку па ГрамБазе: як аграсіўная нармалізацыя, але націскі выкідаюцца зусім (у мапе іх няма -> NormalizeWith іх адкіне), бо ў пошуку карыстальнік націскаў не ставіць
+        // Ключ пошуку па ГрамБазе: тыя ж правілы, што і ў зваротным індэксе формаў (аграсіўная нармалізацыя)
         GrammarSearchPrefixNormalize = new Dictionary<char, char>(GrammarSearchAggressiveNormalize);
-        foreach (char c in AllStresses)
-        {
-            GrammarSearchPrefixNormalize.Remove(c);
-        }
     }
 
     public static string GrammarDbAggressiveNormalize(string word) => NormalizeWith(word, GrammarSearchAggressiveNormalize);
