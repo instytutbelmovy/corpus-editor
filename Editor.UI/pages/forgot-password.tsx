@@ -37,7 +37,7 @@ export default function ForgotPassword() {
       if (isReady) {
         turnstileToken = getToken();
         if (!turnstileToken) {
-          setError('Заўершыце праверку Turnstile');
+          setError('Завяршыце праверку Turnstile');
           return;
         }
       }

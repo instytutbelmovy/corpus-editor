@@ -45,7 +45,7 @@ export class AuthService {
 
     return {
       success: false,
-      message: response.error || 'Памылка ўваходу ў сістэму',
+      message: response.error || 'Памылка ўваходу ў сыстэму',
     };
   }
 

@@ -68,7 +68,7 @@ export class ApiClient {
             : JSON.stringify(body),
       });
     } catch {
-      return { status: 0, error: 'Памылка злучэньня з серверам' };
+      return { status: 0, error: 'Памылка злучэньня з сэрвэрам' };
     }
 
     if (response.status === 401) {
