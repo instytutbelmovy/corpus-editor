@@ -154,6 +154,37 @@ describe('parseLinguisticTag', () => {
   });
 });
 
+describe('parseLinguisticTag, род «P» паводле часьціны мовы', () => {
+  test('множналікавы назоўнік: толькі множны лік', () => {
+    const tag = { paradigmTag: 'NCIP.P7', formTag: 'NP' };
+    const categories = parseLinguisticTag(tag);
+
+    expect(categories.gender).toBe('толькі множны лік');
+  });
+
+  test('субстантываваны назоўнік: род формы - адсутнасьць роду ў множным ліку', () => {
+    const tag = { paradigmTag: 'NCIP.S5', formTag: 'PNP' };
+    const categories = parseLinguisticTag(tag);
+
+    expect(categories.gender).toBe('субстантываваны');
+    expect(categories.formGender).toBe('адсутнасьць роду ў множным ліку');
+  });
+
+  test('прыметнік: множны лік', () => {
+    const tag = { paradigmTag: 'AQP....', formTag: 'PNP' };
+    const categories = parseLinguisticTag(tag);
+
+    expect(categories.gender).toBe('множны лік');
+  });
+
+  test('лічэбнік: адсутны', () => {
+    const tag = { paradigmTag: 'MNCS...', formTag: 'PNP' };
+    const categories = parseLinguisticTag(tag);
+
+    expect(categories.gender).toBe('адсутны');
+  });
+});
+
 describe("parseLinguisticTag, вобласьць 'form'", () => {
   test('назоўнік: толькі склон і лік, без катэгорый парадыгмы', () => {
     const tag = { paradigmTag: 'NCIP.M1', formTag: 'NS' };
@@ -190,7 +221,7 @@ describe("parseLinguisticTag, вобласьць 'form'", () => {
     expect(categories.verbConjugation).toBeNull();
   });
 
-  test('нязьменная частка мовы: катэгорый формы няма', () => {
+  test('нязьменная часьціна мовы: катэгорый формы няма', () => {
     const tag = { paradigmTag: 'CS....', formTag: null };
     const categories = parseLinguisticTag(tag, 'form');
 

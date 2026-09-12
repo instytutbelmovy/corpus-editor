@@ -128,6 +128,18 @@ describe('ручны ўвод', () => {
     expect(categoryOptions('V', 'verbTense').map(o => o.value)).toContain('0');
   });
 
+  test('код роду «P» подпісваецца паводле часьціны мовы', () => {
+    const label = (pos: string, key: 'gender' | 'formGender') =>
+      categoryOptions(pos, key).find(o => o.value === 'P')?.label;
+
+    expect(label('N', 'gender')).toBe('толькі множны лік');
+    expect(label('N', 'formGender')).toBe('адсутнасьць роду ў множным ліку');
+    expect(label('M', 'gender')).toBe('адсутны');
+    // Без адхіленьня застаецца базавы подпіс
+    expect(label('A', 'gender')).toBe('множны лік');
+    expect(label('P', 'gender')).toBe('множны лік');
+  });
+
   test('займеньнік можа быць нязьменным', () => {
     // GrammarDB мае парадыгмы кшталту S0S0 - код «0» тут дапушчальны
     expect(categoryOptions('S', 'inflectionType').map(o => o.value)).toContain(

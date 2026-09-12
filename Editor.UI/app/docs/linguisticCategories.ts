@@ -56,7 +56,7 @@ export const PART_OF_SPEECH_LABELS: Record<string, string> = {
   R: 'прыслоўе',
   C: 'злучнік',
   I: 'прыназоўнік',
-  E: 'часціца',
+  E: 'часьціца',
   Y: 'выклічнік',
   Z: 'пабочнае слова',
   W: 'прэдыкатыў',
@@ -64,50 +64,53 @@ export const PART_OF_SPEECH_LABELS: Record<string, string> = {
   K: 'абрэвіятура',
 };
 
+// Назвы паводле афіцыйнага сьпісу граматычных катэгорый ГрамБазы. Часьціна мовы заўсёды вядомая там, дзе назва паказваецца, таму ўдакладненьні кшталту "дзеяслова" ня трэба.
 export const CATEGORY_LABELS: Record<CategoryKey, string> = {
-  partOfSpeech: 'Частка мовы',
-  properName: 'Уласнае/агульнае',
-  animacy: 'Адушаўлёнасць',
-  personhood: 'Асабовасць',
+  partOfSpeech: 'Часьціна мовы',
+  properName: 'Уласнасьць',
+  animacy: 'Адушаўлёнасьць',
+  personhood: 'Асабовасьць',
   abbreviation: 'Скарачэньне',
   gender: 'Род',
   declension: 'Скланеньне',
+  // У афіцыйным сьпісе асобнай назвы няма: гэта род словаформы ў адрозьненьне ад роду парадыгмы
   formGender: 'Род формы',
   case: 'Склон',
   number: 'Лік',
-  adjectiveType: 'Тып прыметніка',
-  degree: 'Ступень',
-  adverbFunction: 'Функцыя прыслоўя',
-  inflectionType: 'Тып змены',
-  numeralType: 'Тып лічэбніка',
-  numeralStructure: 'Структура лічэбніка',
-  numeralInflection: 'Зменлівасць лічэбніка',
-  pronounType: 'Тып займеньніка',
+  adjectiveType: 'Тып',
+  degree: 'Ступень параўнаньня',
+  adverbFunction: 'Прыметнік у функцыі прыслоўя',
+  inflectionType: 'Словазьмяненьне',
+  numeralType: 'Значэньне',
+  numeralStructure: 'Форма',
+  numeralInflection: 'Нескланяльны',
+  pronounType: 'Разрад',
   person: 'Асоба',
-  verbTransitivity: 'Пераходнасць дзеяслова',
-  verbAspect: 'Від дзеяслова',
-  verbReflexivity: 'Зваротнасць дзеяслова',
-  verbConjugation: 'Спражэньне дзеяслова',
-  verbTense: 'Час дзеяслова',
-  verbMood: 'Лад дзеяслова',
-  participleType: 'Тып дзеепрыметніка',
-  participleForm: 'Форма дзеепрыметніка',
-  adverbOrigin: 'Паходжаньне прыслоўя',
-  conjunctionType: 'Тып злучніка',
+  verbTransitivity: 'Пераходнасьць',
+  verbAspect: 'Трываньне',
+  verbReflexivity: 'Зваротнасьць',
+  verbConjugation: 'Спражэньне',
+  verbTense: 'Час',
+  verbMood: 'Дзеепрыслоўе',
+  participleType: 'Стан',
+  participleForm: 'Кароткая форма',
+  adverbOrigin: 'Спосаб утварэньня',
+  conjunctionType: 'Тып',
 };
 
 const options = (entries: Record<string, string>): CodeOption[] =>
   Object.entries(entries).map(([value, label]) => ({ value, label }));
 
-// Пазыцыя роду ў парадыгме (N: адзін код на ўвесь лемы) і ў форме (N: код на канкрэтную словаформу) - розныя катэгорыі, але адны і тыя ж коды
+// Пазыцыя роду ў парадыгме (N: адзін код на ўсю лему) і ў форме (N: код на канкрэтную словаформу) - розныя катэгорыі, але адны і тыя ж коды.
+// Код P у назоўніка і лічэбніка значыць іншае - глядзі CODE_LABEL_OVERRIDES
 const GENDER_LABELS: Record<string, string> = {
   M: 'мужчынскі',
   F: 'жаночы',
   N: 'ніякі',
   C: 'агульны',
   S: 'субстантываваны',
-  U: 'субстантываны множналікавы',
-  P: 'толькі множны лік/адсутны',
+  U: 'субстантываваны множналікавы',
+  P: 'множны лік',
   '0': 'адсутнасьць роду',
   '1': 'адсутнасьць форм',
 };
@@ -197,7 +200,7 @@ export const CATEGORY_CODES: Record<CategoryKey, CodeOption[]> = {
     R: 'цяперашні',
     P: 'прошлы',
     F: 'будучы',
-    I: 'загадны',
+    I: 'загадны лад',
     '0': 'інфінітыў',
   }),
   verbMood: options({ G: 'дзеепрыслоўе' }),
@@ -210,7 +213,7 @@ export const CATEGORY_CODES: Record<CategoryKey, CodeOption[]> = {
     S: 'ад займеньнікаў',
     G: 'ад дзеепрыслоўяў',
     V: 'ад дзеясловаў',
-    E: 'ад часціц',
+    E: 'ад часьціц',
     I: 'ад прыназоўнікаў',
   }),
   conjunctionType: options({ S: 'падпарадкавальны', K: 'злучальны' }),
@@ -353,7 +356,7 @@ const FORM_SCHEMA: Record<string, FormCodec> = {
   },
 };
 
-// Коды, дапушчальныя для катэгорыі пры пэўнай частцы мовы
+// Коды, дапушчальныя для катэгорыі пры пэўнай часьціне мовы
 const ALLOWED_CODES: Record<string, Partial<Record<CategoryKey, string>>> = {
   N: { gender: 'MFNCSUP', formGender: 'MFNP', case: 'NGDAILV' },
   A: { gender: 'MFNP', case: 'NGDAIL' },
@@ -363,6 +366,32 @@ const ALLOWED_CODES: Record<string, Partial<Record<CategoryKey, string>>> = {
   // Дзеепрыметнікі ў GrammarDB бываюць толькі цяперашняга і прошлага часу
   P: { gender: 'MFNP', case: 'NGDAIL', verbTense: 'RP' },
 };
+
+// Адзін і той жа код у розных часьцінах мовы значыць рознае.
+// Базавыя подпісы ляжаць у CATEGORY_CODES, тут - толькі адхіленьні
+const CODE_LABEL_OVERRIDES: Record<
+  string,
+  Partial<Record<CategoryKey, Record<string, string>>>
+> = {
+  N: {
+    gender: { P: 'толькі множны лік' },
+    formGender: { P: 'адсутнасьць роду ў множным ліку' },
+  },
+  M: { gender: { P: 'адсутны' } },
+};
+
+// Подпісы кодаў катэгорыі з улікам часьціны мовы - адзіны шлях ад коду да подпісу
+function codeOptions(partOfSpeech: string, key: CategoryKey): CodeOption[] {
+  const overrides = CODE_LABEL_OVERRIDES[partOfSpeech]?.[key];
+  const all = CATEGORY_CODES[key];
+  if (!overrides) return all;
+
+  return all.map(option =>
+    overrides[option.value]
+      ? { ...option, label: overrides[option.value] }
+      : option
+  );
+}
 
 // Катэгорыі, якія прапануюцца ў ручным уводзе для часьціны мовы
 export function manualCategoryKeys(partOfSpeech: string): CategoryKey[] {
@@ -408,7 +437,7 @@ export function categoryOptions(
   key: CategoryKey
 ): CodeOption[] {
   const allowed = ALLOWED_CODES[partOfSpeech]?.[key];
-  const all = CATEGORY_CODES[key];
+  const all = codeOptions(partOfSpeech, key);
   if (!allowed) return all;
 
   return [...allowed]
@@ -467,9 +496,12 @@ export function parseLinguisticTag(
     (Object.keys(CATEGORY_LABELS) as CategoryKey[]).map(key => [key, null])
   ) as LinguisticCategories;
 
+  const partOfSpeech = tag.paradigmTag?.[0] ?? '';
   const codes = parseTagCodes(tag, scope);
   for (const [key, code] of Object.entries(codes) as [CategoryKey, string][]) {
-    const option = CATEGORY_CODES[key].find(entry => entry.value === code);
+    const option = codeOptions(partOfSpeech, key).find(
+      entry => entry.value === code
+    );
     if (option && !option.hideInSummary) {
       categories[key] = option.label;
     }

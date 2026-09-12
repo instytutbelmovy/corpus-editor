@@ -24,7 +24,7 @@ describe('summarizeTag', () => {
     expect(summary).toBe('злучнік, падпарадкавальны');
   });
 
-  test("нязьменная частка мовы ў вобласьці 'form' дае пусты радок", () => {
+  test("нязьменная часьціна мовы ў вобласьці 'form' дае пусты радок", () => {
     expect(summarizeTag({ paradigmTag: 'CS....', formTag: null }, 'form')).toBe(
       ''
     );
