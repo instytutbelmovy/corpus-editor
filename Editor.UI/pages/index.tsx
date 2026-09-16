@@ -13,7 +13,6 @@ import { DocumentsTable } from '@/app/components/documents/DocumentsTable';
 import { useAuthStore } from '@/app/auth/store';
 import { Roles } from '@/app/auth/types';
 import { UploadJobState } from '@/app/docs/types';
-import { useConfig } from '@/app/hooks/useConfig';
 
 const UPLOAD_JOBS_POLL_INTERVAL_MS = 2000;
 
@@ -35,7 +34,6 @@ export default function Home() {
   const clearListActionError = useDocumentStore(s => s.clearListActionError);
   const { displayMode, setDisplayMode } = useUIStore();
   const { user } = useAuthStore();
-  const config = useConfig();
 
   const isExpanded = displayMode === 'full';
   // Загрузка і заданьні загрузкі - толькі для рэдактара і адміністратара (гл. Registry.cs)
@@ -93,7 +91,6 @@ export default function Home() {
           uploadJobs={uploadJobs}
           recentlyCompletedIds={recentlyCompletedIds}
           isExpanded={isExpanded}
-          stanzaEnabled={config?.stanzaEnabled}
           onRefresh={refreshDocumentHeader}
           onRefreshList={refreshDocumentsList}
           onDismissUploadJob={dismissUploadJob}

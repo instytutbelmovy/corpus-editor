@@ -2,7 +2,6 @@
 using Editor.Api.Infrastructure;
 using Editor.Domain;
 using Editor.Services.Auth;
-using Editor.Services.Linguistics;
 using Editor.Services.Exceptions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Google;
@@ -71,11 +70,10 @@ public static class Auth
     private static FrontendConfigResponse GetConfig(
         TurnstileSettings turnstileSettings,
         SentrySettings sentrySettings,
-        GoogleAuthSettings googleAuthSettings,
-        StanzaSettings stanzaSettings)
+        GoogleAuthSettings googleAuthSettings)
     {
         var googleSignInEnabled = !string.IsNullOrEmpty(googleAuthSettings.ClientId) && !string.IsNullOrEmpty(googleAuthSettings.ClientSecret);
-        return new FrontendConfigResponse(turnstileSettings.SiteKey, sentrySettings.FeDsn, sentrySettings.Version, sentrySettings.Environment, googleSignInEnabled, stanzaSettings.IsEnabled);
+        return new FrontendConfigResponse(turnstileSettings.SiteKey, sentrySettings.FeDsn, sentrySettings.Version, sentrySettings.Environment, googleSignInEnabled);
     }
 
     private static IResult GoogleLogin(string? returnTo)
@@ -86,4 +84,4 @@ public static class Auth
     }
 }
 
-public record FrontendConfigResponse(string TurnstileSiteKey, string SentryDsn, string Version, string Environment, bool GoogleSignInEnabled, bool StanzaEnabled);
+public record FrontendConfigResponse(string TurnstileSiteKey, string SentryDsn, string Version, string Environment, bool GoogleSignInEnabled);
