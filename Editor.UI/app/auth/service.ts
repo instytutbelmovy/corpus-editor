@@ -28,8 +28,9 @@ export class AuthService {
     );
 
     if (response.data) {
-      AuthStorage.set(toUser(response.data));
-      return { success: true };
+      const user = toUser(response.data);
+      AuthStorage.set(user);
+      return { success: true, user };
     }
 
     if (response.status === 401) {
@@ -45,7 +46,7 @@ export class AuthService {
 
     return {
       success: false,
-      message: response.error || 'Памылка ўваходу ў сістэму',
+      message: response.error || 'Памылка ўваходу ў сыстэму',
     };
   }
 
@@ -55,16 +56,17 @@ export class AuthService {
   }
 
   // Праверка сэсіі на сэрвэры; пры 401 ApiClient ачышчае кэш, але не перанакіроўвае
-  async checkAuthStatus(): Promise<boolean> {
+  async checkAuthStatus(): Promise<User | null> {
     const response = await this.apiClient.get<WhoAmIResponse>(
       '/auth/who-am-i',
       { skipUnauthorizedRedirect: true }
     );
 
-    if (!response.data) return false;
+    if (!response.data) return null;
 
-    AuthStorage.set(toUser(response.data));
-    return true;
+    const user = toUser(response.data);
+    AuthStorage.set(user);
+    return user;
   }
 
   async forgotPassword(

@@ -230,7 +230,7 @@ export function ParadigmOptions({
   );
 }
 
-// Частка мовы паказваецца загалоўкам групы, таму ў радку яе няма
+// Часьціна мовы паказваецца загалоўкам групы, таму ў радку яе няма
 function Category({
   categoryKey,
   value,

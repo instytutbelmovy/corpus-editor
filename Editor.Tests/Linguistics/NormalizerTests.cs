@@ -41,4 +41,24 @@ public class NormalizerTests
     {
         Assert.Equal("", Normalizer.GrammarDbSearchNormalize(""));
     }
+
+    [Theory]
+    [InlineData("акадэ́мія", "акадэмія")]
+    [InlineData("акадэ́мія", "акадэ́мія")]
+    public void GrammarDbAggressiveNormalize_DropsStress_RegardlessOfNotation(string stressed, string other)
+    {
+        // Зваротны індэкс формаў (ГрамБаза + лакальныя парадыгмы) і пошук словаў дакумэнту
+        // мусяць трапляць у адзін ключ незалежна ад таго, ці нясе слова націск
+        Assert.Equal(
+            Normalizer.GrammarDbAggressiveNormalize(stressed),
+            Normalizer.GrammarDbAggressiveNormalize(other));
+    }
+
+    [Fact]
+    public void GrammarDbAggressiveNormalize_SameKey_AsSearchNormalize_ForStressedWord()
+    {
+        Assert.Equal(
+            Normalizer.GrammarDbAggressiveNormalize("акадэ́мія"),
+            Normalizer.GrammarDbSearchNormalize("акадэ́мія"));
+    }
 }

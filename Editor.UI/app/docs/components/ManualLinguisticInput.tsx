@@ -65,7 +65,7 @@ export function ManualLinguisticInput({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Часціна мовы *
+            Часьціна мовы *
           </label>
           <select
             value={partOfSpeech}
@@ -75,7 +75,7 @@ export function ManualLinguisticInput({
             }}
             className={inputClasses()}
           >
-            <option value="">Выберыце частку мовы</option>
+            <option value="">Выберыце часьціну мовы</option>
             {Object.entries(PART_OF_SPEECH_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
                 {value} {label}

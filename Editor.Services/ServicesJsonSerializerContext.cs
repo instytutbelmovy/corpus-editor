@@ -33,7 +33,6 @@ namespace Editor.Services;
 // Grammar
 [JsonSerializable(typeof(ParadigmCreateVm))]
 [JsonSerializable(typeof(ParadigmResponse))]
-[JsonSerializable(typeof(CreatedParadigmResponse))]
 [JsonSerializable(typeof(List<ParadigmResponse>))]
 public partial class ServicesJsonSerializerContext : JsonSerializerContext
 {

@@ -3,17 +3,20 @@ using System;
 using Editor.DB;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Editor.Migrations.Grammar
+namespace Editor.DB.Migrations.Grammar
 {
     [DbContext(typeof(GrammarDbContext))]
-    partial class GrammarDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260911231238_AddParadigmCopyOrigin")]
+    partial class AddParadigmCopyOrigin
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -90,14 +93,6 @@ namespace Editor.Migrations.Grammar
                         .HasColumnType("integer")
                         .HasColumnName("copied_from_paradigm_id");
 
-                    b.Property<DateTime?>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text")
-                        .HasColumnName("created_by");
-
                     b.Property<string>("Lemma")
                         .IsRequired()
                         .HasColumnType("text")
@@ -111,14 +106,6 @@ namespace Editor.Migrations.Grammar
                     b.Property<string>("Meaning")
                         .HasColumnType("text")
                         .HasColumnName("meaning");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("modified_at");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasColumnType("text")
-                        .HasColumnName("modified_by");
 
                     b.Property<int>("Source")
                         .ValueGeneratedOnAdd()

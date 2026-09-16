@@ -20,7 +20,7 @@ interface KebabMenuProps {
 }
 
 const ITEM_CLASSES =
-  'flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150';
+  'flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150 whitespace-nowrap';
 
 // Меню рэндэрыцца праз партал у body, каб не абрэзвалася межамі табліцы
 export function KebabMenu({
@@ -80,7 +80,7 @@ export function KebabMenu({
         createPortal(
           <div
             ref={menuRef}
-            className="absolute w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200"
+            className="absolute w-max min-w-48 max-w-xs bg-white rounded-md shadow-lg z-50 border border-gray-200"
             style={{
               top: `${position.top}px`,
               left: `${position.left}px`,

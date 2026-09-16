@@ -11,8 +11,8 @@ import { useUIStore } from '@/app/docs/uiStore';
 import { DocumentsListHeader } from '@/app/components/documents/DocumentsListHeader';
 import { DocumentsTable } from '@/app/components/documents/DocumentsTable';
 import { useAuthStore } from '@/app/auth/store';
+import { Roles } from '@/app/auth/types';
 import { UploadJobState } from '@/app/docs/types';
-import { useConfig } from '@/app/hooks/useConfig';
 
 const UPLOAD_JOBS_POLL_INTERVAL_MS = 2000;
 
@@ -34,9 +34,10 @@ export default function Home() {
   const clearListActionError = useDocumentStore(s => s.clearListActionError);
   const { displayMode, setDisplayMode } = useUIStore();
   const { user } = useAuthStore();
-  const config = useConfig();
 
   const isExpanded = displayMode === 'full';
+  // Загрузка і заданьні загрузкі - толькі для рэдактара і адміністратара (гл. Registry.cs)
+  const canUpload = (user?.role ?? Roles.None) >= Roles.Editor;
 
   // Памылковыя заданьні ўжо завершаныя - апытваць дзеля іх няма чаго
   const hasActiveJobs = uploadJobs.some(
@@ -50,16 +51,17 @@ export default function Home() {
   }, [fetchDocuments]);
 
   useEffect(() => {
+    if (!canUpload) return;
     pollUploadJobs();
-  }, [pollUploadJobs]);
+  }, [canUpload, pollUploadJobs]);
 
   // Апытваем толькі пакуль нешта апрацоўваецца; апошні цыкл, які заўважыць завяршэньне, сам жа і спыніць таймэр
   useEffect(() => {
-    if (!hasActiveJobs) return;
+    if (!canUpload || !hasActiveJobs) return;
 
     const interval = setInterval(pollUploadJobs, UPLOAD_JOBS_POLL_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [hasActiveJobs, pollUploadJobs]);
+  }, [canUpload, hasActiveJobs, pollUploadJobs]);
 
   if (loading) {
     return <LoadingScreen message="Загрузка дакумэнтаў..." />;
@@ -77,6 +79,7 @@ export default function Home() {
           onToggleExpanded={() =>
             setDisplayMode(isExpanded ? 'compact' : 'full')
           }
+          canUpload={canUpload}
         />
         {listActionError && (
           <Alert kind="error" onClose={clearListActionError}>
@@ -88,7 +91,6 @@ export default function Home() {
           uploadJobs={uploadJobs}
           recentlyCompletedIds={recentlyCompletedIds}
           isExpanded={isExpanded}
-          stanzaEnabled={config?.stanzaEnabled}
           onRefresh={refreshDocumentHeader}
           onRefreshList={refreshDocumentsList}
           onDismissUploadJob={dismissUploadJob}

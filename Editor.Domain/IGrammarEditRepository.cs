@@ -6,9 +6,10 @@ public record ParadigmDetail(Paradigm Paradigm, bool Hidden);
 
 public interface IGrammarEditRepository
 {
-    Task<int> CreateLocalParadigm(Paradigm paradigm, CancellationToken cancellationToken = default);
+    Task<int> CreateLocalParadigm(Paradigm paradigm, string? userId, CancellationToken cancellationToken = default);
+    Task<int> CreateLocalCopy(Paradigm paradigm, int originalId, string? userId, CancellationToken cancellationToken = default);
 
-    Task UpdateLocalParadigm(Paradigm paradigm, CancellationToken cancellationToken = default);
+    Task UpdateLocalParadigm(Paradigm paradigm, string? userId, CancellationToken cancellationToken = default);
 
     Task DeleteLocalParadigm(int paradigmId, CancellationToken cancellationToken = default);
 

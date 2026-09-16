@@ -16,7 +16,6 @@ interface DocumentsTableProps {
   uploadJobs?: UploadJobStatus[];
   recentlyCompletedIds?: Set<number>;
   isExpanded: boolean;
-  stanzaEnabled?: boolean;
   onRefresh?: (documentId: number) => void;
   onRefreshList?: () => void;
   onDismissUploadJob?: (jobId: string) => void;
@@ -110,7 +109,6 @@ export const DocumentsTable = ({
   uploadJobs = [],
   recentlyCompletedIds = new Set(),
   isExpanded,
-  stanzaEnabled = false,
   onRefresh,
   onRefreshList,
   onDismissUploadJob,
@@ -140,10 +138,9 @@ export const DocumentsTable = ({
       onClick: () => onRefreshList?.(),
     },
     {
-      label: 'Разьмеціць Stanza',
+      label: 'Разьмеціць нявызначаныя',
       icon: <SparklesIcon className="w-4 h-4 mr-3" />,
       onClick: () => onTagAll?.(),
-      hidden: !stanzaEnabled,
     },
   ];
 
@@ -291,10 +288,10 @@ export const DocumentsTable = ({
                             ),
                         },
                         {
-                          label: 'Разьмеціць Stanza',
+                          label: 'Разьмеціць нявызначаныя',
                           icon: <SparklesIcon className="w-4 h-4 mr-3" />,
                           onClick: () => onTag?.(doc.n),
-                          hidden: !stanzaEnabled || !isEditor || !!taggingJob,
+                          hidden: !isEditor || !!taggingJob,
                         },
                         {
                           label: 'Абнавіць',

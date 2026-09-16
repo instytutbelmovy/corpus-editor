@@ -14,6 +14,7 @@ public static class Grammar
         group.MapGet("/paradigms", SearchParadigms).Viewer();
         group.MapGet("/paradigms/{id:int}", GetParadigm).Viewer();
         group.MapPost("/paradigms", CreateParadigm).Validate<ParadigmCreateVm>().Editor();
+        group.MapPost("/paradigms/{id:int}/copy", CopyParadigm).Validate<ParadigmCreateVm>().Editor();
         group.MapPut("/paradigms/{id:int}", UpdateParadigm).Validate<ParadigmCreateVm>().Editor();
         group.MapDelete("/paradigms/{id:int}", DeleteParadigm).Editor();
         group.MapPost("/paradigms/{id:int}/hide", HideParadigm).Editor();
@@ -28,13 +29,17 @@ public static class Grammar
         int id, IParadigmService paradigmService, CancellationToken cancellationToken)
         => paradigmService.GetParadigm(id, cancellationToken);
 
-    private static Task<CreatedParadigmResponse> CreateParadigm(
-        [FromBody] ParadigmCreateVm createVm, IParadigmService paradigmService, CancellationToken cancellationToken)
-        => paradigmService.CreateParadigm(createVm, cancellationToken);
+    private static Task<ParadigmResponse> CreateParadigm(
+        [FromBody] ParadigmCreateVm createVm, ClaimsPrincipal user, IParadigmService paradigmService, CancellationToken cancellationToken)
+        => paradigmService.CreateParadigm(createVm, user.GetUserId(), cancellationToken);
 
     private static Task<ParadigmResponse> UpdateParadigm(
-        int id, [FromBody] ParadigmCreateVm createVm, IParadigmService paradigmService, CancellationToken cancellationToken)
-        => paradigmService.UpdateParadigm(id, createVm, cancellationToken);
+        int id, [FromBody] ParadigmCreateVm createVm, ClaimsPrincipal user, IParadigmService paradigmService, CancellationToken cancellationToken)
+        => paradigmService.UpdateParadigm(id, createVm, user.GetUserId(), cancellationToken);
+
+    private static Task<ParadigmResponse> CopyParadigm(
+        int id, [FromBody] ParadigmCreateVm createVm, ClaimsPrincipal user, IParadigmService paradigmService, CancellationToken cancellationToken)
+        => paradigmService.CopyParadigm(id, createVm, user.GetUserId(), cancellationToken);
 
     private static Task DeleteParadigm(
         int id, IParadigmService paradigmService, CancellationToken cancellationToken)

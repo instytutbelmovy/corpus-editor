@@ -8,8 +8,9 @@ public interface IParadigmService
 {
     Task<List<ParadigmResponse>> SearchParadigms(string query, CancellationToken cancellationToken = default);
     Task<ParadigmResponse> GetParadigm(int id, CancellationToken cancellationToken = default);
-    Task<CreatedParadigmResponse> CreateParadigm(ParadigmCreateVm createVm, CancellationToken cancellationToken = default);
-    Task<ParadigmResponse> UpdateParadigm(int id, ParadigmCreateVm createVm, CancellationToken cancellationToken = default);
+    Task<ParadigmResponse> CreateParadigm(ParadigmCreateVm createVm, string? userId, CancellationToken cancellationToken = default);
+    Task<ParadigmResponse> CopyParadigm(int id, ParadigmCreateVm createVm, string? userId, CancellationToken cancellationToken = default);
+    Task<ParadigmResponse> UpdateParadigm(int id, ParadigmCreateVm createVm, string? userId, CancellationToken cancellationToken = default);
     Task DeleteParadigm(int id, CancellationToken cancellationToken = default);
     Task HideParadigm(int id, string? userId, CancellationToken cancellationToken = default);
     Task UnhideParadigm(int id, CancellationToken cancellationToken = default);
@@ -38,13 +39,14 @@ public class ParadigmService(IGrammarEditRepository grammarEditRepository) : IPa
         return ToParadigmResponse(detail.Paradigm, detail.Hidden);
     }
 
-    public async Task<CreatedParadigmResponse> CreateParadigm(ParadigmCreateVm createVm, CancellationToken cancellationToken = default)
+    public async Task<ParadigmResponse> CreateParadigm(ParadigmCreateVm createVm, string? userId, CancellationToken cancellationToken = default)
     {
-        var id = await grammarEditRepository.CreateLocalParadigm(ToParadigm(createVm), cancellationToken);
-        return new CreatedParadigmResponse(id);
+        var entity = ToParadigm(createVm);
+        entity.ParadigmId = await grammarEditRepository.CreateLocalParadigm(entity, userId, cancellationToken);
+        return ToParadigmResponse(entity, false);
     }
 
-    public async Task<ParadigmResponse> UpdateParadigm(int id, ParadigmCreateVm createVm, CancellationToken cancellationToken = default)
+    public async Task<ParadigmResponse> UpdateParadigm(int id, ParadigmCreateVm createVm, string? userId, CancellationToken cancellationToken = default)
     {
         if (!GrammarIds.IsLocal(id))
             throw new BadRequestException("Рэдагаваць можна толькі ўласныя (лакальныя) парадыгмы");
@@ -53,7 +55,10 @@ public class ParadigmService(IGrammarEditRepository grammarEditRepository) : IPa
             ?? throw new NotFoundException("Парадыгма ня знойдзеная");
 
         var entity = ToParadigm(createVm, id);
-        await grammarEditRepository.UpdateLocalParadigm(entity, cancellationToken);
+        entity.CopiedFromParadigmId = existing.Paradigm.CopiedFromParadigmId;
+        entity.CreatedAt = existing.Paradigm.CreatedAt;
+        entity.CreatedBy = existing.Paradigm.CreatedBy;
+        await grammarEditRepository.UpdateLocalParadigm(entity, userId, cancellationToken);
         return ToParadigmResponse(entity, existing.Hidden);
     }
 
@@ -64,8 +69,23 @@ public class ParadigmService(IGrammarEditRepository grammarEditRepository) : IPa
         await grammarEditRepository.DeleteLocalParadigm(id, cancellationToken);
     }
 
-    public Task HideParadigm(int id, string? userId, CancellationToken cancellationToken = default)
-        => grammarEditRepository.HideParadigm(id, userId, cancellationToken);
+    public async Task<ParadigmResponse> CopyParadigm(int id, ParadigmCreateVm createVm, string? userId, CancellationToken cancellationToken = default)
+    {
+        var original = await grammarEditRepository.GetParadigm(id, cancellationToken)
+            ?? throw new NotFoundException("Парадыгма ня знойдзеная");
+        if (original.Paradigm.Source != ParadigmSource.Upstream)
+            throw new BadRequestException("Капіяваць можна толькі парадыгмы з асноўнай базы");
+        var entity = ToParadigm(createVm);
+        entity.CopiedFromParadigmId = id;
+        entity.ParadigmId = await grammarEditRepository.CreateLocalCopy(entity, id, userId, cancellationToken);
+        return ToParadigmResponse(entity, false);
+    }
+
+    public async Task HideParadigm(int id, string? userId, CancellationToken cancellationToken = default)
+    {
+        _ = await GetParadigm(id, cancellationToken);
+        await grammarEditRepository.HideParadigm(id, userId, cancellationToken);
+    }
 
     public Task UnhideParadigm(int id, CancellationToken cancellationToken = default)
         => grammarEditRepository.UnhideParadigm(id, cancellationToken);
@@ -94,5 +114,5 @@ public class ParadigmService(IGrammarEditRepository grammarEditRepository) : IPa
     private static ParadigmResponse ToParadigmResponse(Paradigm p, bool hidden) => new(
         p.ParadigmId, p.Lemma, p.Tag, p.Meaning, p.Source, hidden,
         p.Variants.Select(v => new VariantResponse(v.Id, v.Lemma, v.Tag,
-            v.Forms.Select(f => new FormResponse(f.Tag, f.Value)).ToList())).ToList());
+            v.Forms.Select(f => new FormResponse(f.Tag, f.Value)).ToList())).ToList(), p.CopiedFromParadigmId);
 }

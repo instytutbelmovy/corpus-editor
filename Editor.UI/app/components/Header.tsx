@@ -13,30 +13,28 @@ export default function Header() {
     return null;
   }
 
-  // Дакумэнты і карыстальнікі - толькі адміністратару; граматычная база даступная ўсім, уключна з глядачамі
-  const showAdminNavigation = user.role === Roles.Admin;
+  // Дакумэнты і граматычная база даступныя ўсім аўтэнтыфікаваным (граматычная база - у рэжыме толькі прагляду для глядачоў); карыстальнікі - толькі адміністратару
+  const isAdmin = user.role === Roles.Admin;
 
   return (
     <header className="max-w-7xl mx-auto px-2 sm:px-2 lg:px-4">
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-2 flex justify-between items-center">
         <div className="flex items-center space-x-1">
-          {showAdminNavigation && (
-            <NavLink
-              href="/"
-              isActive={
-                router.pathname === '/' || router.pathname.startsWith('/docs')
-              }
-            >
-              Дакумэнты
-            </NavLink>
-          )}
+          <NavLink
+            href="/"
+            isActive={
+              router.pathname === '/' || router.pathname.startsWith('/docs')
+            }
+          >
+            Дакумэнты
+          </NavLink>
           <NavLink
             href="/grammar-base"
             isActive={router.pathname.startsWith('/grammar-base')}
           >
             Граматычная база
           </NavLink>
-          {showAdminNavigation && (
+          {isAdmin && (
             <NavLink
               href="/users"
               isActive={router.pathname.startsWith('/users')}

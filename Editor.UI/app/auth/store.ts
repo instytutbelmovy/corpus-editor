@@ -35,7 +35,7 @@ export const useAuthStore = create<AuthState>(set => ({
       turnstileToken
     );
     if (result.success) {
-      set({ isAuthenticated: true, user: AuthStorage.get() });
+      set({ isAuthenticated: true, user: result.user ?? null });
     }
     return result;
   },
@@ -47,13 +47,13 @@ export const useAuthStore = create<AuthState>(set => ({
 
   checkAuthStatus: async () => {
     try {
-      const isAuth = await serviceLocator.authService.checkAuthStatus();
+      const user = await serviceLocator.authService.checkAuthStatus();
       set({
-        isAuthenticated: isAuth,
-        user: isAuth ? AuthStorage.get() : null,
+        isAuthenticated: user !== null,
+        user,
         isLoading: false,
       });
-      return isAuth;
+      return user !== null;
     } catch (error) {
       console.error('Auth check failed:', error);
       set({ isAuthenticated: false, user: null, isLoading: false });

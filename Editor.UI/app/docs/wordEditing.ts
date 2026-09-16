@@ -6,6 +6,7 @@ import {
   LinguisticTag,
   Paragraph,
   ParadigmFormId,
+  ResolutionSource,
   SelectedWord,
   Sentence,
   SentenceItem,
@@ -141,6 +142,7 @@ const withResolvedNow = (item: LinguisticItem): LinguisticItem => ({
     suggested: item.metadata?.suggested ?? null,
     ...item.metadata,
     resolvedOn: new Date().toISOString(),
+    resolvedBy: ResolutionSource.Human,
   },
 });
 
@@ -151,7 +153,11 @@ const restore = (previous: LinguisticItem) => (item: LinguisticItem) => ({
   lemma: previous.lemma,
   linguisticTag: previous.linguisticTag,
   metadata: item.metadata
-    ? { ...item.metadata, resolvedOn: previous.metadata?.resolvedOn ?? null }
+    ? {
+        ...item.metadata,
+        resolvedOn: previous.metadata?.resolvedOn ?? null,
+        resolvedBy: previous.metadata?.resolvedBy,
+      }
     : item.metadata,
 });
 

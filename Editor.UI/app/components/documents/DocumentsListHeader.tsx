@@ -4,11 +4,13 @@ import { PlusIcon } from '../icons';
 interface DocumentsListHeaderProps {
   isExpanded: boolean;
   onToggleExpanded: () => void;
+  canUpload: boolean;
 }
 
 export const DocumentsListHeader = ({
   isExpanded,
   onToggleExpanded,
+  canUpload,
 }: DocumentsListHeaderProps) => {
   return (
     <div className="px-6 py-4 border-b border-gray-200">
@@ -35,10 +37,12 @@ export const DocumentsListHeader = ({
               />
             </button>
           </div>
-          <ButtonLink href="/docs/new">
-            <PlusIcon className="w-4 h-4 mr-2" />
-            Дадаць
-          </ButtonLink>
+          {canUpload && (
+            <ButtonLink href="/docs/new">
+              <PlusIcon className="w-4 h-4 mr-2" />
+              Дадаць
+            </ButtonLink>
+          )}
         </div>
       </div>
     </div>
