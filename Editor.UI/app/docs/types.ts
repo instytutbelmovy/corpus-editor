@@ -18,9 +18,18 @@ export enum LinguisticErrorType {
   Grammatical = 25,
 }
 
+export enum ResolutionSource {
+  NotResolved = 0,
+  Human = 1,
+  Unknown = 10,
+  GrammarDb = 20,
+  Stanza = 30,
+}
+
 export interface Metadata {
   suggested: unknown;
   resolvedOn: string | null;
+  resolvedBy?: ResolutionSource;
   errorType?: LinguisticErrorType;
 }
 

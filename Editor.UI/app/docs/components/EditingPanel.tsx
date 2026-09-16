@@ -16,6 +16,7 @@ import {
   ManualInputValues,
 } from './ManualLinguisticInput';
 import { WordTitle } from './WordTitle';
+import { ResolutionInfo } from './ResolutionInfo';
 import { ErrorTypeSelect } from './ErrorTypeSelect';
 import { CommentField } from './CommentField';
 import { Alert } from '@/app/components';
@@ -134,6 +135,7 @@ export function EditingPanel({
   return (
     <div className="fixed bottom-0 left-0 w-full h-2/3 bg-white border-t border-gray-200 shadow-2xl z-50 rounded-t-2xl overflow-y-auto lg:sticky lg:top-6 lg:w-80 lg:h-[calc(100vh-3rem)] lg:border-t-0 lg:border-l lg:border-r-0 lg:border-b-0 lg:rounded-none lg:shadow-none">
       <div className="p-4">
+        <ResolutionInfo metadata={selectedWord.item.metadata} />
         <WordTitle
           key={selectedKey}
           text={selectedWord.item.text}
