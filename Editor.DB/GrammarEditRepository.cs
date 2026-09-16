@@ -14,13 +14,13 @@ public class GrammarEditRepository(GrammarDbContext db) : IGrammarEditRepository
     /// </summary>
     private const int FormScanLimit = 2000;
 
-    public async Task<int> CreateLocalParadigm(Paradigm paradigm, CancellationToken cancellationToken = default)
-        => await Create(paradigm, null, null, cancellationToken);
+    public async Task<int> CreateLocalParadigm(Paradigm paradigm, string? userId, CancellationToken cancellationToken = default)
+        => await Create(paradigm, null, userId, cancellationToken);
 
-    public Task<int> CreateLocalCopy(Paradigm paradigm, int originalId, string? hiddenBy, CancellationToken cancellationToken = default)
-        => Create(paradigm, originalId, hiddenBy, cancellationToken);
+    public Task<int> CreateLocalCopy(Paradigm paradigm, int originalId, string? userId, CancellationToken cancellationToken = default)
+        => Create(paradigm, originalId, userId, cancellationToken);
 
-    private async Task<int> Create(Paradigm paradigm, int? originalId, string? hiddenBy, CancellationToken cancellationToken)
+    private async Task<int> Create(Paradigm paradigm, int? originalId, string? userId, CancellationToken cancellationToken)
     {
         await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
 
@@ -29,6 +29,8 @@ public class GrammarEditRepository(GrammarDbContext db) : IGrammarEditRepository
         paradigm.ParadigmId = id;
         paradigm.Source = ParadigmSource.Local;
         paradigm.LemmaNormalized = Normalizer.GrammarDbSearchNormalize(paradigm.Lemma);
+        paradigm.CreatedAt = DateTime.UtcNow;
+        paradigm.CreatedBy = userId;
 
         db.Paradigms.Add(paradigm);
         db.Forms.AddRange(BuildForms(paradigm));
@@ -36,18 +38,20 @@ public class GrammarEditRepository(GrammarDbContext db) : IGrammarEditRepository
 
         if (originalId.HasValue)
             await db.Database.ExecuteSqlInterpolatedAsync(
-                $"INSERT INTO hidden_paradigms (paradigm_id, hidden_by, hidden_at) VALUES ({originalId.Value}, {hiddenBy}, {DateTime.UtcNow}) ON CONFLICT (paradigm_id) DO NOTHING",
+                $"INSERT INTO hidden_paradigms (paradigm_id, hidden_by, hidden_at) VALUES ({originalId.Value}, {userId}, {DateTime.UtcNow}) ON CONFLICT (paradigm_id) DO NOTHING",
                 cancellationToken);
 
         await tx.CommitAsync(cancellationToken);
         return id;
     }
 
-    public async Task UpdateLocalParadigm(Paradigm paradigm, CancellationToken cancellationToken = default)
+    public async Task UpdateLocalParadigm(Paradigm paradigm, string? userId, CancellationToken cancellationToken = default)
     {
         EnsureLocal(paradigm.ParadigmId);
         paradigm.Source = ParadigmSource.Local;
         paradigm.LemmaNormalized = Normalizer.GrammarDbSearchNormalize(paradigm.Lemma);
+        paradigm.ModifiedAt = DateTime.UtcNow;
+        paradigm.ModifiedBy = userId;
 
         await using var tx = await db.Database.BeginTransactionAsync(cancellationToken);
 

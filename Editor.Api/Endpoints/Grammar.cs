@@ -30,12 +30,12 @@ public static class Grammar
         => paradigmService.GetParadigm(id, cancellationToken);
 
     private static Task<ParadigmResponse> CreateParadigm(
-        [FromBody] ParadigmCreateVm createVm, IParadigmService paradigmService, CancellationToken cancellationToken)
-        => paradigmService.CreateParadigm(createVm, cancellationToken);
+        [FromBody] ParadigmCreateVm createVm, ClaimsPrincipal user, IParadigmService paradigmService, CancellationToken cancellationToken)
+        => paradigmService.CreateParadigm(createVm, user.GetUserId(), cancellationToken);
 
     private static Task<ParadigmResponse> UpdateParadigm(
-        int id, [FromBody] ParadigmCreateVm createVm, IParadigmService paradigmService, CancellationToken cancellationToken)
-        => paradigmService.UpdateParadigm(id, createVm, cancellationToken);
+        int id, [FromBody] ParadigmCreateVm createVm, ClaimsPrincipal user, IParadigmService paradigmService, CancellationToken cancellationToken)
+        => paradigmService.UpdateParadigm(id, createVm, user.GetUserId(), cancellationToken);
 
     private static Task<ParadigmResponse> CopyParadigm(
         int id, [FromBody] ParadigmCreateVm createVm, ClaimsPrincipal user, IParadigmService paradigmService, CancellationToken cancellationToken)

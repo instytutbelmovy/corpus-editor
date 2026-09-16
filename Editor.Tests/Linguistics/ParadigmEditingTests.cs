@@ -32,7 +32,7 @@ public class ParadigmEditingTests
         var repo = new Repository();
         repo.Existing.Paradigm.Source = ParadigmSource.Local;
         repo.Existing.Paradigm.CopiedFromParadigmId = 42;
-        var result = await new ParadigmService(repo).UpdateParadigm(GrammarIds.LocalParadigmIdBase, Input());
+        var result = await new ParadigmService(repo).UpdateParadigm(GrammarIds.LocalParadigmIdBase, Input(), null);
         Assert.Equal(42, result.CopiedFromParadigmId);
         Assert.True(result.Hidden);
         Assert.Null(repo.Copy);
@@ -43,7 +43,7 @@ public class ParadigmEditingTests
     {
         var repo = new Repository();
         var service = new ParadigmService(repo);
-        await Assert.ThrowsAsync<BadRequestException>(() => service.UpdateParadigm(42, Input()));
+        await Assert.ThrowsAsync<BadRequestException>(() => service.UpdateParadigm(42, Input(), null));
         repo.Existing.Paradigm.Source = ParadigmSource.Local;
         await Assert.ThrowsAsync<BadRequestException>(() => service.CopyParadigm(42, Input(), null));
         Assert.Null(repo.Saved);
@@ -76,17 +76,17 @@ public class ParadigmEditingTests
         public Paradigm? Saved { get; private set; }
         public (int, string?)? Copy { get; private set; }
         public Task<ParadigmDetail?> GetParadigm(int id, CancellationToken cancellationToken = default) => Task.FromResult(Missing ? null : Existing);
-        public Task<int> CreateLocalParadigm(Paradigm paradigm, CancellationToken cancellationToken = default)
+        public Task<int> CreateLocalParadigm(Paradigm paradigm, string? userId, CancellationToken cancellationToken = default)
         {
             Saved = paradigm;
             return Task.FromResult(GrammarIds.LocalParadigmIdBase);
         }
-        public Task<int> CreateLocalCopy(Paradigm paradigm, int originalId, string? hiddenBy, CancellationToken cancellationToken = default)
+        public Task<int> CreateLocalCopy(Paradigm paradigm, int originalId, string? userId, CancellationToken cancellationToken = default)
         {
-            Copy = (originalId, hiddenBy);
-            return CreateLocalParadigm(paradigm, cancellationToken);
+            Copy = (originalId, userId);
+            return CreateLocalParadigm(paradigm, userId, cancellationToken);
         }
-        public Task UpdateLocalParadigm(Paradigm paradigm, CancellationToken cancellationToken = default) { Saved = paradigm; return Task.CompletedTask; }
+        public Task UpdateLocalParadigm(Paradigm paradigm, string? userId, CancellationToken cancellationToken = default) { Saved = paradigm; return Task.CompletedTask; }
         public Task DeleteLocalParadigm(int id, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task HideParadigm(int id, string? userId, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task UnhideParadigm(int id, CancellationToken cancellationToken = default) => throw new NotSupportedException();

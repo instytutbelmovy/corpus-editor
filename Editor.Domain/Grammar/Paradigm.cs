@@ -19,6 +19,11 @@ public class Paradigm
     public List<ParadigmVariant> Variants { get; set; } = [];
     /// <summary> Крыніца: апстрым (пераімпартуецца) ці лакальная (уласная, перажывае пераімпарт) </summary>
     public ParadigmSource Source { get; set; } = ParadigmSource.Upstream;
+    // Толькі для лакальных парадыгмаў; для апстрыму заўсёды null
+    public DateTime? CreatedAt { get; set; }
+    public DateTime? ModifiedAt { get; set; }
+    public string? CreatedBy { get; set; }
+    public string? ModifiedBy { get; set; }
 }
 
 public class ParadigmVariant

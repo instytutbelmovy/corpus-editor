@@ -8,9 +8,9 @@ public interface IParadigmService
 {
     Task<List<ParadigmResponse>> SearchParadigms(string query, CancellationToken cancellationToken = default);
     Task<ParadigmResponse> GetParadigm(int id, CancellationToken cancellationToken = default);
-    Task<ParadigmResponse> CreateParadigm(ParadigmCreateVm createVm, CancellationToken cancellationToken = default);
+    Task<ParadigmResponse> CreateParadigm(ParadigmCreateVm createVm, string? userId, CancellationToken cancellationToken = default);
     Task<ParadigmResponse> CopyParadigm(int id, ParadigmCreateVm createVm, string? userId, CancellationToken cancellationToken = default);
-    Task<ParadigmResponse> UpdateParadigm(int id, ParadigmCreateVm createVm, CancellationToken cancellationToken = default);
+    Task<ParadigmResponse> UpdateParadigm(int id, ParadigmCreateVm createVm, string? userId, CancellationToken cancellationToken = default);
     Task DeleteParadigm(int id, CancellationToken cancellationToken = default);
     Task HideParadigm(int id, string? userId, CancellationToken cancellationToken = default);
     Task UnhideParadigm(int id, CancellationToken cancellationToken = default);
@@ -39,14 +39,14 @@ public class ParadigmService(IGrammarEditRepository grammarEditRepository) : IPa
         return ToParadigmResponse(detail.Paradigm, detail.Hidden);
     }
 
-    public async Task<ParadigmResponse> CreateParadigm(ParadigmCreateVm createVm, CancellationToken cancellationToken = default)
+    public async Task<ParadigmResponse> CreateParadigm(ParadigmCreateVm createVm, string? userId, CancellationToken cancellationToken = default)
     {
         var entity = ToParadigm(createVm);
-        entity.ParadigmId = await grammarEditRepository.CreateLocalParadigm(entity, cancellationToken);
+        entity.ParadigmId = await grammarEditRepository.CreateLocalParadigm(entity, userId, cancellationToken);
         return ToParadigmResponse(entity, false);
     }
 
-    public async Task<ParadigmResponse> UpdateParadigm(int id, ParadigmCreateVm createVm, CancellationToken cancellationToken = default)
+    public async Task<ParadigmResponse> UpdateParadigm(int id, ParadigmCreateVm createVm, string? userId, CancellationToken cancellationToken = default)
     {
         if (!GrammarIds.IsLocal(id))
             throw new BadRequestException("Рэдагаваць можна толькі ўласныя (лакальныя) парадыгмы");
@@ -56,7 +56,9 @@ public class ParadigmService(IGrammarEditRepository grammarEditRepository) : IPa
 
         var entity = ToParadigm(createVm, id);
         entity.CopiedFromParadigmId = existing.Paradigm.CopiedFromParadigmId;
-        await grammarEditRepository.UpdateLocalParadigm(entity, cancellationToken);
+        entity.CreatedAt = existing.Paradigm.CreatedAt;
+        entity.CreatedBy = existing.Paradigm.CreatedBy;
+        await grammarEditRepository.UpdateLocalParadigm(entity, userId, cancellationToken);
         return ToParadigmResponse(entity, existing.Hidden);
     }
 
