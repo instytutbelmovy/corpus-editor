@@ -11,19 +11,9 @@ export class GrammarService {
   }
 
   async createParadigm(input: ParadigmInput): Promise<Paradigm> {
-    const created = unwrap(
-      await this.apiClient.post<{ paradigmId: number }>(
-        '/grammar/paradigms',
-        input
-      )
+    return unwrap(
+      await this.apiClient.post<Paradigm>('/grammar/paradigms', input)
     );
-    return {
-      ...input,
-      paradigmId: created.paradigmId,
-      source: 1,
-      hidden: false,
-      copiedFromParadigmId: null,
-    };
   }
 
   async updateParadigm(id: number, input: ParadigmInput): Promise<Paradigm> {

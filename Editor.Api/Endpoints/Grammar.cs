@@ -29,7 +29,7 @@ public static class Grammar
         int id, IParadigmService paradigmService, CancellationToken cancellationToken)
         => paradigmService.GetParadigm(id, cancellationToken);
 
-    private static Task<CreatedParadigmResponse> CreateParadigm(
+    private static Task<ParadigmResponse> CreateParadigm(
         [FromBody] ParadigmCreateVm createVm, IParadigmService paradigmService, CancellationToken cancellationToken)
         => paradigmService.CreateParadigm(createVm, cancellationToken);
 

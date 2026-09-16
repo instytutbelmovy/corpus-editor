@@ -9,6 +9,16 @@ export function nextVariantId(variants: ParadigmVariant[]): string | undefined {
   );
 }
 
+// Ідэнтыфікатары варыянтаў заўсёды ідуць запар: a, b, c ...
+export function relabelVariants(
+  variants: ParadigmVariant[]
+): ParadigmVariant[] {
+  return variants.map((v, i) => ({
+    ...v,
+    id: 'abcdefghijklmnopqrstuvwxyz'[i],
+  }));
+}
+
 // Падказкі — толькі граматычныя пазыцыі; словы ўводзіць рэдактар.
 export function suggestedFormTags(tag: string): string[] {
   const pos = tag[0];
@@ -39,6 +49,17 @@ export function suggestedFormTags(tag: string): string[] {
   return [''];
 }
 
+// Поўны стандартны набор пазыцый для тэгу: першая — гэта лема, астатнія пустыя.
+export function defaultForms(
+  tag: string,
+  lemma: string
+): ParadigmVariant['forms'] {
+  return suggestedFormTags(tag).map((t, i) => ({
+    tag: t,
+    value: i === 0 ? lemma : '',
+  }));
+}
+
 export function newVariant(
   id: string,
   lemma: string,
@@ -48,7 +69,7 @@ export function newVariant(
     id,
     lemma,
     tag,
-    forms: [{ tag: suggestedFormTags(tag)[0], value: lemma }],
+    forms: defaultForms(tag, lemma),
   };
 }
 
@@ -59,7 +80,10 @@ export function prepareInput(draft: ParadigmInput): ParadigmInput {
     meaning: draft.meaning?.trim() || null,
     variants: draft.variants.map(v => ({
       ...v,
-      lemma: v.lemma.trim(),
+      // Без уласнай лемы варыянт бярэ лему парадыгмы.
+      lemma: v.lemma.trim() || draft.lemma.trim(),
+      // Варыянт без уласных катэгорый пазначаецца пустым тэгам.
+      tag: v.tag === draft.tag ? '' : v.tag,
       forms: v.forms
         .filter(f => f.value.trim())
         .map(f => ({ ...f, value: f.value.trim() })),

@@ -11,8 +11,6 @@ public record ParadigmResponse(int ParadigmId, string Lemma, string Tag, string?
 public record VariantResponse(string Id, string Lemma, string Tag, List<FormResponse> Forms);
 public record FormResponse(string Tag, string Value);
 
-public record CreatedParadigmResponse(int ParadigmId);
-
 public class ParadigmCreateVmValidator : AbstractValidator<ParadigmCreateVm>
 {
     public ParadigmCreateVmValidator()

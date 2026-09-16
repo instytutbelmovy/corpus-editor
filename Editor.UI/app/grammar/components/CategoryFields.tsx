@@ -1,5 +1,4 @@
-import { useId } from 'react';
-import { SelectInput } from '@/app/components/Field';
+import { inputClasses } from '@/app/components/Field';
 import {
   buildTag,
   CATEGORY_LABELS,
@@ -18,7 +17,6 @@ export function CategoryFields({
   formTag?: string;
   onChange: (tag: string) => void;
 }) {
-  const id = useId();
   const pos = paradigmTag[0];
   const isForm = formTag !== undefined;
   const codes = parseTagCodes(
@@ -31,27 +29,27 @@ export function CategoryFields({
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
       {keys.map(key => (
-        <SelectInput
+        <select
           key={key}
-          id={`${id}-${key}`}
-          label={CATEGORY_LABELS[key]}
+          aria-label={CATEGORY_LABELS[key]}
           value={codes[key] ?? ''}
           onChange={e => {
             const tag = buildTag(pos, { ...codes, [key]: e.target.value });
             onChange(isForm ? (tag.formTag ?? '') : tag.paradigmTag);
           }}
+          className={inputClasses()}
         >
-          <option value="">Не пазначана</option>
+          <option value="">{CATEGORY_LABELS[key]}</option>
           {codes[key] &&
             !categoryOptions(pos, key).some(o => o.value === codes[key]) && (
               <option value={codes[key]}>{codes[key]}</option>
             )}
           {categoryOptions(pos, key).map(o => (
             <option key={o.value} value={o.value}>
-              {o.label}
+              {o.value} — {o.label}
             </option>
           ))}
-        </SelectInput>
+        </select>
       ))}
     </div>
   );
