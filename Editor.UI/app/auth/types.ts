@@ -8,7 +8,7 @@ export enum Roles {
 export function getRoleName(roleValue: number): string {
   switch (roleValue) {
     case Roles.None:
-      return 'Нэактыўны';
+      return 'Неактыўны';
     case Roles.Viewer:
       return 'Глядач';
     case Roles.Editor:
