@@ -14,6 +14,9 @@ public class AwsSettings
     public string SecretAccessKey { get; set; } = null!;
     public string Region { get; set; } = null!;
     public string BucketName { get; set; } = null!;
+
+    /// <summary> DynamoDB table for the request audit trail. Empty disables audit logging entirely. </summary>
+    public string AuditTable { get; set; } = "";
 }
 
 public interface ICorpusStorage

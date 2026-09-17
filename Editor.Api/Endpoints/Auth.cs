@@ -15,13 +15,13 @@ public static class Auth
     public static void MapAuth(this IEndpointRouteBuilder builder)
     {
         var group = builder.MapGroup("/api/auth");
-        group.MapPost("/sign-in", SignIn).Validate<SignInRequest>().RateLimited();
+        group.MapPost("/sign-in", SignIn).Validate<SignInRequest>().RateLimited().Sensitive();
         group.MapPost("/sign-out", SignOut);
-        group.MapGet("/who-am-i", WhoAmI);
-        group.MapPost("/forgot-password", ForgotPassword).Validate<ForgotPasswordRequest>().RateLimited();
-        group.MapPost("/reset-password", ResetPassword).Validate<ResetPasswordRequest>().RateLimited();
+        group.MapGet("/who-am-i", WhoAmI).Sensitive();
+        group.MapPost("/forgot-password", ForgotPassword).Validate<ForgotPasswordRequest>().RateLimited().Sensitive();
+        group.MapPost("/reset-password", ResetPassword).Validate<ResetPasswordRequest>().RateLimited().Sensitive();
         group.MapGet("/config", GetConfig);
-        group.MapGet("/google/login", GoogleLogin).RateLimited();
+        group.MapGet("/google/login", GoogleLogin).RateLimited().Sensitive();
     }
 
     private static async Task<WhoAmIResponse> SignIn(

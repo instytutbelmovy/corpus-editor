@@ -29,7 +29,7 @@ export function UserList({ users, onEdit, onInvite }: UserListProps) {
         </Thead>
         <Tbody>
           {users.map(user => {
-            // Нэактыўныя карыстальнікі паказваюцца прыглушана
+            // Неактыўныя карыстальнікі паказваюцца прыглушана
             const isInactive = user.role === Roles.None;
 
             return (
