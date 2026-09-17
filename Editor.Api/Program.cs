@@ -1,4 +1,3 @@
-using Editor;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
@@ -21,6 +20,8 @@ using Editor.Services.Email;
 using Editor.Services.Linguistics;
 using Editor.Services.Registry;
 using Editor.Services.Users;
+using AuditMiddleware = Editor.Api.Infrastructure.AuditMiddleware;
+using AuditPersistenceHostedService = Editor.Api.Infrastructure.AuditPersistenceHostedService;
 using InfrastructureJsonSerializerContext = Editor.Api.Infrastructure.InfrastructureJsonSerializerContext;
 using ServicesJsonSerializerContext = Editor.Services.ServicesJsonSerializerContext;
 using VertiJsonSerializerContext = Editor.Services.Corpus.VertiJsonSerializerContext;
@@ -112,6 +113,13 @@ static void ConfigureServices(WebApplicationBuilder builder)
 
     builder.Services.AddHostedService<AwsFilesCacheMaintenanceService>();
     builder.Services.AddHostedService<UploadJobWorker>();
+
+    // Audit logging is opt-in per environment: absent (not just inert) when no table is configured.
+    if (!string.IsNullOrEmpty(awsSettings.AuditTable))
+    {
+        builder.Services.AddSingleton<AuditQueue>();
+        builder.Services.AddHostedService<AuditPersistenceHostedService>();
+    }
 
     builder.Services.AddConventionalServices(typeof(EditingService).Assembly); // Editor.Services
     builder.Services.AddConventionalServices(typeof(UserRepository).Assembly); // Editor.DB
@@ -236,6 +244,8 @@ static void ConfigurePipeline(WebApplication app)
     app.MapStaticAssets();
     app.Use(ExceptionMiddleware.HandleException);
     app.UseAuthentication();
+    if (!string.IsNullOrEmpty(app.Services.GetRequiredService<AwsSettings>().AuditTable))
+        app.UseMiddleware<AuditMiddleware>();
     app.UseAuthorization();
     app.UseRateLimiter();
     app.MapRegistry();

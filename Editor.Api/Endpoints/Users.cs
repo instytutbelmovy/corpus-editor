@@ -10,10 +10,10 @@ public static class Users
     public static void MapUsers(this IEndpointRouteBuilder builder)
     {
         var group = builder.MapGroup("/api/users");
-        group.MapGet("/", GetAllUsers).Admin();
-        group.MapGet("/{id}", GetUserById).Admin();
-        group.MapPost("/", CreateUser).Validate<EditorUserCreateDto>().Admin();
-        group.MapPut("/{id}", UpdateUser).Validate<EditorUserCreateDto>().Admin();
+        group.MapGet("/", GetAllUsers).Admin().Sensitive();
+        group.MapGet("/{id}", GetUserById).Admin().Sensitive();
+        group.MapPost("/", CreateUser).Validate<EditorUserCreateDto>().Admin().Sensitive();
+        group.MapPut("/{id}", UpdateUser).Validate<EditorUserCreateDto>().Admin().Sensitive();
         group.MapPost("/{id}/invite", InviteUser).Validate<InviteUserRequest>().Admin();
     }
 
